@@ -1,0 +1,98 @@
+feature <- white 
+           comment
+           white
+           tags 
+           white 
+           header:(!(scenario_outline / scenario / background) .)*
+           bg:background?
+           feature_elements
+           comment?;
+
+tags <- white ts:(tag (space/eol)+)*;
+
+tag <- '@' tag_name:([^@\r\n\t\s])+;
+
+comment <- (comment_line white)*;
+
+comment_line <- '#' line_to_eol;
+
+background <- comment white 
+              background_keyword space* 
+              name:lines_to_keyword? 
+              (eol+ / eof) 
+              steps;
+
+feature_elements <- (scenario / scenario_outline)*;
+
+scenario <- comment 
+            tags white 
+            scenario_keyword space* 
+            name:lines_to_keyword white 
+            steps white;
+
+scenario_outline <- comment 
+                    tags white 
+                    scenario_outline_keyword space* 
+                    name:lines_to_keyword white 
+                    steps 
+                    examples_sections white;
+
+steps <- step*;
+
+step <- comment space*
+        step_keyword
+        keyword_space
+        name:line_to_eol
+        (eol+ / eof)
+        multi:multiline_arg?
+        white;
+
+examples_sections <- examples*;
+
+examples <- space* 
+            examples_keyword space*
+            name:lines_to_keyword?
+            eol
+            table
+            white;
+
+multiline_arg <- table / py_string;
+
+line_to_eol <- (!eol .)*;
+
+line_to_keyword <- white
+                   text:(!stepkeyword !scenario_keyword !scenario_outline_keyword !table !tag !comment_line !eol .)+;
+
+lines_to_keyword <- (line_to_keyword)*;
+
+py_string <- open_py_string s:(!close_py_string .)* close_py_string;
+
+open_py_string <- indent:space* '"""' space* eol;
+
+close_py_string <- eol space* quotes:'"""' white;
+
+white <- (space / eol)*;
+
+table <- table_row+;
+
+table_row <- space* '|' cells:(cell '|')+ space* (eol+ / eof);
+
+cell <- (!('|' / eol) .)*;
+
+space <- [ \t];
+
+eol <- '\n' / ('\r' '\n'?);
+
+eof <- !.;
+
+background_keyword <- 'Background:';
+
+scenario_keyword <- 'Scenario:';
+
+scenario_outline_keyword <- 'Scenario Outline:';
+
+step_keyword <- 'Given' / 'When' / 'Then' / 'And' / 'But';
+
+examples_keyword <- 'Examples' ':'?;
+
+keyword_space <- space*;
