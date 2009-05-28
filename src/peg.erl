@@ -60,8 +60,7 @@ setup_memo(Name) ->
 
 release_memo() ->
   ets:delete(get(ets_table)),
-  erase(ets_table),
-  erase(index).
+  erase(ets_table).
 
 memoize(Position, Struct) ->
   ets:insert(get(ets_table), {Position, Struct}).

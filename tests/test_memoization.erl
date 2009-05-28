@@ -13,3 +13,12 @@ release_memo_test() ->
   peg:release_memo(),
   ?assertEqual(undefined, get(ets_table)),
   ?assertEqual(undefined, ets:info(Tid)).
+
+step_memo_test() ->
+  peg:setup_memo(),
+  Result = peg:p("abcdefghi", anything, peg:anything()),
+  ?assertEqual({$a, "bcdefghi"}, Result),
+  ets:insert(get(ets_table), {current_index, 0}), % Reset the index to the beginning
+  Result2 = peg:p("abcdefghi", anything, fun(_) ->
+                                             throw(bork) end),
+  ?assertEqual(Result, Result2).
