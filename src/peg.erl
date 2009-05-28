@@ -8,7 +8,7 @@
 -export([p/3, p/4]).
 -export([setup_memo/0, setup_memo/1, release_memo/0]).
 
--export([eof/1, optional/1,
+-export([eof/0, optional/1,
          not_/1, assert/1, seq/1,
          and_/1, choose/1,
          zero_or_more/1, one_or_more/1,
@@ -78,15 +78,15 @@ set_index(Value) -> ets:insert(get(ets_table), {current_index, Value}).
 
 %% Parser combinators and matchers
 
-eof([]) ->
-  {eof, []};
-eof(_) -> fail.
+eof() ->
+  fun([]) -> {eof, []};
+     (_) -> fail end.
 
 optional(P) ->
   fun(Input) ->
       case P(Input) of
         fail -> {[], Input};
-        {Result, InpRem} -> {[Result], InpRem}
+        {Result, InpRem} -> {Result, InpRem}
       end
   end.
 
@@ -136,7 +136,9 @@ attempt([P|Parsers], Input)->
   end.
 
 zero_or_more(P) ->
-  optional(one_or_more(P)).
+  fun(Input) ->
+      scan(P, Input, [])
+  end.
 
 one_or_more(P) ->
   fun(Input)->
@@ -158,7 +160,7 @@ scan(P, Inp, Accum) ->
 string(S) ->
   fun(Input) ->
       case lists:prefix(S, Input) of
-        true -> {S, lists:nthtail(length(S), Input)};
+        true -> {S,  Input -- S};
         _ -> fail
       end
   end.
