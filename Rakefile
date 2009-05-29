@@ -11,19 +11,22 @@ ERLC_OPT='+debug_info -W -I include -pz ebin'
 
 beams = ['ebin'] + FileList.new('src/*.erl').gsub(*SRC_TO_BIN)
 test_files = ['ebin_tests'] + FileList.new('tests/*.erl').gsub(*TEST_TO_BIN)
+test_examples = ['ebin_tests/examples'] + FileList.new('tests/examples/*.erl').gsub(*TEST_TO_BIN)
 task :default => beams
 
 directory 'ebin'
 directory 'ebin_tests'
+directory 'ebin_tests/examples'
 
 rule(%r{^ebin/.*\.beam$} => lambda { |fn| fn.gsub(*BIN_TO_SRC) }) do |t|
   sh "#{ERLC} #{ERLC_OPT} -o ebin #{t.source}"
 end
 
 rule(%r{^ebin_tests/.*\.beam$} => lambda { |fn| fn.gsub(*BIN_TO_TEST) }) do |t|
-  sh "#{ERLC} #{ERLC_OPT} -o ebin_tests #{t.source}"
+  target_dir = File.dirname(t.name)
+  sh "#{ERLC} #{ERLC_OPT} -o #{target_dir} #{t.source}"
 end
 
-task :test => (beams + test_files) do
-  sh "#{ERL} -pz ebin -pz ebin_tests -b start_sasl -noshell -s init stop -eval 'test_suite:test().'"
+task :test => (beams + test_files + test_examples) do
+  sh "#{ERL} -pz ebin -pz ebin_tests -pz ebin_tests/examples -b start_sasl -noshell -s init stop -eval 'test_suite:test().'"
 end
