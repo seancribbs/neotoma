@@ -6,7 +6,7 @@
 -author("Jeffrey A. Meunier <jeffm@cse.uconn.edu>").
 
 -export([p/3, p/4]).
--export([setup_memo/0, setup_memo/1, release_memo/0]).
+-export([setup_memo/1, release_memo/0]).
 
 -export([eof/0, optional/1,
          not_/1, assert/1, seq/1,
@@ -39,20 +39,17 @@ p(Inp, Name, ParseFun, TransformFun) ->
           set_index(StartIndex),
           fail;
         % If it passes, advance the index, memoize the result.
-        {Result2, InpRem} ->
+        {Result, InpRem} ->
           NewIndex = StartIndex + (length(Inp) - length(InpRem)),
-          Transformed = TransformFun(Result2),
+          Transformed = TransformFun(Result),
           memoize(StartIndex, dict:store(Name, {Transformed, NewIndex}, Memo)),
           set_index(NewIndex),
-          {Result2, InpRem}
+          {Result, InpRem}
       end
   end.
 
 
 %% Memoizing results
-setup_memo() ->
-  setup_memo(?MODULE).
-
 setup_memo(Name) ->
   TID = ets:new(Name, [set]),
   put(ets_table, TID),
