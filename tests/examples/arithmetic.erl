@@ -1,9 +1,10 @@
 -module(arithmetic).
 -export([parse/1]).
+-include("../../include/peg.hrl").
 
 parse(Input) ->
-  peg:setup_memo(?MODULE),
-  Result = case peg:p(Input, additive, fun additive/1) of
+  peg:setup_memo(arithmetic),
+  Result = case additive(Input) of
              {AST, []} ->
                 AST;
              fail -> fail
@@ -38,3 +39,19 @@ decimal(Input) ->
   peg:p(Input, decimal, fun(I) ->
                             (peg:charclass("[0-9]"))(I)
                         end).
+
+%% Transform the nodes into the result of the expression
+%transform(decimal, Node) ->
+%  list_to_integer([Node]);
+%transform(primary, Node) when is_integer(Node) ->
+%  Node;
+%transform(primary, Node) when is_list(Node) ->
+%  lists:nth(2, Node);
+%transform(multitive, Node) when is_integer(Node) ->
+%  Node;
+%transform(multitive, Node) when is_list(Node) ->
+%  hd(Node) * lists:nth(3, Node);
+%transform(additive, Node) when is_integer(Node) ->
+%  Node;
+%transform(additive, Node) when is_list(Node) ->
+%  hd(Node) + lists:nth(3, Node).

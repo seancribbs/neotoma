@@ -1,8 +1,6 @@
 -module(arithmetic_xf).
 -include("../../include/peg.hrl").
 
-?root(additive).
-
 rule(additive) ->
   peg:choose([peg:seq([fun multitive/1,
                        peg:string("+"),
