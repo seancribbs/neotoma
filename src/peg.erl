@@ -12,6 +12,7 @@
          not_/1, assert/1, seq/1,
          and_/1, choose/1,
          zero_or_more/1, one_or_more/1,
+         label/2, 
          string/1, anything/0,
          charclass/1]).
 
@@ -143,6 +144,16 @@ one_or_more(P) ->
         {[_|_], _} ->
           Result;
         _ -> fail
+      end
+  end.
+
+label(Tag, P) ->
+  fun(Input) ->
+      case P(Input) of
+        fail ->
+           fail;
+        {Result, InpRem} ->
+          {{Tag, Result}, InpRem}
       end
   end.
 

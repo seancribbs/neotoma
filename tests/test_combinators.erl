@@ -56,6 +56,12 @@ one_or_more_test_() ->
    ?_assertEqual({["abc","abc"], "def"}, (peg:one_or_more(peg:string("abc")))("abcabcdef"))
   ].
 
+label_test_() ->
+  [
+   ?_assertEqual(fail, (peg:label(bang, peg:string("!")))("?")),
+   ?_assertEqual({{bang, "!"}, ""}, (peg:label(bang, peg:string("!")))("!"))
+  ].
+
 string_test_() ->
   [
    ?_assertEqual({"abc", "def"}, (peg:string("abc"))("abcdef")),
