@@ -45,7 +45,7 @@ p(Inp, Name, ParseFun, TransformFun) ->
           Transformed = TransformFun(Result),
           memoize(StartIndex, dict:store(Name, {Transformed, NewIndex}, Memo)),
           set_index(NewIndex),
-          {Result, InpRem}
+          {Transformed, InpRem}
       end
   end.
 

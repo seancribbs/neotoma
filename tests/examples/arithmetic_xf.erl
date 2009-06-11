@@ -21,3 +21,18 @@ rule(primary) ->
 
 rule(decimal) ->
   peg:charclass("[0-9]").
+
+transform(decimal, Node) ->
+  list_to_integer([Node]);
+transform(primary, Node) when is_integer(Node) ->
+  Node;
+transform(primary, Node) when is_list(Node) ->
+  lists:nth(2, Node);
+transform(multitive, Node) when is_integer(Node) ->
+  Node;
+transform(multitive, Node) when is_list(Node) ->
+  hd(Node) * lists:nth(3, Node);
+transform(additive, Node) when is_integer(Node) ->
+  Node;
+transform(additive, Node) when is_list(Node) ->
+  hd(Node) + lists:nth(3, Node).
