@@ -1,9 +1,10 @@
 -module(peg).
 -author("Sean Cribbs <seancribbs@gmail.com>").
-% Giving credit to the original parser.erl library from which I lifted many
-% of these functions, which in turn was based on the Haskell "parsec" library by
-% Erik Meijer.  I've renamed the functions to be more Erlang-y.
--author("Jeffrey A. Meunier <jeffm@cse.uconn.edu>").
+
+% Thanks to Jeffrey A. Meunier for the original parser.erl library from which I
+% lifted many of these functions, which in turn was based on the Haskell
+% "parsec" library by Erik Meijer.  I've renamed the functions to be more
+% Erlang-y.
 
 -export([p/3, p/4]).
 -export([setup_memo/1, release_memo/0]).
@@ -12,7 +13,7 @@
          not_/1, assert/1, seq/1,
          and_/1, choose/1,
          zero_or_more/1, one_or_more/1,
-         label/2, 
+         label/2,
          string/1, anything/0,
          charclass/1]).
 
@@ -71,7 +72,6 @@ get_memo(Position) ->
 
 index() -> ets:lookup_element(get(ets_table), current_index, 2).
 set_index(Value) -> ets:insert(get(ets_table), {current_index, Value}).
-
 
 %% Parser combinators and matchers
 
