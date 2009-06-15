@@ -1,7 +1,6 @@
 -module(metagrammar).
+-export([parse/1]).
 -include("../include/peg.hrl").
-
-?root(rules).
 
 rule(rules) ->
   peg:seq([peg:optional(fun space/1),
@@ -10,11 +9,11 @@ rule(rules) ->
 
 rule(declaration_sequence) ->
   peg:seq([
-           fun declaration/1,
-           peg:zero_or_more(
+           peg:label(head, fun declaration/1),
+           peg:label(tail, peg:zero_or_more(
              peg:seq([
                       fun space/1,
-                      fun declaration/1]))]);
+                      fun declaration/1])))]);
 
 rule(declaration) ->
   peg:seq([
@@ -36,15 +35,15 @@ rule(parsing_expression) ->
 
 rule(choice) ->
   peg:seq([
-           fun alternative/1,
-           peg:one_or_more(
+           peg:label(head, fun alternative/1),
+           peg:label(tail, peg:one_or_more(
              peg:seq([
                       fun space/1,
                       peg:string("/"),
                       fun space/1,
                       fun alternative/1
                      ])
-            )
+            ))
           ]);
 
 rule(alternative) ->
@@ -59,13 +58,13 @@ rule(primary) ->
 
 rule(sequence) ->
   peg:seq([
-           fun labeled_sequence_primary/1,
-           peg:one_or_more(
+           peg:label(head, fun labeled_sequence_primary/1),
+           peg:label(tail, peg:one_or_more(
              peg:seq([
                       fun space/1,
                       fun labeled_sequence_primary/1
                      ])
-            )
+            ))
           ]);
 
 rule(labeled_sequence_primary) -> peg:seq([peg:optional(fun label/1), fun primary/1]);
@@ -108,24 +107,24 @@ rule(quoted_string) -> peg:choose([fun single_quoted_string/1, fun double_quoted
 
 rule(double_quoted_string) ->
   peg:seq([peg:string("\""),
-           peg:zero_or_more(
+           peg:label(string, peg:zero_or_more(
              peg:seq([peg:not_(peg:string("\"")),
-                      peg:choose([peg:string("\\\\"), peg:string("\\\""), peg:anything()])])),
+                      peg:choose([peg:string("\\\\"), peg:string("\\\""), peg:anything()])]))),
            peg:string("\"")]);
 
 rule(single_quoted_string) ->
   peg:seq([peg:string("'"),
-           peg:zero_or_more(
+           peg:label(string,peg:zero_or_more(
              peg:seq([peg:not_(peg:string("'")),
-                      peg:choose([peg:string("\\\\"), peg:string("\\'"), peg:anything()])])),
+                      peg:choose([peg:string("\\\\"), peg:string("\\'"), peg:anything()])]))),
            peg:string("'")]);
 
 rule(character_class) ->
   peg:seq([peg:string("["),
-           peg:one_or_more(peg:seq([peg:not_(peg:string("]")),
+           peg:label(characters, peg:one_or_more(peg:seq([peg:not_(peg:string("]")),
                                     peg:choose([peg:seq([peg:string("\\\\"), peg:anything()]),
-                                                peg:seq([peg:not_("\\\\"), peg:anything()])])
-                                   ])),
+                                                peg:seq([peg:not_(peg:string("\\\\")), peg:anything()])])
+                                   ]))),
            peg:string("]")]);
 
 rule(anything_symbol) -> peg:string(".");
@@ -143,3 +142,61 @@ rule(comment_to_eol) ->
            peg:zero_or_more(peg:and_([peg:not_(peg:string("\n")), peg:anything()]))]);
 
 rule(white) -> peg:charclass("[ \t\n\r]").
+
+transform(rules, Node) ->
+  Rules = string:join(lists:nth(2, Node), ";\n"),
+  Rules ++ ".\n";
+transform(declaration_sequence, Node) ->
+  [proplists:get_value(head, Node)|lists:map(fun(I) -> lists:nth(2, I) end, proplists:get_value(tail, Node, []))];
+transform(declaration, Node) ->
+  "rule("++element(2,hd(Node))++") ->\n  " ++ lists:nth(5, Node);
+transform(sequence, Node) ->
+  Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
+  Statements = [proplists:get_value(head, Node)|Tail],
+  "peg:seq(["++ string:join(Statements, ", ") ++ "])";
+transform(choice, Node) ->
+  Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
+  Statements = [proplists:get_value(head, Node)|Tail],
+  "peg:choose([" ++ string:join(Statements, ", ") ++ "])";
+transform(label, Node) ->
+  lists:reverse(tl(lists:reverse(lists:flatten(Node))));
+transform(labeled_sequence_primary, Node) ->
+  case hd(Node) of
+    [] -> lists:nth(2, Node);
+    Label -> "peg:label('" ++ Label ++ "', "++lists:nth(2, Node)++")"
+  end;
+transform(single_quoted_string, Node) ->
+  transform(double_quoted_string, Node);
+transform(double_quoted_string, Node) ->
+  "peg:string(\""++lists:flatten(proplists:get_value(string, Node))++"\")";
+transform(character_class, Node) ->
+  "peg:charclass(\"[" ++ lists:flatten(proplists:get_value(characters, Node)) ++ "\")";
+transform(atomic, {nonterminal, Symbol}) ->
+  "fun " ++ Symbol ++ "/1";
+transform(primary, [Atomic, one_or_more]) ->
+  "peg:one_or_more("++Atomic++")";
+transform(primary, [Atomic, zero_or_more]) ->
+  "peg:zero_or_more("++Atomic++")";
+transform(primary, [Atomic, optional]) ->
+  "peg:optional("++Atomic++")";
+transform(primary, [assert, Atomic])->
+  "peg:assert("++Atomic++")";
+transform(primary, [not_, Atomic]) ->
+  "peg:not_("++Atomic++")";
+transform(nonterminal, Node) ->
+  {nonterminal, lists:flatten(Node)};
+transform(anything_symbol, _Node) ->
+  "peg:anything()";
+transform(suffix, Node) ->
+  case Node of
+    "*" -> zero_or_more;
+    "+" -> one_or_more;
+    "?" -> optional
+  end;
+transform(prefix, Node) ->
+  case Node of
+    "&" -> assert;
+    "!" -> not_
+  end;
+transform(_, Node) ->
+   Node.
