@@ -172,9 +172,9 @@ transform(labeled_sequence_primary, Node) ->
 transform(single_quoted_string, Node) ->
   transform(double_quoted_string, Node);
 transform(double_quoted_string, Node) ->
-  "peg:string(\""++lists:flatten(proplists:get_value(string, Node))++"\")";
+  "peg:string(\""++escape_quotes(lists:flatten(proplists:get_value(string, Node)))++"\")";
 transform(character_class, Node) ->
-  "peg:charclass(\"[" ++ lists:flatten(proplists:get_value(characters, Node)) ++ "]\")";
+  "peg:charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
 transform(atomic, {nonterminal, Symbol}) ->
   "fun " ++ Symbol ++ "/2";
 transform(primary, [Atomic, one_or_more]) ->
@@ -205,3 +205,7 @@ transform(prefix, Node) ->
 transform(Rule, Node) when is_atom(Rule) ->
    % io:format("<~p>: ~p~n", [Rule, Node]),
    Node.
+
+escape_quotes(String) ->
+  {ok, RE} = re:compile("\""),
+  re:replace(String, RE, "\\\\\"", [global, {return, list}]).
