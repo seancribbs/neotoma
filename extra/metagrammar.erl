@@ -143,13 +143,16 @@ rule(comment_to_eol) ->
 
 rule(white) -> peg:charclass("[ \t\n\r]").
 
+
 transform(rules, Node) ->
   Rules = string:join(lists:nth(2, Node), ";\n"),
   Rules ++ ".\n";
 transform(declaration_sequence, Node) ->
-  [proplists:get_value(head, Node)|lists:map(fun(I) -> lists:nth(2, I) end, proplists:get_value(tail, Node, []))];
-transform(declaration, Node) ->
-  "rule("++element(2,hd(Node))++") ->\n  " ++ lists:nth(5, Node);
+  FirstRule = proplists:get_value(head, Node),
+  OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
+  [FirstRule|OtherRules];
+transform(declaration, [{nonterminal,Symbol}|Node]) ->
+  "rule("++Symbol++") ->\n  " ++ lists:nth(4, Node);
 transform(sequence, Node) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
@@ -159,7 +162,8 @@ transform(choice, Node) ->
   Statements = [proplists:get_value(head, Node)|Tail],
   "peg:choose([" ++ string:join(Statements, ", ") ++ "])";
 transform(label, Node) ->
-  lists:reverse(tl(lists:reverse(lists:flatten(Node))));
+  String = lists:flatten(Node),
+  lists:sublist(String, length(String)-1);
 transform(labeled_sequence_primary, Node) ->
   case hd(Node) of
     [] -> lists:nth(2, Node);
@@ -170,7 +174,7 @@ transform(single_quoted_string, Node) ->
 transform(double_quoted_string, Node) ->
   "peg:string(\""++lists:flatten(proplists:get_value(string, Node))++"\")";
 transform(character_class, Node) ->
-  "peg:charclass(\"[" ++ lists:flatten(proplists:get_value(characters, Node)) ++ "\")";
+  "peg:charclass(\"[" ++ lists:flatten(proplists:get_value(characters, Node)) ++ "]\")";
 transform(atomic, {nonterminal, Symbol}) ->
   "fun " ++ Symbol ++ "/1";
 transform(primary, [Atomic, one_or_more]) ->
@@ -198,5 +202,6 @@ transform(prefix, Node) ->
     "&" -> assert;
     "!" -> not_
   end;
-transform(_, Node) ->
+transform(Rule, Node) when is_atom(Rule) ->
+   % io:format("<~p>: ~p~n", [Rule, Node]),
    Node.

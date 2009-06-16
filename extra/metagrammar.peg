@@ -1,57 +1,55 @@
-rules <- space* declaration_sequence space*;
+rules <- space? declaration_sequence (space)?;
 
-declaration_sequence <- head:declaration tail:(space declaration)*;
+declaration_sequence <- head:declaration (tail:(space declaration)*);
 
-declaration <- nonterminal space '<-' space parsing_expression;
+% declaration <- nonterminal space? '<-' space? parsing_expression space? ';';
 
-parsing_expression <- choice / sequence / primary;
+% parsing_expression <- choice / sequence / primary;
 
-choice <- head:alternative tail:(space? '/' space? alternative)+;
+% choice <- head:alternative tail:(space? '/' space? alternative)+;
 
-sequence <- head:labeled_sequence_primary tail:(space labeled_sequence_primary)+;
+% sequence <- head:labeled_sequence_primary tail:(space labeled_sequence_primary)+;
 
-alternative <- sequence / primary;
+% alternative <- sequence / primary;
 
-primary <- prefix atomic / atomic suffix / atomic;
+% primary <- prefix atomic / atomic suffix / atomic;
 
-labeled_sequence_primary <- label sequence_primary;
+% labeled_sequence_primary <- label sequence_primary;
 
-label <- (alpha_char alphanumeric_char*) ':' / '';
+% label <- (alpha_char alphanumeric_char*) ':' / '';
 
-sequence_primary <- prefix atomic / atomic suffix / atomic;
+% suffix <- repetition_suffix / optional_suffix;
 
-suffix <- repetition_suffix / optional_suffix;
+% optional_suffix <- '?';
 
-optional_suffix <- '?';
+% repetition_suffix <- '+' / '*';
 
-repetition_suffix <- '+' / '*';
+% prefix <- '&' / '!';
 
-prefix <- '&' / '!';
+% atomic <- terminal / nonterminal / parenthesized_expression;
 
-atomic <- terminal / nonterminal / parenthesized_expression;
+% parenthesized_expression <- '(' space? parsing_expression space? ')';
 
-parenthesized_expression <- '(' space? parsing_expression space? ')';
+% nonterminal <- (alpha_char alphanumeric_char*);
 
-nonterminal <- (alpha_char alphanumeric_char*);
+% terminal <- quoted_string / character_class / anything_symbol;
 
-terminal <- quoted_string / character_class / anything_symbol;
+% quoted_string <- (single_quoted_string / double_quoted_string);
 
-quoted_string <- (single_quoted_string / double_quoted_string);
+% double_quoted_string <- '"' string:(!'"' ("\\\\" / '\"' / .))* '"';
 
-double_quoted_string <- '"' string:(!'"' ("\\\\" / '\"' / .))* '"';
+% single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'";
 
-single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'";
+% character_class <- '[' characters:(!']' ('\\' . /!'\\' .))+ ']';
 
-character_class <- '[' characters:(!']' ('\\' . /!'\\' .))+ ']';
+% anything_symbol <- '.';
 
-anything_symbol <- '.';
+% alpha_char <- [A-Za-z_];
 
-alpha_char <- [A-Za-z_];
+% alphanumeric_char <- alpha_char / [0-9];
 
-alphanumeric_char <- alpha_char / [0-9];
+% space <- (white / comment_to_eol)+;
 
-space <- (white / comment_to_eol)+;
+% comment_to_eol <- '%' (!"\\n" .)*;
 
-comment_to_eol <- '%' (!"\\n" .)*;
-
-white <- [ \t\n\r];
+% white <- [ \t\n\r];

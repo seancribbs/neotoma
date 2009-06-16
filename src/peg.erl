@@ -16,11 +16,11 @@
          label/2,
          string/1, anything/0,
          charclass/1]).
-
+%-define(MEMOIZE, true).
 %% Parsing wrapper for memoization
-%% Let's be dumb initially and do no semantic analysis
 p(Inp, Name, ParseFun) ->
   p(Inp, Name, ParseFun, fun(N) -> N end).
+-ifdef(MEMOIZE).
 p(Inp, Name, ParseFun, TransformFun) ->
   % Record the starting index
   StartIndex = index(),
@@ -49,7 +49,15 @@ p(Inp, Name, ParseFun, TransformFun) ->
           {Transformed, InpRem}
       end
   end.
-
+-else.
+p(Inp,_Name,ParseFun,TransformFun) ->
+  case ParseFun(Inp) of
+    fail ->
+       fail;
+    {Result, NewInp} ->
+      {TransformFun(Result), NewInp}
+  end.
+-endif.
 
 %% Memoizing results
 setup_memo(Name) ->
