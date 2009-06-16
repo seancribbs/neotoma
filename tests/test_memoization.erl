@@ -4,8 +4,7 @@
 
 setup_memo_test() ->
   peg:setup_memo(?MODULE),
-  ?assertNot(undefined == get(ets_table)),
-  ?assertMatch([[{current_index, 0}]], ets:match(get(ets_table), '$1')).
+  ?assertNot(undefined == get(ets_table)).
 
 release_memo_test() ->
   peg:setup_memo(?MODULE),
@@ -16,9 +15,8 @@ release_memo_test() ->
 
 step_memo_test() ->
   peg:setup_memo(?MODULE),
-  Result = peg:p("abcdefghi", anything, peg:anything()),
-  ?assertEqual({$a, "bcdefghi"}, Result),
-  ets:insert(get(ets_table), {current_index, 0}), % Reset the index to the beginning
-  Result2 = peg:p("abcdefghi", anything, fun(_) ->
+  Result = peg:p("abcdefghi", 0, anything, peg:anything()),
+  ?assertEqual({$a, "bcdefghi", 1}, Result),
+  Result2 = peg:p("abcdefghi", 0, anything, fun(_) ->
                                              throw(bork) end),
   ?assertEqual(Result, Result2).

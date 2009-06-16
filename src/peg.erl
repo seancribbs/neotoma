@@ -16,11 +16,11 @@
          label/2,
          string/1, anything/0,
          charclass/1]).
--define(MEMOIZE, true).
+
 %% Parsing wrapper for memoization
 p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N) -> N end).
--ifdef(MEMOIZE).
+
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   % Record the starting index
   % StartIndex = index(),
@@ -28,33 +28,31 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   Memo = get_memo(StartIndex),
   % See if the current reduction is memoized
   case dict:find(Name, Memo) of
-    % If it is, set the new index, and return the result
+    % If it is, return the result
     {ok, Result} -> Result;
     % If not, attempt to parse
     _ ->
       case ParseFun(Inp, StartIndex) of
-        % If it fails, reset the index, memoize the failure
+        % If it fails, memoize the failure
         {fail,_} = Failure ->
           memoize(StartIndex, dict:store(Name, Failure, Memo)),
           Failure;
-        % If it passes, advance the index, memoize the result.
+        % If it passes, transform and  memoize the result.
         {Result, InpRem, NewIndex} ->
-          %io:format("Result <~p>: ~p~n", [Name, [Result]]),
           Transformed = TransformFun(Result),
           memoize(StartIndex, dict:store(Name, {Transformed, InpRem, NewIndex}, Memo)),
-          %set_index(NewIndex),
           {Transformed, InpRem, NewIndex}
       end
   end.
--else.
-p(Inp,StartIndex,_Name,ParseFun,TransformFun) ->
-  case ParseFun(Inp,StartIndex) of
-    {fail,I} ->
-       {fail,I};
-    {Result, NewInp, NewIndex} ->
-      {TransformFun(Result), NewInp, NewIndex}
-  end.
--endif.
+
+%% p(Inp,StartIndex,_Name,ParseFun,TransformFun) ->
+%%   case ParseFun(Inp,StartIndex) of
+%%     {fail,I} ->
+%%        {fail,I};
+%%     {Result, NewInp, NewIndex} ->
+%%       {TransformFun(Result), NewInp, NewIndex}
+%%   end.
+
 
 %% Memoizing results
 setup_memo(Name) ->
