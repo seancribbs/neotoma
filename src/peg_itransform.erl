@@ -1,4 +1,4 @@
--module(peg_identity).
+-module(peg_itransform).
 -export([parse_transform/2]).
 
 parse_transform(AST, _Options) ->
