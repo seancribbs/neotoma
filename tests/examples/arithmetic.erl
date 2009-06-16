@@ -1,46 +1,46 @@
 -module(arithmetic).
 -export([parse/1]).
--include("../../include/peg.hrl").
+-include("../../include/peg_i.hrl").
 
 parse(Input) ->
   peg:setup_memo(arithmetic),
-  Result = case additive(Input) of
-             {AST, []} ->
+  Result = case additive(Input,0) of
+             {AST, [], _Index} ->
                 AST;
-             fail -> fail
+             Any -> Any
            end,
   peg:release_memo(),
   Result.
 
-additive(Input) ->
-  peg:p(Input, additive, fun(I) ->
-                             (peg:choose([peg:seq([fun multitive/1,
+additive(Input, Index) ->
+  peg:p(Input, Index, additive, fun(I,D) ->
+                             (peg:choose([peg:seq([fun multitive/2,
                                                   peg:string("+"),
-                                                  fun additive/1]),
-                                         fun multitive/1]))(I) end,
+                                                  fun additive/2]),
+                                         fun multitive/2]))(I,D) end,
        fun(Node) -> transform(additive, Node) end).
 
-multitive(Input) ->
-  peg:p(Input, multitive, fun(I) ->
-                              (peg:choose([peg:seq([fun primary/1,
+multitive(Input, Index) ->
+  peg:p(Input, Index, multitive, fun(I,D) ->
+                              (peg:choose([peg:seq([fun primary/2,
                                                    peg:string("*"),
-                                                   fun multitive/1]),
-                                          fun primary/1]))(I)
+                                                   fun multitive/2]),
+                                          fun primary/2]))(I,D)
                           end,
        fun(Node) -> transform(multitive, Node) end).
 
-primary(Input) ->
-  peg:p(Input, primary, fun(I) ->
+primary(Input, Index) ->
+  peg:p(Input, Index, primary, fun(I,D) ->
                             (peg:choose([peg:seq([peg:string("("),
-                                                 fun additive/1,
+                                                 fun additive/2,
                                                  peg:string(")")]),
-                                        fun decimal/1]))(I)
+                                        fun decimal/2]))(I,D)
                         end,
        fun(Node) -> transform(primary, Node) end).
 
-decimal(Input) ->
-  peg:p(Input, decimal, fun(I) ->
-                            (peg:charclass("[0-9]"))(I)
+decimal(Input, Index) ->
+  peg:p(Input, Index, decimal, fun(I,D) ->
+                            (peg:charclass("[0-9]"))(I,D)
                         end,
        fun(Node) -> transform(decimal, Node) end).
 

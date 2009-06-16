@@ -35,8 +35,8 @@ build_rules(Clauses) ->
 build_rule({clause,Line,[{atom,_,Name}],_,Stmt}) ->
   ets:insert_new(peg_transform, {root, Name, Line}),
   Wrapped = wrap_reductions(Stmt, Name),
-  {function,Line,Name,1,
-   [{clause,Line,[{var,Line,'Input'}],[],Wrapped}]}.
+  {function,Line,Name,2,
+   [{clause,Line,[{var,Line,'Input'},{var,Line,'Index'}],[],Wrapped}]}.
 
 wrap_reductions(Stmt,Name) ->
   Inner = hd(Stmt),
@@ -47,6 +47,7 @@ wrap_reductions(Stmt,Name) ->
     {remote,Line,{atom,Line,peg},{atom,Line,p}},
     [
      {var,Line,'Input'},
+     {var,Line,'Index'},
      {atom,Line,Name},
      Fun,
      Transform
@@ -56,11 +57,11 @@ wrap_fun(Stmts, Line) when is_tuple(Stmts) ->
   {'fun',Line,
    {clauses,
     [{clause,Line,
-      [{var,Line,'I'}],
+      [{var,Line,'I'},{var,Line,'D'}],
       [],
       [{call,Line,
         Stmts,
-        [{var,Line,'I'}]}]}]}};
+        [{var,Line,'I'},{var,Line,'D'}]}]}]}};
 wrap_fun(Stmts, Line) ->
   io:format("peg rules must be single arity functions or statements and cannot be sequences of statements!~n"),
   throw({parse_error, not_tuple, Line, Stmts}).
@@ -78,9 +79,9 @@ generate_parse_function() ->
       {match,Line,
        {var,Line,'Result'},
        {'case',Line,
-        {call,Line,{atom,Line,Rule},[{var,Line,'Input'}]},
-        [{clause,Line,[{tuple,Line,[{var,Line,'AST'},{nil,Line}]}],[],[{var,Line,'AST'}]},
-         {clause,Line,[{atom,Line,fail}],[],[{atom,Line,fail}]}]}},
+        {call,Line,{atom,Line,Rule},[{var,Line,'Input'},{integer,Line,0}]},
+        [{clause,Line,[{tuple,Line,[{var,Line,'AST'},{nil,Line},{var,Line, '_Index'}]}],[],[{var,Line,'AST'}]},
+         {clause,Line,[{var,Line,'Any'}],[],[{var,Line,'Any'}]}]}},
       {call,Line,{remote,Line,{atom,Line,peg},{atom,Line,release_memo}},[]},
       {var,Line,'Result'}]}]}.
 

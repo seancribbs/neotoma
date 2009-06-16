@@ -6,7 +6,7 @@
 % "parsec" library by Erik Meijer.  I've renamed the functions to be more
 % Erlang-y.
 
--export([p/3, p/4]).
+-export([p/4, p/5]).
 -export([setup_memo/1, release_memo/0]).
 
 -export([eof/0, optional/1,
@@ -16,54 +16,50 @@
          label/2,
          string/1, anything/0,
          charclass/1]).
-%-define(MEMOIZE, true).
+-define(MEMOIZE, true).
 %% Parsing wrapper for memoization
-p(Inp, Name, ParseFun) ->
-  p(Inp, Name, ParseFun, fun(N) -> N end).
+p(Inp, Index, Name, ParseFun) ->
+  p(Inp, Index, Name, ParseFun, fun(N) -> N end).
 -ifdef(MEMOIZE).
-p(Inp, Name, ParseFun, TransformFun) ->
+p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   % Record the starting index
-  StartIndex = index(),
+  % StartIndex = index(),
   % Grab the memo table from ets
   Memo = get_memo(StartIndex),
   % See if the current reduction is memoized
   case dict:find(Name, Memo) of
     % If it is, set the new index, and return the result
-    {ok, {Result, NewIndex}} ->
-      set_index(NewIndex),
-      {Result, lists:nthtail(NewIndex - StartIndex, Inp)};
+    {ok, Result} -> Result;
     % If not, attempt to parse
     _ ->
-      case ParseFun(Inp) of
+      case ParseFun(Inp, StartIndex) of
         % If it fails, reset the index, memoize the failure
-        fail ->
-          memoize(StartIndex, dict:store(Name, fail, Memo)),
-          set_index(StartIndex),
-          fail;
+        {fail,_} = Failure ->
+          memoize(StartIndex, dict:store(Name, Failure, Memo)),
+          Failure;
         % If it passes, advance the index, memoize the result.
-        {Result, InpRem} ->
-          NewIndex = StartIndex + (length(Inp) - length(InpRem)),
+        {Result, InpRem, NewIndex} ->
+          %io:format("Result <~p>: ~p~n", [Name, [Result]]),
           Transformed = TransformFun(Result),
-          memoize(StartIndex, dict:store(Name, {Transformed, NewIndex}, Memo)),
-          set_index(NewIndex),
-          {Transformed, InpRem}
+          memoize(StartIndex, dict:store(Name, {Transformed, InpRem, NewIndex}, Memo)),
+          %set_index(NewIndex),
+          {Transformed, InpRem, NewIndex}
       end
   end.
 -else.
-p(Inp,_Name,ParseFun,TransformFun) ->
-  case ParseFun(Inp) of
-    fail ->
-       fail;
-    {Result, NewInp} ->
-      {TransformFun(Result), NewInp}
+p(Inp,StartIndex,_Name,ParseFun,TransformFun) ->
+  case ParseFun(Inp,StartIndex) of
+    {fail,I} ->
+       {fail,I};
+    {Result, NewInp, NewIndex} ->
+      {TransformFun(Result), NewInp, NewIndex}
   end.
 -endif.
 
 %% Memoizing results
 setup_memo(Name) ->
   TID = ets:new(Name, [set]),
-  put(ets_table, TID),
-  set_index(0).
+  put(ets_table, TID).
 
 release_memo() ->
   ets:delete(get(ets_table)),
@@ -78,119 +74,117 @@ get_memo(Position) ->
     [{Position, Dict}] -> Dict
   end.
 
-index() -> ets:lookup_element(get(ets_table), current_index, 2).
-set_index(Value) -> ets:insert(get(ets_table), {current_index, Value}).
 
 %% Parser combinators and matchers
 
 eof() ->
-  fun([]) -> {eof, []};
-     (_) -> fail end.
+  fun([], Index) -> {eof, [], Index};
+     (_, Index) -> {fail, Index} end.
 
 optional(P) ->
-  fun(Input) ->
-      case P(Input) of
-        fail -> {[], Input};
-        {Result, InpRem} -> {Result, InpRem}
+  fun(Input, Index) ->
+      case P(Input, Index) of
+        {fail,_} -> {[], Input, Index};
+        {_, _, _} = Success -> Success
       end
   end.
 
 % Negative lookahead
 not_(P) ->
-  fun(Input)->
-      case P(Input) of
-        fail ->
-          {[], Input};
-        _ -> fail
+  fun(Input, Index)->
+      case P(Input,Index) of
+        {fail,_} ->
+          {[], Input, Index};
+        _ -> {fail, Index}
       end
   end.
 
 % Positive lookahead
 assert(P) ->
-  fun(Input) ->
-      case P(Input) of
-        fail -> fail;
-        _ -> {[], Input}
+  fun(Input,Index) ->
+      case P(Input,Index) of
+        {fail,_} -> {fail, Index};
+        _ -> {[], Input, Index}
       end
   end.
 
 and_(P) ->
   seq(P).
 seq(P) ->
-  fun(Input) ->
-      all(P, Input, [])
+  fun(Input, Index) ->
+      all(P, Input, Index, [])
   end.
 
-all([], Inp, Accum ) -> {lists:reverse( Accum ), Inp};
-all([P|Parsers], Inp, Accum) ->
-  case P(Inp) of
-    fail -> fail;
-    {Result, InpRem} -> all(Parsers, InpRem, [Result|Accum])
+all([], Inp, Index, Accum ) -> {lists:reverse( Accum ), Inp, Index};
+all([P|Parsers], Inp, Index, Accum) ->
+  case P(Inp, Index) of
+    {fail, I} -> {fail, I};
+    {Result, InpRem, NewIndex} -> all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
 
 choose(Parsers) ->
-  fun(Input) ->
-      attempt(Parsers, Input)
+  fun(Input, Index) ->
+      attempt(Parsers, Input, Index)
   end.
 
-attempt([], _Input) -> fail;
-attempt([P|Parsers], Input)->
-  case P(Input) of
-    fail -> attempt(Parsers, Input);
+attempt([], _Input, Index) -> {fail, Index};
+attempt([P|Parsers], Input, Index)->
+  case P(Input, Index) of
+    {fail, _} -> attempt(Parsers, Input, Index);
     Result -> Result
   end.
 
 zero_or_more(P) ->
-  fun(Input) ->
-      scan(P, Input, [])
+  fun(Input, Index) ->
+      scan(P, Input, Index, [])
   end.
 
 one_or_more(P) ->
-  fun(Input)->
-      Result = scan(P, Input, []),
+  fun(Input, Index)->
+      Result = scan(P, Input, Index, []),
       case Result of
-        {[_|_], _} ->
+        {[_|_], _, _} ->
           Result;
-        _ -> fail
+        _ -> {fail, Index}
       end
   end.
 
 label(Tag, P) ->
-  fun(Input) ->
-      case P(Input) of
-        fail ->
-           fail;
-        {Result, InpRem} ->
-          {{Tag, Result}, InpRem}
+  fun(Input, Index) ->
+      case P(Input, Index) of
+        {fail,_} ->
+           {fail, Index};
+        {Result, InpRem, NewIndex} ->
+          {{Tag, Result}, InpRem, NewIndex}
       end
   end.
 
-scan(_, [], Accum) -> {lists:reverse( Accum ), []};
-scan(P, Inp, Accum) ->
-  case P(Inp) of
-    fail -> {lists:reverse(Accum), Inp};
-    {Result, InpRem} -> scan(P, InpRem, [Result | Accum])
+scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
+scan(P, Inp, Index, Accum) ->
+  case P(Inp, Index) of
+    {fail,_} -> {lists:reverse(Accum), Inp, Index};
+    {Result, InpRem, NewIndex} -> scan(P, InpRem, NewIndex, [Result | Accum])
   end.
 
 string(S) ->
-  fun(Input) ->
+  fun(Input, Index) ->
       case lists:prefix(S, Input) of
-        true -> {S,  Input -- S};
-        _ -> fail
+        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), Index + length(S)};
+        _ -> {fail, Index}
       end
   end.
 
 anything() ->
-  fun([]) -> fail;
-     ([H|T]) -> {H, T}
+  fun([], Index) -> {fail, Index};
+     ([H|T], Index) -> {H, T, Index+1}
   end.
 
 charclass(Class) ->
-  fun(Inp) ->
+  fun(Inp, Index) ->
      {ok, RE} = re:compile("^"++Class),
       case re:run(Inp, RE) of
         {match, _} ->
-          {hd(Inp), tl(Inp)};
-        _ -> fail
+          {hd(Inp), tl(Inp), Index+1};
+        _ -> {fail,Index}
       end
   end.
