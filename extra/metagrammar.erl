@@ -131,7 +131,7 @@ rule(anything_symbol) -> peg:string(".");
 
 rule(non_space_char) -> peg:and_([peg:not_(fun space/2), peg:anything()]);
 
-rule(alpha_char) -> peg:charclass("[A-Za-z_]");
+rule(alpha_char) -> peg:charclass("[a-z_]");
 
 rule(alphanumeric_char) -> peg:choose([fun alpha_char/2, peg:charclass("[0-9]")]);
 
@@ -145,7 +145,7 @@ rule(white) -> peg:charclass("[ \t\n\r]").
 
 
 transform(rules, Node) ->
-  Rules = string:join(lists:nth(2, Node), ";\n"),
+  Rules = string:join(lists:nth(2, Node), ";\n\n"),
   Rules ++ ".\n";
 transform(declaration_sequence, Node) ->
   FirstRule = proplists:get_value(head, Node),
