@@ -39,12 +39,11 @@ validate_params(_,_, TransformModule, OutputFile) ->
 
 generate_module_attrs(ModName) ->
   "-module("++atom_to_list(ModName)++").\n" ++
-   "-export([parse/1]).\n" ++
+   "-export([parse/1,file/1]).\n" ++
    "-include_lib(\"neotoma/include/peg.hrl\").\n".
 
 parse_grammar(InputFile) ->
-  {ok, Bin} = file:read_file(InputFile),
-  case peg_meta:parse(binary_to_list(Bin)) of
+  case peg_meta:file(InputFile) of
     {fail, Index} ->
       throw({grammar_error, {fail, Index}});
     {Parsed, Remainder, Index} ->

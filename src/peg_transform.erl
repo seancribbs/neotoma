@@ -30,7 +30,7 @@ transform_rules([H|Rest], Accum) ->
 
 build_rules(Clauses) ->
   Rules = lists:map(fun build_rule/1, Clauses),
-  [generate_parse_function()|Rules].
+  [generate_file_function(),generate_parse_function()|Rules].
 
 build_rule({clause,Line,[{atom,_,Name}],_,Stmt}) ->
   ets:insert_new(peg_transform, {root, Name, Line}),
@@ -63,7 +63,7 @@ wrap_fun(Stmts, Line) when is_tuple(Stmts) ->
         Stmts,
         [{var,Line,'I'},{var,Line,'D'}]}]}]}};
 wrap_fun(Stmts, Line) ->
-  io:format("peg rules must be single arity functions or statements and cannot be sequences of statements!~n"),
+  io:format("peg rules must be double-arity functions or statements and cannot be sequences of statements!~n"),
   throw({parse_error, not_tuple, Line, Stmts}).
 
 generate_parse_function() ->
@@ -84,6 +84,22 @@ generate_parse_function() ->
          {clause,Line,[{var,Line,'Any'}],[],[{var,Line,'Any'}]}]}},
       {call,Line,{remote,Line,{atom,Line,peg},{atom,Line,release_memo}},[]},
       {var,Line,'Result'}]}]}.
+
+generate_file_function() ->
+  [{_, _Rule, Line}] = ets:lookup(peg_transform, root),
+  {function,Line,file,1,
+   [{clause,Line,
+     [{var,Line,'Filename'}],
+     [],
+     [{match,Line,
+       {tuple,Line,[{atom,Line,ok},{var,Line,'Bin'}]},
+       {call,Line,
+        {remote,Line,{atom,Line,file},{atom,Line,read_file}},
+        [{var,Line,'Filename'}]}},
+      {call,Line,
+       {atom,Line,parse},
+       [{call,Line,{atom,Line,binary_to_list},[{var,Line,'Bin'}]}]}]}]}.
+
 
 semantic_fun(Rule, Line) ->
   {'fun',Line,

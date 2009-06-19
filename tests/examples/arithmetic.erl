@@ -1,6 +1,10 @@
 -module(arithmetic).
--export([parse/1]).
+-export([parse/1, file/1]).
 -include("../../include/peg_i.hrl").
+
+file(Filename) ->
+  {ok, Bin} = file:read_file(Filename),
+  parse(binary_to_list(Bin)).
 
 parse(Input) ->
   peg:setup_memo(arithmetic),
