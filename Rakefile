@@ -18,6 +18,8 @@ directory 'ebin'
 directory 'ebin_tests'
 directory 'ebin_tests/examples'
 
+file "src/peg_meta.erl" => "ebin/peg_transform.beam"
+
 rule(%r{^ebin/.*\.beam$} => lambda { |fn| fn.gsub(*BIN_TO_SRC) }) do |t|
   sh "#{ERLC} #{ERLC_OPT} -o ebin #{t.source}"
 end

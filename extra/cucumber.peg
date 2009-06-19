@@ -1,14 +1,14 @@
-feature <- white 
+feature <- white
            comment
            white
-           tags 
-           white 
+           tags
+           white
            header:(!(scenario_outline / scenario / background) .)*
            bg:background?
            feature_elements
            comment?;
 
-tags <- white ts:(tag (space/eol)+)*;
+tags <- white ts:(tag (space / eol)+)*;
 
 tag <- '@' tag_name:([^@\r\n\t\s])+;
 
@@ -16,25 +16,25 @@ comment <- (comment_line white)*;
 
 comment_line <- '#' line_to_eol;
 
-background <- comment white 
-              background_keyword space* 
-              name:lines_to_keyword? 
-              (eol+ / eof) 
+background <- comment white
+              background_keyword space*
+              name:lines_to_keyword?
+              (eol+ / eof)
               steps;
 
 feature_elements <- (scenario / scenario_outline)*;
 
-scenario <- comment 
-            tags white 
-            scenario_keyword space* 
-            name:lines_to_keyword white 
+scenario <- comment
+            tags white
+            scenario_keyword space*
+            name:lines_to_keyword white
             steps white;
 
-scenario_outline <- comment 
-                    tags white 
-                    scenario_outline_keyword space* 
-                    name:lines_to_keyword white 
-                    steps 
+scenario_outline <- comment
+                    tags white
+                    scenario_outline_keyword space*
+                    name:lines_to_keyword white
+                    steps
                     examples_sections white;
 
 steps <- step*;
@@ -49,7 +49,7 @@ step <- comment space*
 
 examples_sections <- examples*;
 
-examples <- space* 
+examples <- space*
             examples_keyword space*
             name:lines_to_keyword?
             eol
