@@ -22,8 +22,6 @@ p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N) -> N end).
 
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
-  % Record the starting index
-  % StartIndex = index(),
   % Grab the memo table from ets
   Memo = get_memo(StartIndex),
   % See if the current reduction is memoized
@@ -37,22 +35,13 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
         {fail,_} = Failure ->
           memoize(StartIndex, dict:store(Name, Failure, Memo)),
           Failure;
-        % If it passes, transform and  memoize the result.
+        % If it passes, transform and memoize the result.
         {Result, InpRem, NewIndex} ->
           Transformed = TransformFun(Result),
           memoize(StartIndex, dict:store(Name, {Transformed, InpRem, NewIndex}, Memo)),
           {Transformed, InpRem, NewIndex}
       end
   end.
-
-%% p(Inp,StartIndex,_Name,ParseFun,TransformFun) ->
-%%   case ParseFun(Inp,StartIndex) of
-%%     {fail,I} ->
-%%        {fail,I};
-%%     {Result, NewInp, NewIndex} ->
-%%       {TransformFun(Result), NewInp, NewIndex}
-%%   end.
-
 
 %% Memoizing results
 setup_memo(Name) ->
@@ -77,7 +66,7 @@ get_memo(Position) ->
 
 eof() ->
   fun([], Index) -> {eof, [], Index};
-     (_, Index) -> {fail, Index} end.
+     (_, Index) -> {fail, {expected, eof, Index}} end.
 
 optional(P) ->
   fun(Input, Index) ->
@@ -93,7 +82,7 @@ not_(P) ->
       case P(Input,Index) of
         {fail,_} ->
           {[], Input, Index};
-        _ -> {fail, Index}
+        {Result, _, _} -> {fail, {expected, {no_match, Result},Index}}
       end
   end.
 
@@ -101,7 +90,7 @@ not_(P) ->
 assert(P) ->
   fun(Input,Index) ->
       case P(Input,Index) of
-        {fail,_} -> {fail, Index};
+        {fail,_} = Failure-> Failure;
         _ -> {[], Input, Index}
       end
   end.
@@ -116,19 +105,23 @@ seq(P) ->
 all([], Inp, Index, Accum ) -> {lists:reverse( Accum ), Inp, Index};
 all([P|Parsers], Inp, Index, Accum) ->
   case P(Inp, Index) of
-    {fail, I} -> {fail, I};
+    {fail, _} = Failure -> Failure;
     {Result, InpRem, NewIndex} -> all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
 
 choose(Parsers) ->
   fun(Input, Index) ->
-      attempt(Parsers, Input, Index)
+      attempt(Parsers, Input, Index, none)
   end.
 
-attempt([], _Input, Index) -> {fail, Index};
-attempt([P|Parsers], Input, Index)->
+attempt([], _Input, _Index, Failure) -> Failure;
+attempt([P|Parsers], Input, Index, FirstFailure)->
   case P(Input, Index) of
-    {fail, _} -> attempt(Parsers, Input, Index);
+    {fail, _} = Failure ->
+      case FirstFailure of
+        none -> attempt(Parsers, Input, Index, Failure);
+        _ -> attempt(Parsers, Input, Index, FirstFailure)
+      end;
     Result -> Result
   end.
 
@@ -143,15 +136,17 @@ one_or_more(P) ->
       case Result of
         {[_|_], _, _} ->
           Result;
-        _ -> {fail, Index}
+        _ ->
+          {fail, {expected, Failure, _}} = P(Input,Index),
+          {fail, {expected, {at_least_one, Failure}, Index}}
       end
   end.
 
 label(Tag, P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
-        {fail,_} ->
-           {fail, Index};
+        {fail,_} = Failure ->
+           Failure;
         {Result, InpRem, NewIndex} ->
           {{Tag, Result}, InpRem, NewIndex}
       end
@@ -167,14 +162,14 @@ scan(P, Inp, Index, Accum) ->
 string(S) ->
   fun(Input, Index) ->
       case lists:prefix(S, Input) of
-        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), Index + length(S)};
-        _ -> {fail, Index}
+        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), advance_index(S,Index)};
+        _ -> {fail, {expected, {string, S}, Index}}
       end
   end.
 
 anything() ->
-  fun([], Index) -> {fail, Index};
-     ([H|T], Index) -> {H, T, Index+1}
+  fun([], Index) -> {fail, {expected, any_character, Index}};
+     ([H|T], Index) -> {H, T, advance_index(H, Index)}
   end.
 
 charclass(Class) ->
@@ -182,7 +177,16 @@ charclass(Class) ->
      {ok, RE} = re:compile("^"++Class),
       case re:run(Inp, RE) of
         {match, _} ->
-          {hd(Inp), tl(Inp), Index+1};
-        _ -> {fail,Index}
+          {hd(Inp), tl(Inp), advance_index(hd(Inp), Index)};
+        _ -> {fail,{expected, {character_class, Class}, Index}}
       end
+  end.
+
+advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
+  lists:foldl(fun advance_index/2, Index, MatchedInput);
+advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters
+  {{line, Line}, {column, Col}} = Index,
+  case MatchedInput of
+    $\n -> {{line, Line+1}, {column, 1}};
+    _ -> {{line, Line}, {column, Col+1}}
   end.

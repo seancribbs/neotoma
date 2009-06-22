@@ -4,14 +4,12 @@
 
 % The parse transform for DRYing up parser files.
 parse_transform(AST, _Options) ->
-  % io:format("~n~p~n", [AST]),
   ets:new(peg_transform, [named_table, set]),
-  [{attribute, _, module, ModName}] = lists:filter(fun(Form)->
-                                                       case Form of
-                                                         {attribute,_,module,_} -> true;
-                                                         _ -> false
-                                                       end
-                                                   end, AST),
+  [{attribute, _, module, ModName}] = lists:filter(fun({attribute,_,module,_})
+                                                          -> true;
+                                                      (_) -> false
+                                                       end,
+                                                   AST),
   ets:insert(peg_transform, {module, ModName}),
   Result = transform_rules(AST),
   ets:delete(peg_transform),
@@ -29,7 +27,7 @@ transform_rules([H|Rest], Accum) ->
   transform_rules(Rest, [H|Accum]).
 
 build_rules(Clauses) ->
-  Rules = lists:map(fun build_rule/1, Clauses),
+  Rules = [build_rule(Rule) || Rule <- Clauses],
   [generate_file_function(),generate_parse_function()|Rules].
 
 build_rule({clause,Line,[{atom,_,Name}],_,Stmt}) ->
@@ -79,7 +77,9 @@ generate_parse_function() ->
       {match,Line,
        {var,Line,'Result'},
        {'case',Line,
-        {call,Line,{atom,Line,Rule},[{var,Line,'Input'},{integer,Line,0}]},
+        {call,Line,{atom,Line,Rule},[{var,Line,'Input'},{tuple,Line,
+                            [{tuple,Line,[{atom,Line,line},{integer,Line,1}]},
+                             {tuple,Line,[{atom,Line,column},{integer,Line,1}]}]}]},
         [{clause,Line,[{tuple,Line,[{var,Line,'AST'},{nil,Line},{var,Line, '_Index'}]}],[],[{var,Line,'AST'}]},
          {clause,Line,[{var,Line,'Any'}],[],[{var,Line,'Any'}]}]}},
       {call,Line,{remote,Line,{atom,Line,peg},{atom,Line,release_memo}},[]},

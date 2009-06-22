@@ -8,7 +8,7 @@ file(Filename) ->
 
 parse(Input) ->
   peg:setup_memo(arithmetic),
-  Result = case additive(Input,0) of
+  Result = case additive(Input,{{line,1},{column,1}}) of
              {AST, [], _Index} ->
                 AST;
              Any -> Any

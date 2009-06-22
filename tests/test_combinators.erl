@@ -3,79 +3,80 @@
 -include_lib("eunit/include/eunit.hrl").
 
 % Test the parser-combinators in the 'peg' module
-
+-define(STARTINDEX, {{line,1},{column,1}}).
 eof_test_() ->
   [
-   ?_assertEqual({fail,0}, (peg:eof())("abc",0)),
-   ?_assertEqual({eof, [], 0}, (peg:eof())("",0))
+   ?_assertEqual({fail,{expected,eof,?STARTINDEX}}, (peg:eof())("abc",?STARTINDEX)),
+   ?_assertEqual({eof, [], ?STARTINDEX}, (peg:eof())("",?STARTINDEX))
   ].
 
 optional_test_() ->
   [
-   ?_assertEqual({[], "xyz",0}, (peg:optional(peg:string("abc")))("xyz",0)),
-   ?_assertEqual({"abc", "xyz",3}, (peg:optional(peg:string("abc")))("abcxyz",0))
+   ?_assertEqual({[], "xyz",?STARTINDEX}, (peg:optional(peg:string("abc")))("xyz",?STARTINDEX)),
+   ?_assertEqual({"abc", "xyz",{{line,1},{column,4}}}, (peg:optional(peg:string("abc")))("abcxyz",?STARTINDEX))
   ].
 
 not_test_() ->
   [
-   ?_assertEqual({[], "xyzabc",0}, (peg:not_(peg:string("abc")))("xyzabc",0)),
-   ?_assertEqual({fail,0}, (peg:not_(peg:string("abc")))("abcxyz",0))
+   ?_assertEqual({[], "xyzabc",?STARTINDEX}, (peg:not_(peg:string("abc")))("xyzabc",?STARTINDEX)),
+   ?_assertEqual({fail,{expected, {no_match, "abc"}, ?STARTINDEX}}, (peg:not_(peg:string("abc")))("abcxyz",?STARTINDEX))
   ].
 
 assert_test_() ->
   [
-   ?_assertEqual({fail,0}, (peg:assert(peg:string("abc")))("xyzabc",0)),
-   ?_assertEqual({[], "abcxyz",0}, (peg:assert(peg:string("abc")))("abcxyz",0))
+   ?_assertEqual({fail,{expected, {string, "abc"}, ?STARTINDEX}}, (peg:assert(peg:string("abc")))("xyzabc",?STARTINDEX)),
+   ?_assertEqual({[], "abcxyz",?STARTINDEX}, (peg:assert(peg:string("abc")))("abcxyz",?STARTINDEX))
   ].
 
 seq_test_() ->
   [
-   ?_assertEqual({["abc","def"], "xyz",6}, (peg:seq([peg:string("abc"), peg:string("def")]))("abcdefxyz",0)),
-   ?_assertEqual({fail,3}, (peg:seq([peg:string("abc"), peg:string("def")]))("abcxyz",0))
+   ?_assertEqual({["abc","def"], "xyz",{{line,1},{column,7}}}, (peg:seq([peg:string("abc"), peg:string("def")]))("abcdefxyz",?STARTINDEX)),
+   ?_assertEqual({fail,{expected, {string, "def"}, {{line,1},{column,4}}}}, (peg:seq([peg:string("abc"), peg:string("def")]))("abcxyz",?STARTINDEX))
   ].
 
 choose_test_() ->
   [
-   ?_assertEqual({"abc", "xyz", 3}, (peg:choose([peg:string("abc"), peg:string("def")]))("abcxyz",0)),
-   ?_assertEqual({"def", "xyz", 3}, (peg:choose([peg:string("abc"), peg:string("def")]))("defxyz",0)),
-   ?_assertEqual({"xyz", "xyz", 3}, (peg:choose([peg:string("abc"), peg:string("def"), peg:string("xyz")]))("xyzxyz",0))
+   ?_assertEqual({"abc", "xyz", {{line,1},{column,4}}}, (peg:choose([peg:string("abc"), peg:string("def")]))("abcxyz",?STARTINDEX)),
+   ?_assertEqual({"def", "xyz", {{line,1},{column,4}}}, (peg:choose([peg:string("abc"), peg:string("def")]))("defxyz",?STARTINDEX)),
+   ?_assertEqual({"xyz", "xyz", {{line,1},{column,4}}}, (peg:choose([peg:string("abc"), peg:string("def"), peg:string("xyz")]))("xyzxyz",?STARTINDEX)),
+   ?_assertEqual({fail,{expected,{string,"abc"},?STARTINDEX}}, (peg:choose([peg:string("abc"),peg:string("def")]))("xyz", ?STARTINDEX))
   ].
 
 zero_or_more_test_() ->
   [
-   ?_assertEqual({[], [], 0}, (peg:zero_or_more(peg:string("abc")))("",0)),
-   ?_assertEqual({[], "def",0}, (peg:zero_or_more(peg:string("abc")))("def",0)),
-   ?_assertEqual({["abc"], "def",3}, (peg:zero_or_more(peg:string("abc")))("abcdef",0)),
-   ?_assertEqual({["abc", "abc"], "def",6}, (peg:zero_or_more(peg:string("abc")))("abcabcdef",0))
+   ?_assertEqual({[], [], ?STARTINDEX}, (peg:zero_or_more(peg:string("abc")))("",?STARTINDEX)),
+   ?_assertEqual({[], "def",?STARTINDEX}, (peg:zero_or_more(peg:string("abc")))("def",?STARTINDEX)),
+   ?_assertEqual({["abc"], "def",{{line,1},{column,4}}}, (peg:zero_or_more(peg:string("abc")))("abcdef",?STARTINDEX)),
+   ?_assertEqual({["abc", "abc"], "def",{{line,1},{column,7}}}, (peg:zero_or_more(peg:string("abc")))("abcabcdef",?STARTINDEX))
   ].
 
 one_or_more_test_() ->
   [
-   ?_assertEqual({fail,0}, (peg:one_or_more(peg:string("abc")))("def",0)),
-   ?_assertEqual({["abc"], "def",3}, (peg:one_or_more(peg:string("abc")))("abcdef",0)),
-   ?_assertEqual({["abc","abc"], "def",6}, (peg:one_or_more(peg:string("abc")))("abcabcdef",0))
+   ?_assertEqual({fail,{expected, {at_least_one, {string, "abc"}}, ?STARTINDEX}}, (peg:one_or_more(peg:string("abc")))("def",?STARTINDEX)),
+   ?_assertEqual({["abc"], "def",{{line,1},{column,4}}}, (peg:one_or_more(peg:string("abc")))("abcdef",?STARTINDEX)),
+   ?_assertEqual({["abc","abc"], "def",{{line,1},{column,7}}}, (peg:one_or_more(peg:string("abc")))("abcabcdef",?STARTINDEX))
   ].
 
 label_test_() ->
   [
-   ?_assertEqual({fail,0}, (peg:label(bang, peg:string("!")))("?",0)),
-   ?_assertEqual({{bang, "!"}, "",1}, (peg:label(bang, peg:string("!")))("!",0))
+   ?_assertEqual({fail,{expected, {string, "!"}, ?STARTINDEX}}, (peg:label(bang, peg:string("!")))("?",?STARTINDEX)),
+   ?_assertEqual({{bang, "!"}, "",{{line,1},{column,2}}}, (peg:label(bang, peg:string("!")))("!",?STARTINDEX))
   ].
 
 string_test_() ->
   [
-   ?_assertEqual({"abc", "def",3}, (peg:string("abc"))("abcdef",0)),
-   ?_assertEqual({fail,0}, (peg:string("abc"))("defabc",0))
+   ?_assertEqual({"abc", "def",{{line,1},{column,4}}}, (peg:string("abc"))("abcdef",?STARTINDEX)),
+   ?_assertEqual({fail,{expected, {string, "abc"}, ?STARTINDEX}}, (peg:string("abc"))("defabc",?STARTINDEX))
   ].
 
 anything_test_() ->
   [
-   ?_assertEqual({$a,"bcde",1}, (peg:anything())("abcde",0)),
-   ?_assertEqual({fail,0}, (peg:anything())("",0))
+   ?_assertEqual({$a,"bcde",{{line,1},{column,2}}}, (peg:anything())("abcde",?STARTINDEX)),
+   ?_assertEqual({fail,{expected, any_character, ?STARTINDEX}}, (peg:anything())("",?STARTINDEX))
   ].
 
 charclass_test_() ->
   [
-   ?_assertEqual({$+,"----",1}, (peg:charclass("[+]"))("+----",0)),
-   ?_assertEqual({fail,0}, (peg:charclass("[+]"))("----",0))
+   ?_assertEqual({$+,"----",{{line,1},{column,2}}}, (peg:charclass("[+]"))("+----",?STARTINDEX)),
+   ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (peg:charclass("[+]"))("----",?STARTINDEX))
   ].

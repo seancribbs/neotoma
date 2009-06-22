@@ -1,4 +1,5 @@
 -module(arithmetic_xf).
+-export([parse/1,file/1]).
 -include("../../include/peg.hrl").
 
 rule(additive) ->

@@ -61,7 +61,6 @@ transform(prefix, Node) ->
     "!" -> not_
   end;
 transform(Rule, Node) when is_atom(Rule) ->
-   % io:format("<~p>: ~p~n", [Rule, Node]),
    Node.
 
 escape_quotes(String) ->
