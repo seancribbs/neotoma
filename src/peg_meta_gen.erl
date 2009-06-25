@@ -33,6 +33,8 @@ transform(double_quoted_string, Node) ->
   "peg:string(\""++escape_quotes(lists:flatten(proplists:get_value(string, Node)))++"\")";
 transform(character_class, Node) ->
   "peg:charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
+transform(parenthesized_expression, Node) ->
+  lists:nth(3, Node);
 transform(atomic, {nonterminal, Symbol}) ->
   "fun " ++ Symbol ++ "/2";
 transform(primary, [Atomic, one_or_more]) ->
