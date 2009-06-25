@@ -22,8 +22,7 @@ h2. Installation
 
 # Clone the repository from github: <notextile><pre><code>$ git clone git://github.com/seancribbs/neotoma.git</code></pre></notextile>
 # Symlink or copy the cloned repository to somewhere in your Erlang code path. $ERLANG_HOME/lib is best.
-# Build the source: <notextile><pre><code>$ rake</code></pre></notextile>
-  Building currently requires Ruby 1.8 or later and the @rake@ RubyGem.
+# Build the source: <notextile><pre><code>$ make</code></pre></notextile>
 
 h2. Usage
 
