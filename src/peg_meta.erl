@@ -1,5 +1,5 @@
 -module(peg_meta).
--export([parse/1]).
+-export([parse/1,file/1]).
 -include("../include/peg.hrl").
 
 rule(rules) ->
@@ -128,8 +128,6 @@ rule(character_class) ->
            peg:string("]")]);
 
 rule(anything_symbol) -> peg:string(".");
-
-rule(non_space_char) -> peg:and_([peg:not_(fun space/2), peg:anything()]);
 
 rule(alpha_char) -> peg:charclass("[a-z_]");
 

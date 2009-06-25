@@ -1,0 +1,2 @@
+{[test_combinators, test_memoization, test_transform, test_suite],
+	[{outdir, "../ebin_tests"},{i, "../include"},debug_info]}.

@@ -1,1 +1,1 @@
--compile([{parse_transform, peg_transform}, export_all]).
+-compile([{parse_transform, peg_transform}]).

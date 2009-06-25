@@ -1,6 +1,6 @@
 -module(peg_gen).
 -author("Sean Cribbs <seancribbs@gmail.com>").
--export([file/1, file/2]).
+-export([file/1, file/2, bootstrap/0]).
 
 file(InputGrammar) ->
   file(InputGrammar, []).
@@ -38,9 +38,9 @@ validate_params(_,_, TransformModule, OutputFile) ->
   end.
 
 generate_module_attrs(ModName) ->
-  "-module("++atom_to_list(ModName)++").\n" ++
-   "-export([parse/1,file/1]).\n" ++
-   "-include_lib(\"neotoma/include/peg.hrl\").\n".
+  ["-module(",atom_to_list(ModName),").\n",
+   "-export([parse/1,file/1]).\n",
+   "-include_lib(\"neotoma/include/peg.hrl\").\n"].
 
 parse_grammar(InputFile) ->
   case peg_meta:file(InputFile) of
@@ -62,12 +62,15 @@ create_transform(ModName,Dir) when is_atom(ModName) ->
     true -> io:format("~p already exists, skipping generation.", [XfFile]);
     false -> generate_transform_stub(XfFile, ModName)
   end,
-  "transform(Symbol,Node) -> "++atom_to_list(ModName)++":transform(Symbol, Node).".
+  ["transform(Symbol,Node) -> ",atom_to_list(ModName),":transform(Symbol, Node)."].
 
 generate_transform_stub(XfFile,ModName) ->
-  Data = "-module("++atom_to_list(ModName)++").\n" ++
-         "-export([transform/2]).\n\n" ++
-         "%% Add clauses to this function to transform syntax nodes\n" ++
-         "%% from the parser into semantic output.\n" ++
-         "transform(Symbol, Node) when is_atom(Symbol) ->\n  Node.",
+  Data = ["-module(",atom_to_list(ModName),").\n",
+         "-export([transform/2]).\n\n",
+         "%% Add clauses to this function to transform syntax nodes\n",
+         "%% from the parser into semantic output.\n",
+         "transform(Symbol, Node) when is_atom(Symbol) ->\n  Node."],
   file:write_file(XfFile, Data).
+
+bootstrap() ->
+  file("src/peg_meta.peg", [{transform_module, peg_meta_gen}]).
