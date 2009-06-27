@@ -59,7 +59,7 @@ create_transform(false,_) ->
 create_transform(ModName,Dir) when is_atom(ModName) ->
   XfFile = filename:join(Dir, atom_to_list(ModName) ++ ".erl"),
   case filelib:is_regular(XfFile) of
-    true -> io:format("~p already exists, skipping generation.", [XfFile]);
+    true -> io:format("'~s' already exists, skipping generation.~n", [XfFile]);
     false -> generate_transform_stub(XfFile, ModName)
   end,
   ["transform(Symbol,Node) -> ",atom_to_list(ModName),":transform(Symbol, Node)."].

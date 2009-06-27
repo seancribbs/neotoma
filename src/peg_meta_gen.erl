@@ -3,6 +3,7 @@
 -author("Sean Cribbs <seancribbs@gmail.com>").
 
 transform(rules, Node) ->
+  verify_rules(),
   Rules = string:join(lists:nth(2, Node), ";\n\n"),
   Rules ++ ".\n";
 transform(declaration_sequence, Node) ->
@@ -10,6 +11,7 @@ transform(declaration_sequence, Node) ->
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules];
 transform(declaration, [{nonterminal,Symbol}|Node]) ->
+  add_lhs(Symbol),
   "rule("++Symbol++") ->\n  " ++ lists:nth(4, Node);
 transform(sequence, Node) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
@@ -36,6 +38,7 @@ transform(character_class, Node) ->
 transform(parenthesized_expression, Node) ->
   lists:nth(3, Node);
 transform(atomic, {nonterminal, Symbol}) ->
+  add_nt(Symbol),
   "fun " ++ Symbol ++ "/2";
 transform(primary, [Atomic, one_or_more]) ->
   "peg:one_or_more("++Atomic++")";
@@ -68,3 +71,46 @@ transform(Rule, Node) when is_atom(Rule) ->
 escape_quotes(String) ->
   {ok, RE} = re:compile("\""),
   re:replace(String, RE, "\\\\\"", [global, {return, list}]).
+
+add_lhs(Symbol) ->
+  case get(lhs) of
+    undefined ->
+      put(lhs, [Symbol]);
+    L when is_list(L) ->
+      put(lhs, [Symbol|L])
+  end.
+
+add_nt(Symbol) ->
+  case get(nts) of
+    undefined ->
+      put(nts, [Symbol]);
+    L when is_list(L) ->
+      case lists:member(Symbol, L) of
+        true ->
+          ok;
+        _ ->
+          put(nts, [Symbol|L])
+      end
+  end.
+
+verify_rules() ->
+  LHS = erase(lhs),
+  NTs = erase(nts),
+  NonRoots = tl(lists:reverse(LHS)),
+  lists:foreach(fun(L) ->
+                    case lists:member(L, NTs) of
+                      true ->
+                        ok;
+                      _ ->
+                        io:format("neotoma warning: rule '~s' is unused.~n", [L])
+                    end
+                end, NonRoots),
+  lists:foreach(fun(S) ->
+                    case lists:member(S, LHS) of
+                      true ->
+                        ok;
+                      _ ->
+                        io:format("neotoma error: symbol '~s' has no reduction. No parser will be generated!~n", [S]),
+                        exit({neotoma, {no_reduction, list_to_atom(S)}})
+                    end
+                end, NTs).
