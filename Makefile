@@ -19,7 +19,7 @@ ebin_tests/examples:
 special: src/herml_scan.erl src/herml_parse.erl
 
 src_src: ebin src/neotoma.app
-	cd src;erl -make
+	cd src;erl -pz ../ebin -make
 
 src_tests: ebin_tests test_examples
 	cd tests;erl -pz ../ebin -make
