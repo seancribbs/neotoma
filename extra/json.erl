@@ -50,4 +50,4 @@ rule(null) ->
 rule(space) ->
   peg:zero_or_more(peg:charclass("[ \t\n\s\r]")).
 
-transform(_,Node) -> Node.
+transform(Symbol,Node) -> json_tree:transform(Symbol, Node).
