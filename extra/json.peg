@@ -4,7 +4,7 @@ pair <- space? key:string space? ':' space? value:json_value space?;
 array <- '[' space? head:json_value tail:(space? ',' space? json_value)* space? ']' / '[' space? ']';
 string <- '"' chars:(!'"' ("\\\\" / '\\"' / .))* '"';
 number <- int frac? exp?;
-int <- '-'? ( digit / non_zero_digit digit+);
+int <- '-'? (non_zero_digit digit+) / digit;
 frac <- '.' digit+;
 exp <- e digit+;
 e <- [eE] ('+' / '-')?;

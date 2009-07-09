@@ -21,7 +21,7 @@ rule(number) ->
   peg:seq([fun int/2, peg:optional(fun frac/2), peg:optional(fun exp/2)]);
 
 rule(int) ->
-  peg:seq([peg:optional(peg:string("-")), peg:choose([fun digit/2, peg:seq([fun non_zero_digit/2, peg:one_or_more(fun digit/2)])])]);
+  peg:choose([peg:seq([peg:optional(peg:string("-")), peg:seq([fun non_zero_digit/2, peg:one_or_more(fun digit/2)])]), fun digit/2]);
 
 rule(frac) ->
   peg:seq([peg:string("."), peg:one_or_more(fun digit/2)]);
@@ -50,4 +50,4 @@ rule(null) ->
 rule(space) ->
   peg:zero_or_more(peg:charclass("[ \t\n\s\r]")).
 
-transform(Symbol,Node) -> json_tree:transform(Symbol, Node).
+transform(_,Node) -> Node.
