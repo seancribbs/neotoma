@@ -3,10 +3,10 @@
 -include_lib("neotoma/include/peg.hrl").
 
 rule(rows) ->
-  peg:seq([peg:label('head', fun row/2), peg:label('tail', peg:zero_or_more(peg:seq([fun crlf/2, fun row/2])))]);
+  peg:choose([peg:seq([peg:label('head', fun row/2), peg:label('tail', peg:zero_or_more(peg:seq([fun crlf/2, fun row/2])))]), peg:string("")]);
 
 rule(row) ->
-  peg:seq([peg:label('head', fun field/2), peg:label('tail', peg:zero_or_more(peg:seq([fun field_sep/2, fun field/2])))]);
+  peg:choose([peg:seq([peg:label('head', fun field/2), peg:label('tail', peg:zero_or_more(peg:seq([fun field_sep/2, fun field/2])))]), peg:string("")]);
 
 rule(field) ->
   peg:choose([fun quoted_field/2, peg:zero_or_more(peg:seq([peg:not_(peg:choose([fun field_sep/2, fun crlf/2])), peg:anything()]))]);
@@ -18,6 +18,6 @@ rule(field_sep) ->
   peg:string(",");
 
 rule(crlf) ->
-  peg:choose([peg:string("\r\n"), peg:string("\r")]).
+  peg:choose([peg:string("\r\n"), peg:string("\n")]).
 
 transform(Symbol,Node) -> csv_gen:transform(Symbol, Node).

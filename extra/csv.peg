@@ -3,4 +3,4 @@ row <- head:field tail:(field_sep field)* / '';
 field <- quoted_field / (!(field_sep / crlf) .)*;
 quoted_field <- '"' string:('""' / (!'"' .))* '"';
 field_sep <- ',';
-crlf <- "\r\n" / "\r";
+crlf <- "\r\n" / "\n";

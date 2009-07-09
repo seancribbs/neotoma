@@ -6,6 +6,10 @@
 % "parsec" library by Erik Meijer.  I've renamed the functions to be more
 % Erlang-y.
 
+%% @type parse_fun() = function(Input::string(), Index::parse_index()) .
+%% @type parse_index() = {{line, integer()},{column,integer()}} .
+%% @type parse_result() = ({fail, Reason} | {Result::any(), Remainder::string(), NewIndex::parse_index()}) .
+
 -export([p/4, p/5]).
 -export([setup_memo/1, release_memo/0]).
 
@@ -17,10 +21,13 @@
          string/1, anything/0,
          charclass/1]).
 
-%% Parsing wrapper for memoization
+%% @doc Memoizing parsing function wrapper.  This form does not transform the result of a successful parse.
+%% @see p/5.
 p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N) -> N end).
 
+%% @doc Memoizing and transforming parsing function wrapper.
+%% @spec p(Input::string(), StartIndex::parse_index(), Name::atom(), ParseFun::parse_fun(), TransformFun::transform_fun()) -> parse_result()
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   % Grab the memo table from ets
   Memo = get_memo(StartIndex),
@@ -43,11 +50,13 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
       end
   end.
 
-%% Memoizing results
+%% @doc Sets up the packrat memoization table for this parse. Used internally by generated parsers.
+%% @spec setup_memo(Name::any()) -> any()
 setup_memo(Name) ->
   TID = ets:new(Name, [set]),
   put(ets_table, TID).
 
+%% @doc Cleans up the packrat memoization table.  Used internally by generated parsers.
 release_memo() ->
   ets:delete(get(ets_table)),
   erase(ets_table).
@@ -61,13 +70,14 @@ get_memo(Position) ->
     [{Position, Dict}] -> Dict
   end.
 
-
-%% Parser combinators and matchers
-
+%% @doc Generates a parse function that matches the end of the buffer.
+%% @spec eof() -> parse_fun()
 eof() ->
   fun([], Index) -> {eof, [], Index};
      (_, Index) -> {fail, {expected, eof, Index}} end.
 
+%% @doc Generates a parse function that treats the passed parse function as optional.
+%% @spec optional(parse_fun()) -> parse_fun()
 optional(P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
@@ -76,7 +86,8 @@ optional(P) ->
       end
   end.
 
-% Negative lookahead
+%% @doc Generates a parse function that ensures the passed function will not match without consuming any input, that is, negative lookahead.
+%% @spec not_(parse_fun()) -> parse_fun()
 not_(P) ->
   fun(Input, Index)->
       case P(Input,Index) of
@@ -86,7 +97,8 @@ not_(P) ->
       end
   end.
 
-% Positive lookahead
+%% @doc Generates a parse function that ensures the passed function will match, without consuming any input, that is, positive lookahead.
+%% @spec assert(parse_fun()) -> parse_fun()
 assert(P) ->
   fun(Input,Index) ->
       case P(Input,Index) of
@@ -95,8 +107,13 @@ assert(P) ->
       end
   end.
 
+%% @doc Alias for seq/1.
+%% @see seq/1.
 and_(P) ->
   seq(P).
+
+%% @doc Generates a parse function that will match the passed parse functions in order.
+%% @spec seq([parse_fun()]) -> parse_fun()
 seq(P) ->
   fun(Input, Index) ->
       all(P, Input, Index, [])
@@ -109,6 +126,8 @@ all([P|Parsers], Inp, Index, Accum) ->
     {Result, InpRem, NewIndex} -> all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
 
+%% @doc Generates a parse function that will match at least one of the passed parse functions (ordered choice).
+%% @spec choose([parse_fun()]) -> parse_fun()
 choose(Parsers) ->
   fun(Input, Index) ->
       attempt(Parsers, Input, Index, none)
@@ -125,11 +144,15 @@ attempt([P|Parsers], Input, Index, FirstFailure)->
     Result -> Result
   end.
 
+%% @doc Generates a parse function that will match any number of the passed parse function in sequence (optional greedy repetition).
+%% @spec zero_or_more(parse_fun()) -> parse_fun()
 zero_or_more(P) ->
   fun(Input, Index) ->
       scan(P, Input, Index, [])
   end.
 
+%% @doc Generates a parse function that will match at least one of the passed parse function in sequence (greedy repetition).
+%% @spec one_or_more(parse_fun()) -> parse_fun()
 one_or_more(P) ->
   fun(Input, Index)->
       Result = scan(P, Input, Index, []),
@@ -142,6 +165,8 @@ one_or_more(P) ->
       end
   end.
 
+%% @doc Generates a parse function that will tag the result of the passed parse function with a label when it succeeds.  The tagged result will be a 2-tuple of {Tag, Result}.
+%% @spec label(Tag::anything(), P::parse_fun()) -> parse_fun()
 label(Tag, P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
@@ -159,6 +184,8 @@ scan(P, Inp, Index, Accum) ->
     {Result, InpRem, NewIndex} -> scan(P, InpRem, NewIndex, [Result | Accum])
   end.
 
+%% @doc Generates a parse function that will match the passed string on the head of the buffer.
+%% @spec string(string()) -> parse_fun()
 string(S) ->
   fun(Input, Index) ->
       case lists:prefix(S, Input) of
@@ -167,11 +194,19 @@ string(S) ->
       end
   end.
 
+%% @doc Generates a parse function that will match any single character.
+%% @spec anything() -> parse_fun()
 anything() ->
   fun([], Index) -> {fail, {expected, any_character, Index}};
      ([H|T], Index) -> {H, T, advance_index(H, Index)}
   end.
 
+%% @doc Generates a parse function that will match any single character from the passed "class".  The class should be a PCRE-compatible character class in a string.
+%%   Examples:
+%%     "[a-z]"
+%%     "[0-9]"
+%%     "[^z]" .
+%% @spec charclass(string()) -> parse_fun()
 charclass(Class) ->
   fun(Inp, Index) ->
      {ok, RE} = re:compile("^"++Class),

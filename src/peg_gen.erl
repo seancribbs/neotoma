@@ -2,9 +2,16 @@
 -author("Sean Cribbs <seancribbs@gmail.com>").
 -export([file/1, file/2, bootstrap/0]).
 
+%% @doc Generates a parser from the specified file.
+%% @equiv file(Filename, [])
+%% @spec file(Filename::string()) -> ok
 file(InputGrammar) ->
   file(InputGrammar, []).
 
+%% @doc Generates a parser from the specified file.
+%% <pre>    Options = [Option] <br />
+%%   Option = {module, OutputModuleName::atom()} | <br/>             {output, OutputDirectory::string()} | <br />             {transform_module, TransformModuleName::atom()} </pre>
+%% @spec file(Filename::string(), Options) -> ok
 file(InputGrammar, Options) ->
   Basename = filename:basename(InputGrammar, ".peg"),
   InputDir = filename:dirname(InputGrammar),
@@ -72,5 +79,7 @@ generate_transform_stub(XfFile,ModName) ->
          "transform(Symbol, Node) when is_atom(Symbol) ->\n  Node."],
   file:write_file(XfFile, Data).
 
+%% @doc Bootstraps the neotoma metagrammar.  Intended only for internal development!
+%% @equiv file("src/peg_meta.peg", [{transform_module, peg_meta_gen}])
 bootstrap() ->
   file("src/peg_meta.peg", [{transform_module, peg_meta_gen}]).
