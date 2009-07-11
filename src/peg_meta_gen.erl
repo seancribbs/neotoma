@@ -1,71 +1,71 @@
 -module(peg_meta_gen).
--export([transform/2]).
+-export([transform/3]).
 -author("Sean Cribbs <seancribbs@gmail.com>").
 
-transform(rules, Node) ->
+transform(rules, Node, _Index) ->
   verify_rules(),
   Rules = string:join(lists:nth(2, Node), ";\n\n"),
   Rules ++ ".\n";
-transform(declaration_sequence, Node) ->
+transform(declaration_sequence, Node, _Index) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules];
-transform(declaration, [{nonterminal,Symbol}|Node]) ->
+transform(declaration, [{nonterminal,Symbol}|Node], _Index) ->
   add_lhs(Symbol),
   "rule("++Symbol++") ->\n  " ++ lists:nth(4, Node);
-transform(sequence, Node) ->
+transform(sequence, Node, _Index) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
   "peg:seq(["++ string:join(Statements, ", ") ++ "])";
-transform(choice, Node) ->
+transform(choice, Node, _Index) ->
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
   "peg:choose([" ++ string:join(Statements, ", ") ++ "])";
-transform(label, Node) ->
+transform(label, Node, _Index) ->
   String = lists:flatten(Node),
   lists:sublist(String, length(String)-1);
-transform(labeled_sequence_primary, Node) ->
+transform(labeled_sequence_primary, Node, _Index) ->
   case hd(Node) of
     [] -> lists:nth(2, Node);
     Label -> "peg:label('" ++ Label ++ "', "++lists:nth(2, Node)++")"
   end;
-transform(single_quoted_string, Node) ->
-  transform(double_quoted_string, Node);
-transform(double_quoted_string, Node) ->
+transform(single_quoted_string, Node, Index) ->
+  transform(double_quoted_string, Node, Index);
+transform(double_quoted_string, Node, _Index) ->
   "peg:string(\""++escape_quotes(lists:flatten(proplists:get_value(string, Node)))++"\")";
-transform(character_class, Node) ->
+transform(character_class, Node, _Index) ->
   "peg:charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
-transform(parenthesized_expression, Node) ->
+transform(parenthesized_expression, Node, _Index) ->
   lists:nth(3, Node);
-transform(atomic, {nonterminal, Symbol}) ->
+transform(atomic, {nonterminal, Symbol}, _Index) ->
   add_nt(Symbol),
   "fun " ++ Symbol ++ "/2";
-transform(primary, [Atomic, one_or_more]) ->
+transform(primary, [Atomic, one_or_more], _Index) ->
   "peg:one_or_more("++Atomic++")";
-transform(primary, [Atomic, zero_or_more]) ->
+transform(primary, [Atomic, zero_or_more], _Index) ->
   "peg:zero_or_more("++Atomic++")";
-transform(primary, [Atomic, optional]) ->
+transform(primary, [Atomic, optional], _Index) ->
   "peg:optional("++Atomic++")";
-transform(primary, [assert, Atomic])->
+transform(primary, [assert, Atomic], _Index)->
   "peg:assert("++Atomic++")";
-transform(primary, [not_, Atomic]) ->
+transform(primary, [not_, Atomic], _Index) ->
   "peg:not_("++Atomic++")";
-transform(nonterminal, Node) ->
+transform(nonterminal, Node, _Index) ->
   {nonterminal, lists:flatten(Node)};
-transform(anything_symbol, _Node) ->
+transform(anything_symbol, _Node, _Index) ->
   "peg:anything()";
-transform(suffix, Node) ->
+transform(suffix, Node, _Index) ->
   case Node of
     "*" -> zero_or_more;
     "+" -> one_or_more;
     "?" -> optional
   end;
-transform(prefix, Node) ->
+transform(prefix, Node, _Index) ->
   case Node of
     "&" -> assert;
     "!" -> not_
   end;
-transform(Rule, Node) when is_atom(Rule) ->
+transform(Rule, Node, _Index) when is_atom(Rule) ->
    Node.
 
 escape_quotes(String) ->
