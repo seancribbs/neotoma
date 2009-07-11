@@ -10,8 +10,8 @@ transform(declaration_sequence, Node, _Index) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules];
-transform(declaration, [{nonterminal,Symbol}|Node], _Index) ->
-  add_lhs(Symbol),
+transform(declaration, [{nonterminal,Symbol}|Node], Index) ->
+  add_lhs(Symbol, Index),
   "rule("++Symbol++") ->\n  " ++ lists:nth(4, Node);
 transform(sequence, Node, _Index) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
@@ -37,8 +37,8 @@ transform(character_class, Node, _Index) ->
   "peg:charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
 transform(parenthesized_expression, Node, _Index) ->
   lists:nth(3, Node);
-transform(atomic, {nonterminal, Symbol}, _Index) ->
-  add_nt(Symbol),
+transform(atomic, {nonterminal, Symbol}, Index) ->
+  add_nt(Symbol, Index),
   "fun " ++ Symbol ++ "/2";
 transform(primary, [Atomic, one_or_more], _Index) ->
   "peg:one_or_more("++Atomic++")";
@@ -72,24 +72,24 @@ escape_quotes(String) ->
   {ok, RE} = re:compile("\""),
   re:replace(String, RE, "\\\\\"", [global, {return, list}]).
 
-add_lhs(Symbol) ->
+add_lhs(Symbol, Index) ->
   case get(lhs) of
     undefined ->
-      put(lhs, [Symbol]);
+      put(lhs, [{Symbol,Index}]);
     L when is_list(L) ->
-      put(lhs, [Symbol|L])
+      put(lhs, [{Symbol,Index}|L])
   end.
 
-add_nt(Symbol) ->
+add_nt(Symbol, Index) ->
   case get(nts) of
     undefined ->
-      put(nts, [Symbol]);
+      put(nts, [{Symbol,Index}]);
     L when is_list(L) ->
-      case lists:member(Symbol, L) of
+      case proplists:is_defined(Symbol, L) of
         true ->
           ok;
         _ ->
-          put(nts, [Symbol|L])
+          put(nts, [{Symbol,Index}|L])
       end
   end.
 
@@ -97,20 +97,20 @@ verify_rules() ->
   LHS = erase(lhs),
   NTs = erase(nts),
   NonRoots = tl(lists:reverse(LHS)),
-  lists:foreach(fun(L) ->
-                    case lists:member(L, NTs) of
+  lists:foreach(fun({Sym,Idx}) ->
+                    case proplists:is_defined(Sym, NTs) of
                       true ->
                         ok;
                       _ ->
-                        io:format("neotoma warning: rule '~s' is unused.~n", [L])
+                        io:format("neotoma warning: rule '~s' is unused. ~p~n", [Sym,Idx])
                     end
                 end, NonRoots),
-  lists:foreach(fun(S) ->
-                    case lists:member(S, LHS) of
+  lists:foreach(fun({S,I}) ->
+                    case proplists:is_defined(S, LHS) of
                       true ->
                         ok;
                       _ ->
-                        io:format("neotoma error: symbol '~s' has no reduction. No parser will be generated!~n", [S]),
+                        io:format("neotoma error: symbol '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
                         exit({neotoma, {no_reduction, list_to_atom(S)}})
                     end
                 end, NTs).
