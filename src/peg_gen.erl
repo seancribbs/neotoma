@@ -62,7 +62,7 @@ parse_grammar(InputFile) ->
   end.
 
 create_transform(false,_) ->
-  "transform(_,Node) -> Node.";
+  "transform(_,Node,_Index) -> Node.";
 create_transform(ModName,Dir) when is_atom(ModName) ->
   XfFile = filename:join(Dir, atom_to_list(ModName) ++ ".erl"),
   case filelib:is_regular(XfFile) of
