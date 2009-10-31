@@ -3,57 +3,60 @@
 -author("Sean Cribbs <seancribbs@gmail.com>").
 
 transform(rules, Node, _Index) ->
-  verify_rules(),
-  Rules = string:join(lists:nth(2, Node), ";\n\n"),
-  Rules ++ ".\n";
+  put(neotoma_root_rule, verify_rules()),
+  Rules = string:join(lists:nth(2, Node), "\n\n"),
+  Rules ++ "\n";
 transform(declaration_sequence, Node, _Index) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules];
 transform(declaration, [{nonterminal,Symbol}|Node], Index) ->
   add_lhs(Symbol, Index),
-  "rule("++escape_symbol(Symbol)++") ->\n  " ++ lists:nth(4, Node);
+  "'"++Symbol++"'"++"(Input, Index) ->\n  " ++
+        "p(Input, Index, '"++Symbol++"', fun(I,D) -> ("++
+        lists:nth(4, Node) ++
+        ")(I,D) end, fun(Node, Idx) -> transform('"++Symbol++"', Node, Idx) end).";
 transform(sequence, Node, _Index) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
-  "peg:seq(["++ string:join(Statements, ", ") ++ "])";
+  "p_seq(["++ string:join(Statements, ", ") ++ "])";
 transform(choice, Node, _Index) ->
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
-  "peg:choose([" ++ string:join(Statements, ", ") ++ "])";
+  "p_choose([" ++ string:join(Statements, ", ") ++ "])";
 transform(label, Node, _Index) ->
   String = lists:flatten(Node),
   lists:sublist(String, length(String)-1);
 transform(labeled_sequence_primary, Node, _Index) ->
   case hd(Node) of
     [] -> lists:nth(2, Node);
-    Label -> "peg:label('" ++ Label ++ "', "++lists:nth(2, Node)++")"
+    Label -> "p_label('" ++ Label ++ "', "++lists:nth(2, Node)++")"
   end;
 transform(single_quoted_string, Node, Index) ->
   transform(double_quoted_string, Node, Index);
 transform(double_quoted_string, Node, _Index) ->
-  "peg:string(\""++escape_quotes(lists:flatten(proplists:get_value(string, Node)))++"\")";
+  "p_string(\""++escape_quotes(lists:flatten(proplists:get_value(string, Node)))++"\")";
 transform(character_class, Node, _Index) ->
-  "peg:charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
+  "p_charclass(\"[" ++ escape_quotes(lists:flatten(proplists:get_value(characters, Node))) ++ "]\")";
 transform(parenthesized_expression, Node, _Index) ->
   lists:nth(3, Node);
 transform(atomic, {nonterminal, Symbol}, Index) ->
   add_nt(Symbol, Index),
-  "fun " ++ escape_symbol(Symbol) ++ "/2";
+  "fun '" ++ Symbol ++ "'/2";
 transform(primary, [Atomic, one_or_more], _Index) ->
-  "peg:one_or_more("++Atomic++")";
+  "p_one_or_more("++Atomic++")";
 transform(primary, [Atomic, zero_or_more], _Index) ->
-  "peg:zero_or_more("++Atomic++")";
+  "p_zero_or_more("++Atomic++")";
 transform(primary, [Atomic, optional], _Index) ->
-  "peg:optional("++Atomic++")";
+  "p_optional("++Atomic++")";
 transform(primary, [assert, Atomic], _Index)->
-  "peg:assert("++Atomic++")";
+  "p_assert("++Atomic++")";
 transform(primary, [not_, Atomic], _Index) ->
-  "peg:not_("++Atomic++")";
+  "p_not("++Atomic++")";
 transform(nonterminal, Node, _Index) ->
   {nonterminal, lists:flatten(Node)};
 transform(anything_symbol, _Node, _Index) ->
-  "peg:anything()";
+  "p_anything()";
 transform(suffix, Node, _Index) ->
   case Node of
     "*" -> zero_or_more;
@@ -96,7 +99,7 @@ add_nt(Symbol, Index) ->
 verify_rules() ->
   LHS = erase(lhs),
   NTs = erase(nts),
-  NonRoots = tl(lists:reverse(LHS)),
+  [Root|NonRoots] = lists:reverse(LHS),
   lists:foreach(fun({Sym,Idx}) ->
                     case proplists:is_defined(Sym, NTs) of
                       true ->
@@ -110,38 +113,8 @@ verify_rules() ->
                       true ->
                         ok;
                       _ ->
-                        io:format("neotoma error: symbol '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
+                        io:format("neotoma error: nonterminal '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
                         exit({neotoma, {no_reduction, list_to_atom(S)}})
                     end
-                end, NTs).
-
-escape_symbol("after")   -> "'after'";
-escape_symbol("and")     -> "'and'";
-escape_symbol("andalso") -> "'andalso'";
-escape_symbol("band")    -> "'band'";
-escape_symbol("begin")   -> "'begin'";
-escape_symbol("bnot")    -> "'bnot'";
-escape_symbol("bor")     -> "'bor'";
-escape_symbol("bsl")     -> "'bsl'";
-escape_symbol("bsr")     -> "'bsr'";
-escape_symbol("bxor")    -> "'bxor'";
-escape_symbol("case")    -> "'case'";
-escape_symbol("catch")   -> "'catch'";
-escape_symbol("cond")    -> "'cond'";
-escape_symbol("div")     -> "'div'";
-escape_symbol("end")     -> "'end'";
-escape_symbol("fun")     -> "'fun'";
-escape_symbol("if")      -> "'if'";
-escape_symbol("let")     -> "'let'";
-escape_symbol("not")     -> "'not'";
-escape_symbol("of")      -> "'of'";
-escape_symbol("or")      -> "'or'";
-escape_symbol("orelse")  -> "'orelse'";
-escape_symbol("query")   -> "'query'";
-escape_symbol("receive") -> "'receive'";
-escape_symbol("rem")     -> "'rem'";
-escape_symbol("try")     -> "'try'";
-escape_symbol("when")    -> "'when'";
-escape_symbol("xor")     -> "'xor'";
-
-escape_symbol(Symbol) -> Symbol.
+                end, NTs),
+    Root.

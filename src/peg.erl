@@ -13,13 +13,7 @@
 -export([p/4, p/5]).
 -export([setup_memo/1, release_memo/0]).
 
--export([eof/0, optional/1,
-         not_/1, assert/1, seq/1,
-         and_/1, choose/1,
-         zero_or_more/1, one_or_more/1,
-         label/2,
-         string/1, anything/0,
-         charclass/1]).
+-export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]).
 
 %% @doc Memoizing parsing function wrapper.  This form does not transform the result of a successful parse.
 %% @see p/5.
@@ -71,14 +65,14 @@ get_memo(Position) ->
   end.
 
 %% @doc Generates a parse function that matches the end of the buffer.
-%% @spec eof() -> parse_fun()
-eof() ->
+%% @spec p_eof() -> parse_fun()
+p_eof() ->
   fun([], Index) -> {eof, [], Index};
      (_, Index) -> {fail, {expected, eof, Index}} end.
 
 %% @doc Generates a parse function that treats the passed parse function as optional.
-%% @spec optional(parse_fun()) -> parse_fun()
-optional(P) ->
+%% @spec p_optional(parse_fun()) -> parse_fun()
+p_optional(P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
         {fail,_} -> {[], Input, Index};
@@ -87,8 +81,8 @@ optional(P) ->
   end.
 
 %% @doc Generates a parse function that ensures the passed function will not match without consuming any input, that is, negative lookahead.
-%% @spec not_(parse_fun()) -> parse_fun()
-not_(P) ->
+%% @spec p_not(parse_fun()) -> parse_fun()
+p_not(P) ->
   fun(Input, Index)->
       case P(Input,Index) of
         {fail,_} ->
@@ -98,8 +92,8 @@ not_(P) ->
   end.
 
 %% @doc Generates a parse function that ensures the passed function will match, without consuming any input, that is, positive lookahead.
-%% @spec assert(parse_fun()) -> parse_fun()
-assert(P) ->
+%% @spec p_assert(parse_fun()) -> parse_fun()
+p_assert(P) ->
   fun(Input,Index) ->
       case P(Input,Index) of
         {fail,_} = Failure-> Failure;
@@ -107,55 +101,55 @@ assert(P) ->
       end
   end.
 
-%% @doc Alias for seq/1.
-%% @see seq/1.
-and_(P) ->
-  seq(P).
+%% @doc Alias for p_seq/1.
+%% @see p_seq/1.
+p_and(P) ->
+  p_seq(P).
 
 %% @doc Generates a parse function that will match the passed parse functions in order.
-%% @spec seq([parse_fun()]) -> parse_fun()
-seq(P) ->
+%% @spec p_seq([parse_fun()]) -> parse_fun()
+p_seq(P) ->
   fun(Input, Index) ->
-      all(P, Input, Index, [])
+      p_all(P, Input, Index, [])
   end.
 
-all([], Inp, Index, Accum ) -> {lists:reverse( Accum ), Inp, Index};
-all([P|Parsers], Inp, Index, Accum) ->
+p_all([], Inp, Index, Accum ) -> {lists:reverse( Accum ), Inp, Index};
+p_all([P|Parsers], Inp, Index, Accum) ->
   case P(Inp, Index) of
     {fail, _} = Failure -> Failure;
-    {Result, InpRem, NewIndex} -> all(Parsers, InpRem, NewIndex, [Result|Accum])
+    {Result, InpRem, NewIndex} -> p_all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
 
 %% @doc Generates a parse function that will match at least one of the passed parse functions (ordered choice).
 %% @spec choose([parse_fun()]) -> parse_fun()
-choose(Parsers) ->
+p_choose(Parsers) ->
   fun(Input, Index) ->
-      attempt(Parsers, Input, Index, none)
+      p_attempt(Parsers, Input, Index, none)
   end.
 
-attempt([], _Input, _Index, Failure) -> Failure;
-attempt([P|Parsers], Input, Index, FirstFailure)->
+p_attempt([], _Input, _Index, Failure) -> Failure;
+p_attempt([P|Parsers], Input, Index, FirstFailure)->
   case P(Input, Index) of
     {fail, _} = Failure ->
       case FirstFailure of
-        none -> attempt(Parsers, Input, Index, Failure);
-        _ -> attempt(Parsers, Input, Index, FirstFailure)
+        none -> p_attempt(Parsers, Input, Index, Failure);
+        _ -> p_attempt(Parsers, Input, Index, FirstFailure)
       end;
     Result -> Result
   end.
 
 %% @doc Generates a parse function that will match any number of the passed parse function in sequence (optional greedy repetition).
-%% @spec zero_or_more(parse_fun()) -> parse_fun()
-zero_or_more(P) ->
+%% @spec p_zero_or_more(parse_fun()) -> parse_fun()
+p_zero_or_more(P) ->
   fun(Input, Index) ->
-      scan(P, Input, Index, [])
+      p_scan(P, Input, Index, [])
   end.
 
 %% @doc Generates a parse function that will match at least one of the passed parse function in sequence (greedy repetition).
-%% @spec one_or_more(parse_fun()) -> parse_fun()
-one_or_more(P) ->
+%% @spec p_one_or_more(parse_fun()) -> parse_fun()
+p_one_or_more(P) ->
   fun(Input, Index)->
-      Result = scan(P, Input, Index, []),
+      Result = p_scan(P, Input, Index, []),
       case Result of
         {[_|_], _, _} ->
           Result;
@@ -166,8 +160,8 @@ one_or_more(P) ->
   end.
 
 %% @doc Generates a parse function that will tag the result of the passed parse function with a label when it succeeds.  The tagged result will be a 2-tuple of {Tag, Result}.
-%% @spec label(Tag::anything(), P::parse_fun()) -> parse_fun()
-label(Tag, P) ->
+%% @spec p_label(Tag::anything(), P::parse_fun()) -> parse_fun()
+p_label(Tag, P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
         {fail,_} = Failure ->
@@ -177,28 +171,28 @@ label(Tag, P) ->
       end
   end.
 
-scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
-scan(P, Inp, Index, Accum) ->
+p_scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
+p_scan(P, Inp, Index, Accum) ->
   case P(Inp, Index) of
     {fail,_} -> {lists:reverse(Accum), Inp, Index};
-    {Result, InpRem, NewIndex} -> scan(P, InpRem, NewIndex, [Result | Accum])
+    {Result, InpRem, NewIndex} -> p_scan(P, InpRem, NewIndex, [Result | Accum])
   end.
 
 %% @doc Generates a parse function that will match the passed string on the head of the buffer.
-%% @spec string(string()) -> parse_fun()
-string(S) ->
+%% @spec p_string(string()) -> parse_fun()
+p_string(S) ->
   fun(Input, Index) ->
       case lists:prefix(S, Input) of
-        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), advance_index(S,Index)};
+        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), p_advance_index(S,Index)};
         _ -> {fail, {expected, {string, S}, Index}}
       end
   end.
 
 %% @doc Generates a parse function that will match any single character.
 %% @spec anything() -> parse_fun()
-anything() ->
+p_anything() ->
   fun([], Index) -> {fail, {expected, any_character, Index}};
-     ([H|T], Index) -> {H, T, advance_index(H, Index)}
+     ([H|T], Index) -> {H, T, p_advance_index(H, Index)}
   end.
 
 %% @doc Generates a parse function that will match any single character from the passed "class".  The class should be a PCRE-compatible character class in a string.
@@ -207,19 +201,19 @@ anything() ->
 %%     "[0-9]"
 %%     "[^z]" .
 %% @spec charclass(string()) -> parse_fun()
-charclass(Class) ->
+p_charclass(Class) ->
   fun(Inp, Index) ->
      {ok, RE} = re:compile("^"++Class),
       case re:run(Inp, RE) of
         {match, _} ->
-          {hd(Inp), tl(Inp), advance_index(hd(Inp), Index)};
+          {hd(Inp), tl(Inp), p_advance_index(hd(Inp), Index)};
         _ -> {fail,{expected, {character_class, Class}, Index}}
       end
   end.
 
-advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
-  lists:foldl(fun advance_index/2, Index, MatchedInput);
-advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters
+p_advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
+  lists:foldl(fun p_advance_index/2, Index, MatchedInput);
+p_advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters
   {{line, Line}, {column, Col}} = Index,
   case MatchedInput of
     $\n -> {{line, Line+1}, {column, 1}};

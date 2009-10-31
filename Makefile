@@ -10,25 +10,23 @@ tests: clean src_src src_tests
 ebin:
 	mkdir ebin
 
+priv:
+	mkdir priv
+
 ebin_tests:
 	mkdir ebin_tests
 
-ebin_tests/examples:
-	mkdir ebin_tests/examples
+priv/peg_includes.erl: priv src/peg.erl
+	cat src/peg.erl | grep -v "^%" | grep -v "^-" > priv/peg_includes.erl
 
-special: src/herml_scan.erl src/herml_parse.erl
-
-src_src: ebin src/neotoma.app
+src_src: ebin src/neotoma.app priv/peg_includes.erl
 	cd src;erl -pz ../ebin -make
 
-src_tests: ebin_tests test_examples
+src_tests: ebin_tests
 	cd tests;erl -pz ../ebin -make
 
 src/neotoma.app: ebin
 	cp src/neotoma.app ebin
-
-test_examples: ebin_tests/examples
-	cd tests/examples;erl -pz ../../ebin -make
 
 clean:
 	rm -rf ebin

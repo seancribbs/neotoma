@@ -18,7 +18,7 @@ transform(array, Node, _Idx) ->
   Rest = [lists:nth(4, I) || I <- proplists:get_value(tail, Node)],
   [Head|Rest];
 transform(number, [Int, [],[]], _Idx) ->
-  list_to_integer(lists:flatten(Int));
+  list_to_integer(lists:flatten([Int]));
 transform(number, [Int, Frac, []], _Idx) ->
   list_to_float(lists:flatten([Int, Frac]));
 transform(number, [Int, [], Exp], Idx) ->

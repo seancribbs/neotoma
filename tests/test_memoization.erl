@@ -15,7 +15,7 @@ release_memo_test() ->
 
 step_memo_test() ->
   peg:setup_memo(?MODULE),
-  Result = peg:p("abcdefghi", {{line,1},{column,1}}, anything, peg:anything()),
+  Result = peg:p("abcdefghi", {{line,1},{column,1}}, anything, peg:p_anything()),
   ?assertEqual({$a, "bcdefghi", {{line,1},{column,2}}}, Result),
   Result2 = peg:p("abcdefghi", {{line,1},{column,1}}, anything, fun(_) ->
                                              throw(bork) end),

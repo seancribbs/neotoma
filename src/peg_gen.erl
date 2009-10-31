@@ -23,10 +23,11 @@ file(InputGrammar, Options) ->
                   ModuleName,
                   TransformModule,
                   filename:absname(OutputFilename)),
-  ModuleAttrs = generate_module_attrs(ModuleName),
   Rules = parse_grammar(InputGrammar),
+  ModuleAttrs = generate_module_attrs(ModuleName),
   TransformFun = create_transform(TransformModule, OutputDir),
-  file:write_file(OutputFilename, [ModuleAttrs, "\n", Rules, "\n", TransformFun]).
+  {ok, PegIncludes} = file:read_file(code:priv_dir(neotoma) ++ "/peg_includes.erl"),
+  file:write_file(OutputFilename, [ModuleAttrs, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
 
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
   throw({badarg, "Input and output file are the same!"});
@@ -45,9 +46,22 @@ validate_params(_,_, TransformModule, OutputFile) ->
   end.
 
 generate_module_attrs(ModName) ->
+  {RootRule,_} = erase(neotoma_root_rule),
   ["-module(",atom_to_list(ModName),").\n",
    "-export([parse/1,file/1]).\n",
-   "-include_lib(\"neotoma/include/peg.hrl\").\n"].
+   % This option could be problematic if your grammar is broken in
+   % some way, but hides warnings about unused parser combinators.
+   % In a future version we should just emit the used combinators,
+   % excluding the rest.
+   "-compile(nowarn_unused_function).\n\n", 
+   "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin)).\n\n",
+   "parse(Input) ->\n",
+   "  setup_memo('", atom_to_list(ModName),"'),\n",
+   "  Result = case '",RootRule,"'(Input,{{line,1},{column,1}}) of\n",
+   "             {AST, [], _Index} -> AST;\n",
+   "             Any -> Any\n"
+   "           end,\n",
+   "  release_memo(), Result.\n"].
 
 parse_grammar(InputFile) ->
   case peg_meta:file(InputFile) of
