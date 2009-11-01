@@ -53,7 +53,7 @@ generate_module_attrs(ModName) ->
    % some way, but hides warnings about unused parser combinators.
    % In a future version we should just emit the used combinators,
    % excluding the rest.
-   "-compile(nowarn_unused_function).\n\n", 
+   "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]}).\n\n", 
    "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin)).\n\n",
    "parse(Input) ->\n",
    "  setup_memo('", atom_to_list(ModName),"'),\n",
