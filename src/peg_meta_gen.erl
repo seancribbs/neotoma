@@ -5,7 +5,11 @@
 transform(rules, Node, _Index) ->
   put(neotoma_root_rule, verify_rules()),
   Rules = string:join(lists:nth(2, Node), "\n\n"),
-  Rules ++ "\n";
+  Code = case lists:nth(4, Node) of
+             {code, Block} -> Block;
+             _ -> []
+         end,
+  Rules ++ "\n" ++ Code;
 transform(declaration_sequence, Node, _Index) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],

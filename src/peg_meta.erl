@@ -13,7 +13,7 @@ parse(Input) ->
   release_memo(), Result.
 
 'rules'(Input, Index) ->
-  p(Input, Index, 'rules', fun(I,D) -> (p_seq([p_optional(fun 'space'/2), fun 'declaration_sequence'/2, p_optional(fun 'space'/2)]))(I,D) end, fun(Node, Idx) -> transform('rules', Node, Idx) end).
+  p(Input, Index, 'rules', fun(I,D) -> (p_seq([p_optional(fun 'space'/2), fun 'declaration_sequence'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2)]))(I,D) end, fun(Node, Idx) -> transform('rules', Node, Idx) end).
 
 'declaration_sequence'(Input, Index) ->
   p(Input, Index, 'declaration_sequence', fun(I,D) -> (p_seq([p_label('head', fun 'declaration'/2), p_label('tail', p_zero_or_more(p_seq([fun 'space'/2, fun 'declaration'/2])))]))(I,D) end, fun(Node, Idx) -> transform('declaration_sequence', Node, Idx) end).
