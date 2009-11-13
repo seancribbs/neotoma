@@ -15,7 +15,7 @@ h2. Features
 # Fully integrated, single-pass lexical and syntactic analysis (a feature of PEGs).
 # Packrat-style memoization, boasting parse-time bound linearly to the input size (at the expense of memory usage).
 # In-place semantic analysis/transformation, supporting single-pass end-to-end in some applications.
-# Erlang code-generation for the lexical/syntactic analysis piece, with the option of semantic analysis/transformation in a separate module.
+# Erlang code-generation for the lexical/syntactic analysis piece, with the option of semantic analysis/transformation inline, or in a separate module.
 # Line/column number tracking for easy resolution of parsing errors.
 
 h2. Installation
@@ -27,9 +27,9 @@ h2. Installation
 h2. Usage
 
 # After making sure the library is in your code path, fire up an Erlang shell.
-# To generate a parser from a PEG, use @peg_gen:file/1,2@ (more detailed documentation pending).  For PEG examples, see the @extra/@ directory in the repository.
+# To generate a parser from a PEG, use @neotoma:file/1,2@ (more detailed documentation pending).  For PEG examples, see the @extra/@ directory in the repository.
 
-  <notextile><pre><code>1&gt; peg_gen:file("extra/arithmetic.peg").</code></pre></notextile>
+  <notextile><pre><code>1&gt; neotoma:file("extra/arithmetic.peg").</code></pre></notextile>
 
   This will place @arithmetic.erl@ in the same directory as the @.peg@ file by default.
 
