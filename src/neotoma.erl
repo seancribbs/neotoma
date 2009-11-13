@@ -1,4 +1,4 @@
--module(peg_gen).
+-module(neotoma).
 -author("Sean Cribbs <seancribbs@gmail.com>").
 -export([file/1, file/2, bootstrap/0]).
 
@@ -69,7 +69,7 @@ generate_module_attrs(ModName, Root) ->
      "  release_memo(), Result.\n"].
 
 parse_grammar(InputFile) ->
-    case peg_meta:file(InputFile) of
+    case neotoma_parse:file(InputFile) of
         {fail, Index} ->
             throw({grammar_error, {fail, Index}});
         {Parsed, Remainder, Index} ->
@@ -99,6 +99,6 @@ generate_transform_stub(XfFile,ModName) ->
     file:write_file(XfFile, Data).
 
 %% @doc Bootstraps the neotoma metagrammar.  Intended only for internal development!
-%% @equiv file("src/peg_meta.peg", [{transform_module, peg_meta_gen}])
+%% @equiv file("src/neotoma_parse.peg")
 bootstrap() ->
-    file("src/peg_meta.peg", [{transform_module, peg_meta_gen}]).
+    file("src/neotoma_parse.peg").

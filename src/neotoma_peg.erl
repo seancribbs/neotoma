@@ -1,4 +1,4 @@
--module(peg).
+-module(neotoma_peg).
 -author("Sean Cribbs <seancribbs@gmail.com>").
 
 % Thanks to Jeffrey A. Meunier for the original parser.erl library from which I

@@ -1,2 +1,2 @@
-{[peg, peg_gen, peg_meta, peg_meta_gen],
+{[neotoma_peg, neotoma, neotoma_parse],
 	[{outdir, "../ebin"}, {i, "../../"}, debug_info]}.

@@ -1,4 +1,4 @@
--module(peg_meta).
+-module(neotoma_parse).
 -export([parse/1,file/1]).
 -compile(nowarn_unused_vars).
 -compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]}).
@@ -21,7 +21,7 @@ parse(Input) ->
              {code, Block} -> Block;
              _ -> []
          end,
-  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(peg_meta,gen_transform)}]
+  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(?MODULE,gen_transform)}]
  end).
 
 'declaration_sequence'(Input, Index) ->

@@ -16,8 +16,8 @@ priv:
 ebin_tests:
 	mkdir ebin_tests
 
-priv/peg_includes.erl: priv src/peg.erl
-	cat src/peg.erl | grep -v "^%" | grep -v "^-" > priv/peg_includes.erl
+priv/peg_includes.erl: priv src/neotoma_peg.erl
+	cat src/neotoma_peg.erl | grep -v "^%" | grep -v "^-" > priv/peg_includes.erl
 
 src_src: ebin src/neotoma.app priv/peg_includes.erl
 	cd src;erl -pz ../ebin -make
@@ -33,5 +33,5 @@ clean:
 	rm -rf ebin_tests
 
 bootstrap: src_src
-	${ERL} -pz ebin -b start_sasl -noshell -s init stop -eval 'peg_gen:bootstrap().'
+	${ERL} -pz ebin -b start_sasl -noshell -s init stop -eval 'neotoma:bootstrap().'
 	cd src;erl -pz ../ebin -make

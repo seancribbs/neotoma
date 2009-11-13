@@ -6,7 +6,7 @@ rules <- space? declaration_sequence space? code_block? space?
              {code, Block} -> Block;
              _ -> []
          end,
-  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(peg_meta,gen_transform)}]
+  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(?MODULE,gen_transform)}]
 `;
 
 declaration_sequence <- head:declaration tail:(space declaration)*
