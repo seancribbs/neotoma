@@ -12,10 +12,14 @@ transform(declaration_sequence, Node, _Index) ->
   [FirstRule|OtherRules];
 transform(declaration, [{nonterminal,Symbol}|Node], Index) ->
   add_lhs(Symbol, Index),
+  Transform = case lists:nth(6,Node) of
+                  {code, CodeBlock} -> CodeBlock;
+                  _ -> "transform('"++Symbol++"', Node, Idx)"
+                  end,
   "'"++Symbol++"'"++"(Input, Index) ->\n  " ++
         "p(Input, Index, '"++Symbol++"', fun(I,D) -> ("++
         lists:nth(4, Node) ++
-        ")(I,D) end, fun(Node, Idx) -> transform('"++Symbol++"', Node, Idx) end).";
+        ")(I,D) end, fun(Node, Idx) -> "++Transform++" end).";
 transform(sequence, Node, _Index) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
@@ -68,6 +72,8 @@ transform(prefix, Node, _Index) ->
     "&" -> assert;
     "!" -> not_
   end;
+transform(code_block, Node, _Index) ->
+    {code, lists:flatten(proplists:get_value('code', Node))};
 transform(Rule, Node, _Index) when is_atom(Rule) ->
    Node.
 

@@ -19,7 +19,7 @@ parse(Input) ->
   p(Input, Index, 'declaration_sequence', fun(I,D) -> (p_seq([p_label('head', fun 'declaration'/2), p_label('tail', p_zero_or_more(p_seq([fun 'space'/2, fun 'declaration'/2])))]))(I,D) end, fun(Node, Idx) -> transform('declaration_sequence', Node, Idx) end).
 
 'declaration'(Input, Index) ->
-  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, fun 'space'/2, p_string("<-"), fun 'space'/2, fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_string(";")]))(I,D) end, fun(Node, Idx) -> transform('declaration', Node, Idx) end).
+  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, fun 'space'/2, p_string("<-"), fun 'space'/2, fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2), p_string(";")]))(I,D) end, fun(Node, Idx) -> transform('declaration', Node, Idx) end).
 
 'parsing_expression'(Input, Index) ->
   p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> transform('parsing_expression', Node, Idx) end).
@@ -95,6 +95,9 @@ parse(Input) ->
 
 'white'(Input, Index) ->
   p(Input, Index, 'white', fun(I,D) -> (p_charclass("[ \t\n\r]"))(I,D) end, fun(Node, Idx) -> transform('white', Node, Idx) end).
+
+'code_block'(Input, Index) ->
+  p(Input, Index, 'code_block', fun(I,D) -> (p_seq([p_string("\"\"\""), p_label('code', p_one_or_more(p_seq([p_not(p_string("\"\"\"")), p_anything()]))), p_string("\"\"\"")]))(I,D) end, fun(Node, Idx) -> transform('code_block', Node, Idx) end).
 
 transform(Symbol,Node,Index) -> peg_meta_gen:transform(Symbol, Node, Index).
 
