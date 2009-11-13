@@ -56,7 +56,7 @@ generate_module_attrs(ModName) ->
    "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]}).\n\n", 
    "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin)).\n\n",
    "parse(Input) ->\n",
-   "  setup_memo('", atom_to_list(ModName),"'),\n",
+   "  setup_memo(),\n",
    "  Result = case '",RootRule,"'(Input,{{line,1},{column,1}}) of\n",
    "             {AST, [], _Index} -> AST;\n",
    "             Any -> Any\n"

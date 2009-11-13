@@ -5,7 +5,7 @@
 file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin)).
 
 parse(Input) ->
-  setup_memo('peg_meta'),
+  setup_memo(),
   Result = case 'rules'(Input,{{line,1},{column,1}}) of
              {AST, [], _Index} -> AST;
              Any -> Any
@@ -130,19 +130,17 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
       end
   end.
 
-setup_memo(Name) ->
-  TID = ets:new(Name, [set]),
-  put(ets_table, TID).
+setup_memo() ->
+  ets:new(?MODULE, [named_table, set]).
 
 release_memo() ->
-  ets:delete(get(ets_table)),
-  erase(ets_table).
+  ets:delete(?MODULE).
 
 memoize(Position, Struct) ->
-  ets:insert(get(ets_table), {Position, Struct}).
+  ets:insert(?MODULE, {Position, Struct}).
 
 get_memo(Position) ->
-  case ets:lookup(get(ets_table), Position) of
+  case ets:lookup(?MODULE, Position) of
     [] -> dict:new();
     [{Position, Dict}] -> Dict
   end.

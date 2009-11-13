@@ -11,7 +11,7 @@
 %% @type parse_result() = ({fail, Reason} | {Result::any(), Remainder::string(), NewIndex::parse_index()}) .
 
 -export([p/4, p/5]).
--export([setup_memo/1, release_memo/0]).
+-export([setup_memo/0, release_memo/0]).
 
 -export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]).
 
@@ -45,21 +45,19 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   end.
 
 %% @doc Sets up the packrat memoization table for this parse. Used internally by generated parsers.
-%% @spec setup_memo(Name::any()) -> any()
-setup_memo(Name) ->
-  TID = ets:new(Name, [set]),
-  put(ets_table, TID).
+%% @spec setup_memo() -> any()
+setup_memo() ->
+  ets:new(?MODULE, [named_table, set]).
 
 %% @doc Cleans up the packrat memoization table.  Used internally by generated parsers.
 release_memo() ->
-  ets:delete(get(ets_table)),
-  erase(ets_table).
+  ets:delete(?MODULE).
 
 memoize(Position, Struct) ->
-  ets:insert(get(ets_table), {Position, Struct}).
+  ets:insert(?MODULE, {Position, Struct}).
 
 get_memo(Position) ->
-  case ets:lookup(get(ets_table), Position) of
+  case ets:lookup(?MODULE, Position) of
     [] -> dict:new();
     [{Position, Dict}] -> Dict
   end.
