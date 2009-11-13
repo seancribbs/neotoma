@@ -88,29 +88,29 @@ escape_quotes(String) ->
   re:replace(String, RE, "\\\\\"", [global, {return, list}]).
 
 add_lhs(Symbol, Index) ->
-  case get(lhs) of
-    undefined ->
-      put(lhs, [{Symbol,Index}]);
-    L when is_list(L) ->
-      put(lhs, [{Symbol,Index}|L])
+  case ets:lookup(peg_meta, lhs) of
+    [] ->
+      ets:insert(peg_meta, {lhs, [{Symbol,Index}]});
+    [{lhs, L}] when is_list(L) ->
+      ets:insert(peg_meta, {lhs, [{Symbol,Index}|L]})
   end.
 
 add_nt(Symbol, Index) ->
-  case get(nts) of
-    undefined ->
-      put(nts, [{Symbol,Index}]);
-    L when is_list(L) ->
+  case ets:lookup(peg_meta, nts) of
+    [] ->
+      ets:insert(peg_meta, {nts, [{Symbol,Index}]});
+    [{nts, L}] when is_list(L) ->
       case proplists:is_defined(Symbol, L) of
         true ->
           ok;
         _ ->
-          put(nts, [{Symbol,Index}|L])
+          ets:insert(peg_meta, {nts, [{Symbol,Index}|L]})
       end
   end.
 
 verify_rules() ->
-  LHS = erase(lhs),
-  NTs = erase(nts),
+  [{lhs, LHS}] = ets:lookup(peg_meta, lhs),
+  [{nts, NTs}] = ets:lookup(peg_meta, nts),
   [Root|NonRoots] = lists:reverse(LHS),
   lists:foreach(fun({Sym,Idx}) ->
                     case proplists:is_defined(Sym, NTs) of
