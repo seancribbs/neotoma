@@ -79,7 +79,10 @@ transform(prefix, Node, _Index) ->
     "!" -> not_
   end;
 transform(code_block, Node, _Index) ->
-    {code, lists:flatten(proplists:get_value('code', Node))};
+   case Node of
+       "~" -> {code, "Node"};
+       _   -> {code, lists:flatten(proplists:get_value('code', Node))}
+   end;
 transform(Rule, Node, _Index) when is_atom(Rule) ->
    Node.
 
