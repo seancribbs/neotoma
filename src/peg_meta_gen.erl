@@ -3,13 +3,13 @@
 -author("Sean Cribbs <seancribbs@gmail.com>").
 
 transform(rules, Node, _Index) ->
-  put(neotoma_root_rule, verify_rules()),
+  RootRule = verify_rules(),
   Rules = string:join(lists:nth(2, Node), "\n\n"),
   Code = case lists:nth(4, Node) of
              {code, Block} -> Block;
              _ -> []
          end,
-  Rules ++ "\n" ++ Code;
+  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(peg_meta,gen_transform)}];
 transform(declaration_sequence, Node, _Index) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [lists:last(I) || I <- proplists:get_value(tail, Node, [])],
@@ -18,7 +18,9 @@ transform(declaration, [{nonterminal,Symbol}|Node], Index) ->
   add_lhs(Symbol, Index),
   Transform = case lists:nth(6,Node) of
                   {code, CodeBlock} -> CodeBlock;
-                  _ -> "transform('"++Symbol++"', Node, Idx)"
+                  _ ->
+                      ets:insert_new(peg_meta,{gen_transform, true}),
+                      "transform('"++Symbol++"', Node, Idx)"
                   end,
   "'"++Symbol++"'"++"(Input, Index) ->\n  " ++
         "p(Input, Index, '"++Symbol++"', fun(I,D) -> ("++
