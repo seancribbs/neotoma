@@ -38,7 +38,7 @@ parse(Input) ->
   Transform = case lists:nth(6,Tail) of
                   {code, CodeBlock} -> CodeBlock;
                   _ ->
-                      ets:insert_new(peg_meta,{gen_transform, true}),
+                      ets:insert_new(?MODULE,{gen_transform, true}),
                       "transform('"++Symbol++"', Node, Idx)"
                   end,
   "'"++Symbol++"'"++"(Input, Index) ->\n  " ++
