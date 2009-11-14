@@ -1,4 +1,19 @@
-additive <- multitive "+" additive / multitive;
-multitive <- primary "*" multitive / primary;
-primary <- "(" additive ")" / decimal;
-decimal <- [0-9];
+additive <- multitive "+" additive / multitive `
+case Node of
+  Int when is_integer(Int) -> Int;
+  [A, "+", B] -> A + B
+end
+`;
+multitive <- primary "*" multitive / primary `
+case Node of
+  Int when is_integer(Int) -> Int;
+  [A,"*",B] -> A * B
+end
+`;
+primary <- "(" additive ")" / decimal `
+case Node of
+  Int when is_integer(Int) -> Int;
+  List when is_list(List) -> lists:nth(2,List)
+end
+`;
+decimal <- [0-9]+ `list_to_integer(Node)`;

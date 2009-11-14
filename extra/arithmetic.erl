@@ -1,4 +1,4 @@
--module(csv).
+-module(arithmetic).
 -export([parse/1,file/1]).
 -compile(nowarn_unused_vars).
 -compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]}).
@@ -7,50 +7,38 @@ file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin
 
 parse(Input) ->
   setup_memo(),
-  Result = case 'rows'(Input,{{line,1},{column,1}}) of
+  Result = case 'additive'(Input,{{line,1},{column,1}}) of
              {AST, [], _Index} -> AST;
              Any -> Any
            end,
   release_memo(), Result.
 
-'rows'(Input, Index) ->
-  p(Input, Index, 'rows', fun(I,D) -> (p_choose([p_seq([p_label('head', fun 'row'/2), p_label('tail', p_zero_or_more(p_seq([fun 'crlf'/2, fun 'row'/2])))]), p_string("")]))(I,D) end, fun(Node, Idx) -> 
+'additive'(Input, Index) ->
+  p(Input, Index, 'additive', fun(I,D) -> (p_choose([p_seq([fun 'multitive'/2, p_string("+"), fun 'additive'/2]), fun 'multitive'/2]))(I,D) end, fun(Node, Idx) -> 
 case Node of
-  [] -> [];
-  [""] -> [];
-  _ ->
-    Head = proplists:get_value(head, Node),
-    Tail = [R || [_,R] <- proplists:get_value(tail, Node)],
-    [Head|Tail]
+  Int when is_integer(Int) -> Int;
+  [A, "+", B] -> A + B
 end
  end).
 
-'row'(Input, Index) ->
-  p(Input, Index, 'row', fun(I,D) -> (p_choose([p_seq([p_label('head', fun 'field'/2), p_label('tail', p_zero_or_more(p_seq([fun 'field_sep'/2, fun 'field'/2])))]), p_string("")]))(I,D) end, fun(Node, Idx) -> 
+'multitive'(Input, Index) ->
+  p(Input, Index, 'multitive', fun(I,D) -> (p_choose([p_seq([fun 'primary'/2, p_string("*"), fun 'multitive'/2]), fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> 
 case Node of
-  [] -> [];
-  [""] -> [];
-  _ ->
-    Head = proplists:get_value(head, Node),
-    Tail = [F || [_,F] <- proplists:get_value(tail, Node)],
-    [Head|Tail]
+  Int when is_integer(Int) -> Int;
+  [A,"*",B] -> A * B
 end
  end).
 
-'field'(Input, Index) ->
-  p(Input, Index, 'field', fun(I,D) -> (p_choose([fun 'quoted_field'/2, p_zero_or_more(p_seq([p_not(p_choose([fun 'field_sep'/2, fun 'crlf'/2])), p_anything()]))]))(I,D) end, fun(Node, Idx) -> lists:flatten(Node) end).
-
-'quoted_field'(Input, Index) ->
-  p(Input, Index, 'quoted_field', fun(I,D) -> (p_seq([p_string("\""), p_label('string', p_zero_or_more(p_choose([p_string("\"\""), p_seq([p_not(p_string("\"")), p_anything()])]))), p_string("\"")]))(I,D) end, fun(Node, Idx) -> 
-  String = proplists:get_value(string, Node),
-  re:replace(String, "[\"]{2}", "\"",[global, {return, list}])
+'primary'(Input, Index) ->
+  p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([p_string("("), fun 'additive'/2, p_string(")")]), fun 'decimal'/2]))(I,D) end, fun(Node, Idx) -> 
+case Node of
+  Int when is_integer(Int) -> Int;
+  List when is_list(List) -> lists:nth(2,List)
+end
  end).
 
-'field_sep'(Input, Index) ->
-  p(Input, Index, 'field_sep', fun(I,D) -> (p_string(","))(I,D) end, fun(Node, Idx) -> Node end).
-
-'crlf'(Input, Index) ->
-  p(Input, Index, 'crlf', fun(I,D) -> (p_choose([p_string("\r\n"), p_string("\n")]))(I,D) end, fun(Node, Idx) -> Node end).
+'decimal'(Input, Index) ->
+  p(Input, Index, 'decimal', fun(I,D) -> (p_one_or_more(p_charclass("[0-9]")))(I,D) end, fun(Node, Idx) -> list_to_integer(Node) end).
 
 
 
