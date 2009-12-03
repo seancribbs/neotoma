@@ -21,7 +21,7 @@ parse(Input) ->
              {code, Block} -> Block;
              _ -> []
          end,
-  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(?MODULE,gen_transform)}]
+  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(memo_table_name(),gen_transform)}]
  end).
 
 'declaration_sequence'(Input, Index) ->
@@ -38,7 +38,7 @@ parse(Input) ->
   Transform = case lists:nth(6,Tail) of
                   {code, CodeBlock} -> CodeBlock;
                   _ ->
-                      ets:insert_new(?MODULE,{gen_transform, true}),
+                      ets:insert_new(memo_table_name(),{gen_transform, true}),
                       "transform('"++Symbol++"', Node, Idx)"
                   end,
   "'"++Symbol++"'"++"(Input, Index) ->\n  " ++
@@ -178,29 +178,29 @@ escape_quotes(String) ->
   re:replace(String, RE, "\\\\\"", [global, {return, list}]).
 
 add_lhs(Symbol, Index) ->
-  case ets:lookup(?MODULE, lhs) of
+  case ets:lookup(memo_table_name(), lhs) of
     [] ->
-      ets:insert(?MODULE, {lhs, [{Symbol,Index}]});
+      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}]});
     [{lhs, L}] when is_list(L) ->
-      ets:insert(?MODULE, {lhs, [{Symbol,Index}|L]})
+      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}|L]})
   end.
 
 add_nt(Symbol, Index) ->
-  case ets:lookup(?MODULE, nts) of
+  case ets:lookup(memo_table_name(), nts) of
     [] ->
-      ets:insert(?MODULE, {nts, [{Symbol,Index}]});
+      ets:insert(memo_table_name(), {nts, [{Symbol,Index}]});
     [{nts, L}] when is_list(L) ->
       case proplists:is_defined(Symbol, L) of
         true ->
           ok;
         _ ->
-          ets:insert(?MODULE, {nts, [{Symbol,Index}|L]})
+          ets:insert(memo_table_name(), {nts, [{Symbol,Index}|L]})
       end
   end.
 
 verify_rules() ->
-  [{lhs, LHS}] = ets:lookup(?MODULE, lhs),
-  [{nts, NTs}] = ets:lookup(?MODULE, nts),
+  [{lhs, LHS}] = ets:lookup(memo_table_name(), lhs),
+  [{nts, NTs}] = ets:lookup(memo_table_name(), nts),
   [Root|NonRoots] = lists:reverse(LHS),
   lists:foreach(fun({Sym,Idx}) ->
                     case proplists:is_defined(Sym, NTs) of
@@ -253,19 +253,22 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   end.
 
 setup_memo() ->
-  ets:new(?MODULE, [named_table, set]).
+  ets:new(memo_table_name(), [named_table, set]).
 
 release_memo() ->
-  ets:delete(?MODULE).
+  ets:delete(memo_table_name()).
 
 memoize(Position, Struct) ->
-  ets:insert(?MODULE, {Position, Struct}).
+  ets:insert(memo_table_name(), {Position, Struct}).
 
 get_memo(Position) ->
-  case ets:lookup(?MODULE, Position) of
+  case ets:lookup(memo_table_name(), Position) of
     [] -> dict:new();
     [{Position, Dict}] -> Dict
   end.
+
+memo_table_name() ->
+    list_to_atom(atom_to_list(?MODULE) ++ pid_to_list(self())).
 
 p_eof() ->
   fun([], Index) -> {eof, [], Index};
