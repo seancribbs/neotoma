@@ -3,6 +3,56 @@
 -compile(nowarn_unused_vars).
 -compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, line/1, column/1]}).
 
+
+
+escape_quotes(String) ->
+  {ok, RE} = re:compile("\""),
+  re:replace(String, RE, "\\\\\"", [global, {return, list}]).
+
+add_lhs(Symbol, Index) ->
+  case ets:lookup(memo_table_name(), lhs) of
+    [] ->
+      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}]});
+    [{lhs, L}] when is_list(L) ->
+      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}|L]})
+  end.
+
+add_nt(Symbol, Index) ->
+  case ets:lookup(memo_table_name(), nts) of
+    [] ->
+      ets:insert(memo_table_name(), {nts, [{Symbol,Index}]});
+    [{nts, L}] when is_list(L) ->
+      case proplists:is_defined(Symbol, L) of
+        true ->
+          ok;
+        _ ->
+          ets:insert(memo_table_name(), {nts, [{Symbol,Index}|L]})
+      end
+  end.
+
+verify_rules() ->
+  [{lhs, LHS}] = ets:lookup(memo_table_name(), lhs),
+  [{nts, NTs}] = ets:lookup(memo_table_name(), nts),
+  [Root|NonRoots] = lists:reverse(LHS),
+  lists:foreach(fun({Sym,Idx}) ->
+                    case proplists:is_defined(Sym, NTs) of
+                      true ->
+                        ok;
+                      _ ->
+                        io:format("neotoma warning: rule '~s' is unused. ~p~n", [Sym,Idx])
+                    end
+                end, NonRoots),
+  lists:foreach(fun({S,I}) ->
+                    case proplists:is_defined(S, LHS) of
+                      true ->
+                        ok;
+                      _ ->
+                        io:format("neotoma error: nonterminal '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
+                        exit({neotoma, {no_reduction, list_to_atom(S)}})
+                    end
+                end, NTs),
+    Root.
+
 file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(binary_to_list(Bin)).
 
 parse(Input) ->
@@ -21,7 +71,7 @@ parse(Input) ->
              {code, Block} -> Block;
              _ -> []
          end,
-  [{rules, Rules ++ "\n" ++ Code}, {root, RootRule}, {transform, ets:lookup(memo_table_name(),gen_transform)}]
+  [{rules, Rules}, {code, Code}, {root, RootRule}, {transform, ets:lookup(memo_table_name(),gen_transform)}]
  end).
 
 'declaration_sequence'(Input, Index) ->
@@ -172,55 +222,6 @@ end
        _   -> {code, lists:flatten(proplists:get_value('code', Node))}
    end
  end).
-
-escape_quotes(String) ->
-  {ok, RE} = re:compile("\""),
-  re:replace(String, RE, "\\\\\"", [global, {return, list}]).
-
-add_lhs(Symbol, Index) ->
-  case ets:lookup(memo_table_name(), lhs) of
-    [] ->
-      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}]});
-    [{lhs, L}] when is_list(L) ->
-      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}|L]})
-  end.
-
-add_nt(Symbol, Index) ->
-  case ets:lookup(memo_table_name(), nts) of
-    [] ->
-      ets:insert(memo_table_name(), {nts, [{Symbol,Index}]});
-    [{nts, L}] when is_list(L) ->
-      case proplists:is_defined(Symbol, L) of
-        true ->
-          ok;
-        _ ->
-          ets:insert(memo_table_name(), {nts, [{Symbol,Index}|L]})
-      end
-  end.
-
-verify_rules() ->
-  [{lhs, LHS}] = ets:lookup(memo_table_name(), lhs),
-  [{nts, NTs}] = ets:lookup(memo_table_name(), nts),
-  [Root|NonRoots] = lists:reverse(LHS),
-  lists:foreach(fun({Sym,Idx}) ->
-                    case proplists:is_defined(Sym, NTs) of
-                      true ->
-                        ok;
-                      _ ->
-                        io:format("neotoma warning: rule '~s' is unused. ~p~n", [Sym,Idx])
-                    end
-                end, NonRoots),
-  lists:foreach(fun({S,I}) ->
-                    case proplists:is_defined(S, LHS) of
-                      true ->
-                        ok;
-                      _ ->
-                        io:format("neotoma error: nonterminal '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
-                        exit({neotoma, {no_reduction, list_to_atom(S)}})
-                    end
-                end, NTs),
-    Root.
-
 
 
 
