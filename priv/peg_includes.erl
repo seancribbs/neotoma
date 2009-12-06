@@ -163,6 +163,12 @@ p_charclass(Class) ->
       end
   end.
 
+line({{line,L},_}) -> L;
+line(_) -> undefined.
+
+column({_,{column,C}}) -> C;
+column(_) -> undefined.
+
 p_advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
   lists:foldl(fun p_advance_index/2, Index, MatchedInput);
 p_advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters

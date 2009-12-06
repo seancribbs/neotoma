@@ -13,7 +13,7 @@
 -export([p/4, p/5]).
 -export([setup_memo/0, release_memo/0]).
 
--export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1]).
+-export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, line/1, column/1]).
 
 %% @doc Memoizing parsing function wrapper.  This form does not transform the result of a successful parse.
 %% @see p/5.
@@ -211,6 +211,16 @@ p_charclass(Class) ->
         _ -> {fail,{expected, {character_class, Class}, Index}}
       end
   end.
+
+%% @doc Extracts the line number from the Idx tuple
+%% @spec line(parse_index()) -> integer()
+line({{line,L},_}) -> L;
+line(_) -> undefined.
+
+%% @doc Extracts the column number from the Idx tuple
+%% @spec column(parse_index()) -> integer()
+column({_,{column,C}}) -> C;
+column(_) -> undefined.
 
 p_advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
   lists:foldl(fun p_advance_index/2, Index, MatchedInput);
