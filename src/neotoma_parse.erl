@@ -253,7 +253,7 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   end.
 
 setup_memo() ->
-  ets:new(memo_table_name(), [named_table, set]).
+  put(parse_memo_table, ets:new(?MODULE, [set])).
 
 release_memo() ->
   ets:delete(memo_table_name()).
@@ -268,7 +268,7 @@ get_memo(Position) ->
   end.
 
 memo_table_name() ->
-    list_to_atom(atom_to_list(?MODULE) ++ pid_to_list(self())).
+    get(parse_memo_table).
 
 p_eof() ->
   fun([], Index) -> {eof, [], Index};

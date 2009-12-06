@@ -47,7 +47,7 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
 %% @doc Sets up the packrat memoization table for this parse. Used internally by generated parsers.
 %% @spec setup_memo() -> any()
 setup_memo() ->
-  ets:new(memo_table_name(), [named_table, set]).
+  put(parse_memo_table, ets:new(?MODULE, [set])).
 
 %% @doc Cleans up the packrat memoization table.  Used internally by generated parsers.
 release_memo() ->
@@ -63,7 +63,7 @@ get_memo(Position) ->
   end.
 
 memo_table_name() ->
-    list_to_atom(atom_to_list(?MODULE) ++ pid_to_list(self())).
+    get(parse_memo_table).
 
 %% @doc Generates a parse function that matches the end of the buffer.
 %% @spec p_eof() -> parse_fun()
