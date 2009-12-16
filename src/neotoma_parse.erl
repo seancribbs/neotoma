@@ -201,7 +201,7 @@ end
   p(Input, Index, 'anything_symbol', fun(I,D) -> (p_string("."))(I,D) end, fun(Node, Idx) ->  "p_anything()"  end).
 
 'alpha_char'(Input, Index) ->
-  p(Input, Index, 'alpha_char', fun(I,D) -> (p_charclass("[a-z_]"))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'alpha_char', fun(I,D) -> (p_charclass("[A-Za-z_]"))(I,D) end, fun(Node, Idx) -> Node end).
 
 'alphanumeric_char'(Input, Index) ->
   p(Input, Index, 'alphanumeric_char', fun(I,D) -> (p_choose([fun 'alpha_char'/2, p_charclass("[0-9]")]))(I,D) end, fun(Node, Idx) -> Node end).

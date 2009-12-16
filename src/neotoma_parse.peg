@@ -125,7 +125,7 @@ character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']' `"p_charcla
 
 anything_symbol <- '.' ` "p_anything()" `;
 
-alpha_char <- [a-z_] ~;
+alpha_char <- [A-Za-z_] ~;
 
 alphanumeric_char <- alpha_char / [0-9] ~;
 
