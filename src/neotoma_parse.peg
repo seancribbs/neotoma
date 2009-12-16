@@ -43,7 +43,7 @@ choice <- head:alternative tail:(space '/' space alternative)+
   "p_choose([" ++ string:join(Statements, ", ") ++ "])"
 `;
 
-alternative <- sequence / primary ~;
+alternative <- sequence / labeled_primary ~;
 
 primary <- prefix atomic / atomic suffix / atomic
 `
@@ -57,14 +57,14 @@ case Node of
 end
 `;
 
-sequence <- head:labeled_sequence_primary tail:(space labeled_sequence_primary)+
+sequence <- head:labeled_primary tail:(space labeled_primary)+
 `
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
   "p_seq(["++ string:join(Statements, ", ") ++ "])"
 `;
 
-labeled_sequence_primary <- label? primary
+labeled_primary <- label? primary
 `
   case hd(Node) of
     [] -> lists:nth(2, Node);

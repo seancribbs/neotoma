@@ -4,16 +4,16 @@ case Node of
   [A, "+", B] -> A + B
 end
 `;
-multitive <- primary "*" multitive / primary `
+multitive <- primary "*" Mul:multitive / primary `
 case Node of
   Int when is_integer(Int) -> Int;
-  [A,"*",B] -> A * B
+  [A,"*",{'Mul',B}] -> A * B
 end
 `;
-primary <- "(" additive ")" / decimal `
+primary <- par:("(" add:additive ")") / dec:Decimal `
 case Node of
-  Int when is_integer(Int) -> Int;
-  List when is_list(List) -> lists:nth(2,List)
+  {dec,Int} when is_integer(Int) -> Int;
+  {par,List} -> proplists:get_value(add,List)
 end
 `;
-decimal <- [0-9]+ `list_to_integer(Node)`;
+Decimal <- [0-9]+ `list_to_integer(Node)`;

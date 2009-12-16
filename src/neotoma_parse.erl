@@ -108,7 +108,7 @@ parse(Input) ->
  end).
 
 'alternative'(Input, Index) ->
-  p(Input, Index, 'alternative', fun(I,D) -> (p_choose([fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'alternative', fun(I,D) -> (p_choose([fun 'sequence'/2, fun 'labeled_primary'/2]))(I,D) end, fun(Node, Idx) -> Node end).
 
 'primary'(Input, Index) ->
   p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, Idx) -> 
@@ -123,14 +123,14 @@ end
  end).
 
 'sequence'(Input, Index) ->
-  p(Input, Index, 'sequence', fun(I,D) -> (p_seq([p_label('head', fun 'labeled_sequence_primary'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, fun 'labeled_sequence_primary'/2])))]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'sequence', fun(I,D) -> (p_seq([p_label('head', fun 'labeled_primary'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, fun 'labeled_primary'/2])))]))(I,D) end, fun(Node, Idx) -> 
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Statements = [proplists:get_value(head, Node)|Tail],
   "p_seq(["++ string:join(Statements, ", ") ++ "])"
  end).
 
-'labeled_sequence_primary'(Input, Index) ->
-  p(Input, Index, 'labeled_sequence_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> 
+'labeled_primary'(Input, Index) ->
+  p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> 
   case hd(Node) of
     [] -> lists:nth(2, Node);
     Label -> "p_label('" ++ Label ++ "', "++lists:nth(2, Node)++")"
