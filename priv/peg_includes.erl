@@ -10,20 +10,20 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   % Grab the memo table from ets
   Memo = get_memo(StartIndex),
   % See if the current reduction is memoized
-  case dict:find(Name, Memo) of
+  case proplists:lookup(Name, Memo) of
     % If it is, return the result
-    {ok, Result} -> Result;
+    {Name, Result} -> Result;
     % If not, attempt to parse
     _ ->
       case ParseFun(Inp, StartIndex) of
         % If it fails, memoize the failure
         {fail,_} = Failure ->
-          memoize(StartIndex, dict:store(Name, Failure, Memo)),
+          memoize(StartIndex, [{Name, Failure}|Memo]),
           Failure;
         % If it passes, transform and memoize the result.
         {Result, InpRem, NewIndex} ->
           Transformed = TransformFun(Result, StartIndex),
-          memoize(StartIndex, dict:store(Name, {Transformed, InpRem, NewIndex}, Memo)),
+          memoize(StartIndex, [{Name, {Transformed, InpRem, NewIndex}}|Memo]),
           {Transformed, InpRem, NewIndex}
       end
   end.
@@ -39,8 +39,8 @@ memoize(Position, Struct) ->
 
 get_memo(Position) ->
   case ets:lookup(memo_table_name(), Position) of
-    [] -> dict:new();
-    [{Position, Dict}] -> Dict
+    [] -> [];
+    [{Position, PList}] -> PList
   end.
 
 memo_table_name() ->
