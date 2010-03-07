@@ -68,7 +68,7 @@ memo_table_name() ->
 %% @doc Generates a parse function that matches the end of the buffer.
 %% @spec p_eof() -> parse_fun()
 p_eof() ->
-  fun([], Index) -> {eof, [], Index};
+  fun(<<>>, Index) -> {eof, [], Index};
      (_, Index) -> {fail, {expected, eof, Index}} end.
 
 %% @doc Generates a parse function that treats the passed parse function as optional.
@@ -181,19 +181,25 @@ p_scan(P, Inp, Index, Accum) ->
 
 %% @doc Generates a parse function that will match the passed string on the head of the buffer.
 %% @spec p_string(string()) -> parse_fun()
+p_string(S) when is_list(S) -> p_string(list_to_binary(S));
 p_string(S) ->
-  fun(Input, Index) ->
-      case lists:prefix(S, Input) of
-        true -> {S, lists:sublist(Input, length(S)+1, length(Input)), p_advance_index(S,Index)};
-        _ -> {fail, {expected, {string, S}, Index}}
+    Length = erlang:byte_size(S),
+    fun(Input, Index) ->
+      try
+          <<S:Length/binary, Rest/binary>> = Input,
+          {S, Rest, p_advance_index(S, Index)}
+      catch
+          error:{badmatch,_} -> {fail, {expected, {string, S}, Index}}
       end
-  end.
+    end.
 
 %% @doc Generates a parse function that will match any single character.
 %% @spec p_anything() -> parse_fun()
 p_anything() ->
-  fun([], Index) -> {fail, {expected, any_character, Index}};
-     ([H|T], Index) -> {H, T, p_advance_index(H, Index)}
+  fun(<<>>, Index) -> {fail, {expected, any_character, Index}};
+     (Input, Index) when is_binary(Input) ->
+          <<C/utf8, Rest/binary>> = Input,
+          {<<C/utf8>>, Rest, p_advance_index(<<C/utf8>>, Index)}
   end.
 
 %% @doc Generates a parse function that will match any single character from the passed "class".  The class should be a PCRE-compatible character class in a string.
@@ -203,14 +209,15 @@ p_anything() ->
 %%     "[^z]" .
 %% @spec p_charclass(string()) -> parse_fun()
 p_charclass(Class) ->
-  fun(Inp, Index) ->
-     {ok, RE} = re:compile("^"++Class),
-      case re:run(Inp, RE) of
-        {match, _} ->
-          {hd(Inp), tl(Inp), p_advance_index(hd(Inp), Index)};
-        _ -> {fail,{expected, {character_class, Class}, Index}}
-      end
-  end.
+    {ok, RE} = re:compile(Class, [unicode, dotall]),
+    fun(Inp, Index) ->
+            case re:run(Inp, RE, [anchored]) of
+                {match, [{0, Length}|_]} ->
+                    {Head, Tail} = erlang:split_binary(Inp, Length),
+                    {Head, Tail, p_advance_index(Head, Index)};
+                _ -> {fail, {expected, {character_class, Class}, Index}}
+            end
+    end.
 
 %% @doc Extracts the line number from the Idx tuple
 %% @spec line(parse_index()) -> integer()
@@ -222,8 +229,8 @@ line(_) -> undefined.
 column({_,{column,C}}) -> C;
 column(_) -> undefined.
 
-p_advance_index(MatchedInput, Index) when is_list(MatchedInput) -> % strings
-  lists:foldl(fun p_advance_index/2, Index, MatchedInput);
+p_advance_index(MatchedInput, Index) when is_list(MatchedInput) orelse is_binary(MatchedInput)-> % strings
+  lists:foldl(fun p_advance_index/2, Index, unicode:characters_to_list(MatchedInput));
 p_advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters
   {{line, Line}, {column, Col}} = Index,
   case MatchedInput of
