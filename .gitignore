@@ -2,3 +2,6 @@ ebin/*.beam
 extra/*.beam
 *#*
 .eunit
+*#*
+.DS_Store
+._*
