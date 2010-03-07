@@ -2,3 +2,5 @@ ebin/*
 ebin_tests/*
 extra/*.beam
 *#*
+.DS_Store
+._*
