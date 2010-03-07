@@ -16,7 +16,7 @@ priv:
 ebin_tests:
 	mkdir ebin_tests
 
-priv/peg_includes.erl: priv src/neotoma_peg.erl
+priv/peg_includes.erl: src/neotoma_peg.erl priv
 	cat src/neotoma_peg.erl | grep -v "^%" | grep -v "^-" > priv/peg_includes.erl
 
 src_src: ebin src/neotoma.app priv/peg_includes.erl
@@ -29,6 +29,7 @@ src/neotoma.app: ebin
 	cp src/neotoma.app ebin
 
 clean:
+	rm priv/peg_includes.erl
 	rm -rf ebin
 	rm -rf ebin_tests
 
