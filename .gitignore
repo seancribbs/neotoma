@@ -1,4 +1,4 @@
-ebin/*
+ebin/*.beam
 ebin_tests/*
 extra/*.beam
 *#*
