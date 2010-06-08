@@ -122,7 +122,7 @@ p_all([P|Parsers], Inp, Index, Accum) ->
   end.
 
 %% @doc Generates a parse function that will match at least one of the passed parse functions (ordered choice).
-%% @spec choose([parse_fun()]) -> parse_fun()
+%% @spec p_choose([parse_fun()]) -> parse_fun()
 p_choose(Parsers) ->
   fun(Input, Index) ->
       p_attempt(Parsers, Input, Index, none)
@@ -190,7 +190,7 @@ p_string(S) ->
   end.
 
 %% @doc Generates a parse function that will match any single character.
-%% @spec anything() -> parse_fun()
+%% @spec p_anything() -> parse_fun()
 p_anything() ->
   fun([], Index) -> {fail, {expected, any_character, Index}};
      ([H|T], Index) -> {H, T, p_advance_index(H, Index)}
@@ -201,7 +201,7 @@ p_anything() ->
 %%     "[a-z]"
 %%     "[0-9]"
 %%     "[^z]" .
-%% @spec charclass(string()) -> parse_fun()
+%% @spec p_charclass(string()) -> parse_fun()
 p_charclass(Class) ->
   fun(Inp, Index) ->
      {ok, RE} = re:compile("^"++Class),
