@@ -1,4 +1,3 @@
-ebin/*.beam
-extra/*.beam
+*.beam
 *#*
 .eunit
