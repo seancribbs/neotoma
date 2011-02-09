@@ -31,8 +31,8 @@ file(InputGrammar, Options) ->
     ModuleAttrs = generate_module_attrs(ModuleName),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
-%    {ok, PegIncludes} = file:read_file(code:priv_dir(neotoma) ++ "/peg_includes.erl"),
-    {ok, PegIncludes} = file:read_file(filename:dirname(filename:dirname(code:where_is_file("neotoma.beam"))) ++ "/priv/peg_includes.erl"),
+%    {ok, PegIncludes} = file:read_file(code:priv_dir(neotoma) ++ "/peg_includes.hrl"),
+    {ok, PegIncludes} = file:read_file(filename:dirname(filename:dirname(code:where_is_file("neotoma.beam"))) ++ "/priv/peg_includes.hrl"),
     file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
 
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
