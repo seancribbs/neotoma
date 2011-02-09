@@ -8,20 +8,20 @@ task :neotoma => %w(parser compile)
 task :parser  => %w(src/neotoma_parse.erl)
 
 # include file
-file "priv/peg_includes.erl" => ["src/neotoma_peg.erl"] do
-	sh "cat src/neotoma_peg.erl | grep -v \"^%\" | grep -v \"^-\" > priv/peg_includes.erl"
+file "priv/peg_includes.hrl" => ["src/peg_includes.erl"] do
+	sh "cat src/peg_includes.erl | grep -v \"^%\" | grep -v \"^-\" > priv/peg_includes.hrl"
   end
 
 # Parser
 if File.exist?("ebin/neotoma_parse.beam")
-  file "src/neotoma_parse.erl" => ["src/neotoma_parse.peg", "priv/peg_includes.erl"] do
+  file "src/neotoma_parse.erl" => ["src/neotoma_parse.peg", "priv/peg_includes.hrl"] do
     erl_eval 'neotoma:file("src/neotoma_parse.peg")', 'ebin/'
   end
 else
   sh "cp src/neotoma_parse.erl.safe  src/neotoma_parse.erl"
 end
 
-task :compile => %w(ebin src/neotoma.app priv/peg_includes.erl) do
+task :compile => %w(ebin src/neotoma.app priv/peg_includes.hrl) do
     sh "cd src;erl -pa ../ebin -make"
   end
 
@@ -45,7 +45,7 @@ task :test => %w(build test_beams) do
 end
 
 # Cleaning
-CLEAN.include %w(ebin ebin_tests src/neotoma_parse.erl priv/peg_includes.erl)
+CLEAN.include %w(ebin ebin_tests src/neotoma_parse.erl priv/peg_includes.hrl)
 
 #---- generic erlang version tests ------
 
