@@ -1,8 +1,4 @@
 
-
-
-
-
 p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N, _Idx) -> N end).
 
