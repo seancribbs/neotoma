@@ -107,4 +107,4 @@ generate_transform_stub(XfFile,ModName) ->
 %% @doc Bootstraps the neotoma metagrammar.  Intended only for internal development!
 %% @equiv file("src/neotoma_parse.peg")
 bootstrap() ->
-    file("priv/neotoma_parse.peg").
+    file("priv/neotoma_parse.peg", [{output, "src/"}]).

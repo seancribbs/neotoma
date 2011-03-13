@@ -72,8 +72,6 @@ verify_rules() ->
                 end, NTs),
     Root.
 
-
-
 file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).
 
 parse(List) when is_list(List) -> parse(list_to_binary(List));
@@ -263,33 +261,23 @@ end
 
 
 
-
-
-
-
 p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N, _Idx) -> N end).
 
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
-  % Grab the memo table from ets
-  Memo = get_memo(StartIndex),
-  % See if the current reduction is memoized
-  case proplists:lookup(Name, Memo) of
-    % If it is, return the result
-    {Name, Result} -> Result;
-    % If not, attempt to parse
-    _ ->
+  case get_memo(StartIndex, Name) of      % See if the current reduction is memoized
+    {ok, Memo} -> %Memo;                     % If it is, return the stored result
+      Memo;
+    _ ->                                        % If not, attempt to parse
       case ParseFun(Inp, StartIndex) of
-        % If it fails, memoize the failure
-        {fail,_} = Failure ->
-          memoize(StartIndex, [{Name, Failure}|Memo]),
-          Failure;
-        % If it passes, transform and memoize the result.
-        {Result, InpRem, NewIndex} ->
-          Transformed = TransformFun(Result, StartIndex),
-          memoize(StartIndex, [{Name, {Transformed, InpRem, NewIndex}}|Memo]),
-          {Transformed, InpRem, NewIndex}
-      end
+        {fail,_} = Failure ->                       % If it fails, memoize the failure
+          Result = Failure;
+        {Match, InpRem, NewIndex} ->               % If it passes, transform and memoize the result.
+          Transformed = TransformFun(Match, StartIndex),
+          Result = {Transformed, InpRem, NewIndex}
+      end,
+      memoize(StartIndex, Name, Result),
+      Result
   end.
 
 setup_memo() ->
@@ -298,14 +286,22 @@ setup_memo() ->
 release_memo() ->
   ets:delete(memo_table_name()).
 
-memoize(Position, Struct) ->
-  ets:insert(memo_table_name(), {Position, Struct}).
+memoize(Index, Name, Result) ->
+  Memo = case ets:lookup(memo_table_name(), Index) of
+              [] -> [];
+              [{Index, Plist}] -> Plist
+         end,
+  ets:insert(memo_table_name(), {Index, [{Name, Result}|Memo]}).
 
-get_memo(Position) ->
-  case ets:lookup(memo_table_name(), Position) of
-    [] -> [];
-    [{Position, PList}] -> PList
-  end.
+get_memo(Index, Name) ->
+  case ets:lookup(memo_table_name(), Index) of
+    [] -> {error, not_found};
+    [{Index, Plist}] ->
+      case proplists:lookup(Name, Plist) of
+        {Name, Result}  -> {ok, Result};
+        _  -> {error, not_found}
+      end
+    end.
 
 memo_table_name() ->
     get(parse_memo_table).
