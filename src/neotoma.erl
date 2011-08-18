@@ -2,16 +2,16 @@
 -author("Sean Cribbs <seancribbs@gmail.com>").
 -export([file/1, file/2, bootstrap/0]).
 
+-type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()}.
+
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
-%% @spec file(Filename::string()) -> ok
+-spec file(file:filename()) -> ok.
 file(InputGrammar) ->
     file(InputGrammar, []).
 
-%% @doc Generates a parser from the specified file.
-%% <pre>    Options = [Option] <br />
-%%   Option = {module, OutputModuleName::atom()} | <br/>             {output, OutputDirectory::string()} | <br />             {transform_module, TransformModuleName::atom()} </pre>
-%% @spec file(Filename::string(), Options) -> ok
+%% @doc Generates a parser from the specified file with the given options.
+-spec file(file:filename(), [option()]) -> ok.
 file(InputGrammar, Options) ->
     Basename = filename:basename(InputGrammar, ".peg"),
     InputDir = filename:dirname(InputGrammar),
@@ -31,10 +31,10 @@ file(InputGrammar, Options) ->
     ModuleAttrs = generate_module_attrs(ModuleName),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
-%    {ok, PegIncludes} = file:read_file(code:priv_dir(neotoma) ++ "/peg_includes.hrl"),
     {ok, PegIncludes} = file:read_file(filename:dirname(filename:dirname(code:where_is_file("neotoma.beam"))) ++ "/priv/peg_includes.hrl"),
     file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
 
+-spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
     throw({badarg, "Input and output file are the same!"});
 validate_params(_,ModName,_,_) when not is_atom(ModName) ->
@@ -51,6 +51,7 @@ validate_params(_,_, TransformModule, OutputFile) ->
         _ -> ok
     end.
 
+-spec generate_module_attrs(atom()) -> iolist().
 generate_module_attrs(ModName) ->
     ["-module(",atom_to_list(ModName),").\n",
      "-export([parse/1,file/1]).\n",
@@ -62,6 +63,7 @@ generate_module_attrs(ModName) ->
      "-compile(nowarn_unused_vars).\n",
      "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, line/1, column/1]}).\n\n"].
 
+-spec generate_entry_functions({iodata(),_}) -> iolist().
 generate_entry_functions(Root) ->
     {RootRule,_} = Root,
      ["file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
@@ -74,6 +76,7 @@ generate_entry_functions(Root) ->
      "           end,\n",
      "  release_memo(), Result.\n"].
 
+-spec parse_grammar(file:filename()) -> any().
 parse_grammar(InputFile) ->
     case neotoma_parse:file(InputFile) of
         {fail, Index} ->
@@ -85,6 +88,8 @@ parse_grammar(InputFile) ->
         L when is_list(L) -> L;
         _ -> throw({error, {unknown, grammar, InputFile}})
     end.
+
+-spec create_transform(atom() | boolean(),file:filename(),_) -> iolist().
 create_transform(_,_,[]) -> [];
 create_transform(false,_,_) ->
     "transform(_,Node,_Index) -> Node.";
@@ -96,6 +101,7 @@ create_transform(ModName,Dir,_) when is_atom(ModName) ->
     end,
     ["transform(Symbol,Node,Index) -> ",atom_to_list(ModName),":transform(Symbol, Node, Index)."].
 
+-spec generate_transform_stub(file:filename(), atom()) -> 'ok' | {'error',atom()}.
 generate_transform_stub(XfFile,ModName) ->
     Data = ["-module(",atom_to_list(ModName),").\n",
             "-export([transform/3]).\n\n",
@@ -106,5 +112,6 @@ generate_transform_stub(XfFile,ModName) ->
 
 %% @doc Bootstraps the neotoma metagrammar.  Intended only for internal development!
 %% @equiv file("src/neotoma_parse.peg")
+-spec bootstrap() -> 'ok'.
 bootstrap() ->
     file("priv/neotoma_parse.peg", [{output, "src/"}]).
