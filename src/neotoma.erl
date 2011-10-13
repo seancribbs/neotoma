@@ -66,7 +66,9 @@ generate_module_attrs(ModName) ->
 -spec generate_entry_functions({iodata(),_}) -> iolist().
 generate_entry_functions(Root) ->
     {RootRule,_} = Root,
-     ["file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
+     ["-spec file(file:name()) -> any().\n",
+     "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
+     "-spec parse(binary() | list()) -> any().\n",
      "parse(List) when is_list(List) -> parse(list_to_binary(List));\n",
      "parse(Input) when is_binary(Input) ->\n",
      "  setup_memo(),\n",
