@@ -7,12 +7,12 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
     {ok, Memo} -> %Memo;                     % If it is, return the stored result
       Memo;
     _ ->                                        % If not, attempt to parse
-      case ParseFun(Inp, StartIndex) of
+      Result = case ParseFun(Inp, StartIndex) of
         {fail,_} = Failure ->                       % If it fails, memoize the failure
-          Result = Failure;
+          Failure;
         {Match, InpRem, NewIndex} ->               % If it passes, transform and memoize the result.
           Transformed = TransformFun(Match, StartIndex),
-          Result = {Transformed, InpRem, NewIndex}
+          {Transformed, InpRem, NewIndex}
       end,
       memoize(StartIndex, Name, Result),
       Result

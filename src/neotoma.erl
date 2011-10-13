@@ -61,12 +61,14 @@ generate_module_attrs(ModName) ->
      % In a future version we should just emit the used combinators,
      % excluding the rest.
      "-compile(nowarn_unused_vars).\n",
-     "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, line/1, column/1]}).\n\n"].
+     "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_attempt/4, line/1, column/1]}).\n\n"].
 
 -spec generate_entry_functions({iodata(),_}) -> iolist().
 generate_entry_functions(Root) ->
     {RootRule,_} = Root,
-     ["file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
+     ["-spec file(file:name()) -> any().\n",
+     "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
+     "-spec parse(binary() | list()) -> any().\n",
      "parse(List) when is_list(List) -> parse(list_to_binary(List));\n",
      "parse(Input) when is_binary(Input) ->\n",
      "  setup_memo(),\n",
