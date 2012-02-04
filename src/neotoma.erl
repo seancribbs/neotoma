@@ -1,8 +1,16 @@
 -module(neotoma).
 -author("Sean Cribbs <seancribbs@gmail.com>").
 -export([file/1, file/2, bootstrap/0]).
+-export([main/1]).
 
 -type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()}.
+
+%% @doc Handler function for escript.
+-spec main(list()) -> ok | no_return().
+main([]) ->
+    io:format("Usage: neotoma filename [-module output_module] [-output output_dir] [-transform_module transform_module]\n");
+main([Filename | Args]) ->
+    file(Filename, parse_options(Args)).
 
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
@@ -117,3 +125,14 @@ generate_transform_stub(XfFile,ModName) ->
 -spec bootstrap() -> 'ok'.
 bootstrap() ->
     file("priv/neotoma_parse.peg", [{output, "src/"}]).
+
+%% @doc Parses arguments passed to escript
+-spec parse_options(list()) -> list().
+parse_options(["-module", ModName | Rest]) ->
+    [{module, list_to_atom(ModName)} | parse_options(Rest)];
+parse_options(["-output", Dir | Rest]) ->
+    [{output, Dir} | parse_options(Rest)];
+parse_options(["-transform_module", ModName | Rest]) ->
+    [{transform_module, list_to_atom(ModName)} | parse_options(Rest)];
+parse_options([]) ->
+    [].
