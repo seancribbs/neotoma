@@ -15,3 +15,6 @@ dialyze: compile
 bootstrap: compile
 	@ erl -pz ebin -b start_sasl -noshell -s init stop -eval 'neotoma:bootstrap().'
 	@ rebar compile
+
+escript:
+	@ rebar escriptize
