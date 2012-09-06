@@ -19,7 +19,7 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   end.
 
 setup_memo() ->
-  put(parse_memo_table, ets:new(?MODULE, [set])).
+  put({parse_memo_table, ?MODULE}, ets:new(?MODULE, [set])).
 
 release_memo() ->
   ets:delete(memo_table_name()).
@@ -42,7 +42,7 @@ get_memo(Index, Name) ->
     end.
 
 memo_table_name() ->
-    get(parse_memo_table).
+    get({parse_memo_table, ?MODULE}).
 
 p_eof() ->
   fun(<<>>, Index) -> {eof, [], Index};
