@@ -4,13 +4,13 @@
 
 setup_memo_test() ->
     neotoma_peg:setup_memo(),
-    ?assertNot(undefined == ets:info(get(parse_memo_table))),
+    ?assertNot(undefined == ets:info(get({parse_memo_table, neotoma_peg}))),
     neotoma_peg:release_memo().
 
 release_memo_test() ->
     neotoma_peg:setup_memo(),
     neotoma_peg:release_memo(),
-    ?assertEqual(undefined, ets:info(get(parse_memo_table))).
+    ?assertEqual(undefined, ets:info(get({parse_memo_table, neotoma_peg}))).
 
 step_memo_test() ->
     neotoma_peg:setup_memo(),
