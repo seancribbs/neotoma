@@ -14,6 +14,7 @@
     , 'single_quoted_string'/2
     , 'double_quoted_string'/2
     , 'quoted_string'/2
+    , 'regexp_string'/2
     , 'terminal'/2
     , 'atom'/2
     , 'nonterminal'/2
@@ -259,7 +260,14 @@ end
   neotoma_util:p(Input, Index, 'atom', fun(I,D) -> (neotoma_util:p_seq([fun 'alpha_char'/2, neotoma_util:p_zero_or_more(fun 'alphanumeric_char'/2)]))(I,D) end, fun(Node, Idx) -> iolist_to_binary(Node) end).
 
 'terminal'(Input, Index) ->
-  neotoma_util:p(Input, Index, 'terminal', fun(I,D) -> (neotoma_util:p_choose([fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  neotoma_util:p(Input, Index, 'terminal', fun(I,D) -> (neotoma_util:p_choose([fun 'regexp_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+
+'regexp_string'(Input, Index) ->
+  neotoma_util:p(Input, Index, 'regexp_string', fun(I,D) -> (neotoma_util:p_seq([neotoma_util:p_string(<<"|">>), neotoma_util:p_label('string', neotoma_util:p_zero_or_more(neotoma_util:p_seq([neotoma_util:p_not(neotoma_util:p_string(<<"|">>)), neotoma_util:p_choose([neotoma_util:p_string(<<"\\|">>), neotoma_util:p_anything()])]))), neotoma_util:p_string(<<"|">>)]))(I,D) end, fun(Node, Idx) -> 
+["neotoma_util:p_regexp(<<\"",
+   escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
+   "\">>)"]
+ end).
 
 'quoted_string'(Input, Index) ->
   neotoma_util:p(Input, Index, 'quoted_string', fun(I,D) -> (neotoma_util:p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, Idx) -> 

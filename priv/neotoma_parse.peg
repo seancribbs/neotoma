@@ -130,7 +130,14 @@ end
 
 atom <- alpha_char alphanumeric_char* `iolist_to_binary(Node)`;
 
-terminal <- quoted_string / character_class / anything_symbol ~;
+terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
+
+regexp_string <- '|' string:(!'|' ('\\|' / .))* '|'
+`
+["neotoma_util:p_regexp(<<\"",
+   escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
+   "\">>)"]
+`;
 
 quoted_string <- single_quoted_string / double_quoted_string
 `

@@ -23,6 +23,7 @@
 	, p_string/1
 	, p_anything/0
 	, p_charclass/1
+	, p_regexp/1
 	, line/1
 	, column/1
 	]).
@@ -225,6 +226,17 @@ p_charclass(Class) ->
 				{fail, {expected, {character_class, binary_to_list(Class)}, Index}}
 		end
 	end.
+
+p_regexp(Regexp) ->
+    {ok, RE} = re:compile(Regexp, [unicode, dotall]),
+    fun(Inp, Index) ->
+            case re:run(Inp, RE, [anchored]) of
+                {match, [{0, Length}|_]} ->
+                    {Head, Tail} = erlang:split_binary(Inp, Length),
+                    {Head, Tail, p_advance_index(Head, Index)};
+                _ -> {fail, {expected, {regexp, binary_to_list(Regexp)}, Index}}
+            end
+    end.
 
 line({{line, L}, _}) ->
 	L;
