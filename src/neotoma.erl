@@ -66,9 +66,9 @@ validate_params(_,_, TransformModule, OutputFile) ->
 
 -spec generate_module_attrs(atom()) -> iolist().
 generate_module_attrs(ModName) ->
-	["-module(", atom_to_list(ModName), ").\n"
-	"-export([parse/1, file/1]).\n"
-	"-compile(nowarn_unused_vars).\n"].
+    ["-module(", atom_to_list(ModName), ").\n"
+    "-export([parse/1, file/1]).\n"
+    "-compile(nowarn_unused_vars).\n"].
 
 -spec generate_entry_functions({iodata(),_}) -> iolist().
 generate_entry_functions(Root) ->
