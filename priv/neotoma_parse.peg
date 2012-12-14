@@ -8,9 +8,11 @@ rules <- space? declaration_sequence space? code_block? space?
              {code, Block} -> Block;
              _ -> []
          end,
+  [{lhs, LHS}] = ets:lookup(neotoma_util:memo_table_name(), lhs),
   [{rules, Rules},
    {code, Code},
    {root, RootRule},
+   {all_rules, LHS},
    {transform, ets:lookup(neotoma_util:memo_table_name(),gen_transform)}]
 `;
 

@@ -35,11 +35,17 @@ file(InputGrammar, Options) ->
     Rules = proplists:get_value(rules, Parsed),
     Root = proplists:get_value(root, Parsed),
     Code = proplists:get_value(code, Parsed),
+    AllRules = proplists:get_value(all_rules, Parsed),
+    ExportRule = export_rules(AllRules),
     GenTransform = proplists:get_value(transform, Parsed),
     ModuleAttrs = generate_module_attrs(ModuleName),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
-    file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n"]).
+    file:write_file(OutputFilename, [ModuleAttrs, "\n", ExportRule, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n"]).
+
+export_rules([{First, _} | Rules]) ->
+    ["-export([\n    '", First, "'/2",
+		[["\n    , '", Rule, "'/2"] || {Rule, _} <- Rules], "])."].
 
 -spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
