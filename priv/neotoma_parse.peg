@@ -8,10 +8,12 @@ rules <- space? declaration_sequence space? code_block? space?
              {code, Block} -> Block;
              _ -> []
          end,
+  [{lhs, LHS}] = ets:lookup(neotoma_util:memo_table_name(), lhs),
   [{rules, Rules},
    {code, Code},
    {root, RootRule},
-   {transform, ets:lookup(memo_table_name(),gen_transform)}]
+   {all_rules, LHS},
+   {transform, ets:lookup(neotoma_util:memo_table_name(),gen_transform)}]
 `;
 
 declaration_sequence <- head:declaration tail:(space declaration)*
@@ -21,18 +23,18 @@ declaration_sequence <- head:declaration tail:(space declaration)*
   [FirstRule|OtherRules]
 `;
 
-declaration <- nonterminal space '<-' space parsing_expression space? code_block? space? ';'
+declaration <- atom space '<-' space parsing_expression space? code_block? space? ';'
 `
-  [{nonterminal,Symbol}|Tail] = Node,
+  [Symbol | Tail] = Node,
   add_lhs(Symbol, Index),
   Transform = case lists:nth(6,Tail) of
                   {code, CodeBlock} -> CodeBlock;
                   _ ->
-                      ets:insert_new(memo_table_name(),{gen_transform, true}),
+                      ets:insert_new(neotoma_util:memo_table_name(),{gen_transform, true}),
                       ["transform('",Symbol,"', Node, Idx)"]
                   end,
   ["'",Symbol,"'","(Input, Index) ->\n  ",
-        "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
+        "neotoma_util:p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
         ")(I,D) end, fun(Node, Idx) -> ",Transform," end)."]
 `;
@@ -40,11 +42,10 @@ declaration <- nonterminal space '<-' space parsing_expression space? code_block
 parsing_expression <- choice / sequence / primary ~;
 
 choice <- head:alternative tail:(space '/' space alternative)+
-`  
-  Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
+`
+  Tail = [[", ", lists:last(S)] || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
-  Statements = [[", ", TS] ||  TS <- Tail],
-  ["p_choose([", Head, Statements, "])"]
+  ["neotoma_util:p_choose([", Head, Tail, "])"]
 `;
 
 alternative <- sequence / labeled_primary ~;
@@ -52,11 +53,11 @@ alternative <- sequence / labeled_primary ~;
 primary <- prefix atomic / atomic suffix / atomic
 `
 case Node of
-  [Atomic, one_or_more] -> ["p_one_or_more(", Atomic, ")"];
-  [Atomic, zero_or_more] -> ["p_zero_or_more(", Atomic, ")"];
-  [Atomic, optional] -> ["p_optional(", Atomic, ")"];
-  [assert, Atomic] -> ["p_assert(", Atomic, ")"];
-  [not_, Atomic] -> ["p_not(", Atomic, ")"];
+  [Atomic, one_or_more] -> ["neotoma_util:p_one_or_more(", Atomic, ")"];
+  [Atomic, zero_or_more] -> ["neotoma_util:p_zero_or_more(", Atomic, ")"];
+  [Atomic, optional] -> ["neotoma_util:p_optional(", Atomic, ")"];
+  [assert, Atomic] -> ["neotoma_util:p_assert(", Atomic, ")"];
+  [not_, Atomic] -> ["neotoma_util:p_not(", Atomic, ")"];
   _ -> Node
 end
 `;
@@ -66,23 +67,23 @@ sequence <- head:labeled_primary tail:(space labeled_primary)+
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] || TS <- Tail],
-  ["p_seq([", Head, Statements, "])"]
+  ["neotoma_util:p_seq([", Head, Statements, "])"]
 `;
 
 labeled_primary <- label? primary
 `
   case hd(Node) of
     [] -> lists:nth(2, Node);
-    Label -> ["p_label('",  Label, "', ", lists:nth(2, Node), ")"]
+    Label -> ["neotoma_util:p_label('",  Label, "', ", lists:nth(2, Node), ")"]
   end
 `;
 
 label <- alpha_char alphanumeric_char* ':'
 `
-  lists:sublist(Node, length(Node)-1)
+lists:sublist(Node, 1, length(Node) - 1)
 `;
 
-suffix <- repetition_suffix / optional_suffix
+suffix <- '+' / '*' / '?'
 `
   case Node of
     <<"*">> -> zero_or_more;
@@ -91,41 +92,56 @@ suffix <- repetition_suffix / optional_suffix
   end
 `;
 
-optional_suffix <- '?' ~;
-
-repetition_suffix <- '+' / '*' ~;
-
 prefix <- '&' / '!'
 `
-  case Node of
-    <<"&">> -> assert;
-    <<"!">> -> not_
-  end
+case Node
+	of <<"&">> -> assert
+	; <<"!">> -> not_
+end
 `;
 
 atomic <- terminal / nonterminal / parenthesized_expression
 `
-case Node of
-  {nonterminal, Symbol} ->
-                [<<"fun '">>, Symbol, <<"'/2">>];
-  _ -> Node
+case Node
+	of {nonterminal, Symbol} ->
+		[<<"fun '">>, Symbol, <<"'/2">>]
+	; {nonterminal, Module, Symbol} ->
+		[<<"fun '">>, Module, <<"':'">>, Symbol, <<"'/2">>]
+	; _ ->
+		Node
 end
 `;
 
-parenthesized_expression <- '(' space? parsing_expression space? ')' `lists:nth(3, Node)`;
-
-nonterminal <- alpha_char alphanumeric_char*
+parenthesized_expression <- '(' space? parsing_expression space? ')'
 `
-  Symbol = iolist_to_binary(Node),
-  add_nt(Symbol, Idx),
-  {nonterminal, Symbol}
+lists:nth(3, Node)
 `;
 
-terminal <- quoted_string / character_class / anything_symbol ~;
+nonterminal <- (':' atom ':')? atom
+`
+case Node
+	of [[_, Module, _], Symbol] ->
+		{nonterminal, Module, Symbol}
+	; [[], Symbol] ->
+		add_nt(Symbol, Idx),
+		{nonterminal, Symbol}
+end
+`;
+
+atom <- alpha_char alphanumeric_char* `iolist_to_binary(Node)`;
+
+terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
+
+regexp_string <- '|' string:(!'|' ('\\|' / .))* '|'
+`
+["neotoma_util:p_regexp(<<\"",
+   escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
+   "\">>)"]
+`;
 
 quoted_string <- single_quoted_string / double_quoted_string
 `
-  lists:flatten(["p_string(<<\"",
+  lists:flatten(["neotoma_util:p_string(<<\"",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
    "\">>)"])
 `;
@@ -136,16 +152,16 @@ single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 
 character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 `
-["p_charclass(<<\"[",
+["neotoma_util:p_charclass(<<\"[",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(characters, Node)))),
  "]\">>)"]
 `;
 
-anything_symbol <- '.' ` <<"p_anything()">> `;
+anything_symbol <- '.' ` <<"neotoma_util:p_anything()">> `;
 
 alpha_char <- [A-Za-z_] ~;
 
-alphanumeric_char <- alpha_char / [0-9] ~;
+alphanumeric_char <- [A-Za-z_0-9] ~;
 
 space <- (white / comment_to_eol)+ ~;
 
@@ -166,69 +182,82 @@ code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
 %% Extra functions
 `
 % insert escapes into a string
-escape_string(String) -> escape_string(String, []).
+escape_string(String) ->
+	escape_string(String, []).
 
-escape_string([], Output) ->
-  lists:reverse(Output);
-escape_string([H|T], Output) ->
-  escape_string(T,
-    case H of
-        $/  -> [$/,$\\|Output]; 
-        $\" -> [$\",$\\|Output];     % " comment inserted to help some editors with highlighting the generated parser
-        $\' -> [$\',$\\|Output];     % ' comment inserted to help some editors with highlighting the generated parser
-        $\b -> [$b,$\\|Output];
-        $\d -> [$d,$\\|Output];
-        $\e -> [$e,$\\|Output];
-        $\f -> [$f,$\\|Output];
-        $\n -> [$n,$\\|Output];
-        $\r -> [$r,$\\|Output];
-        $\s -> [$s,$\\|Output];
-        $\t -> [$t,$\\|Output];
-        $\v -> [$v,$\\|Output];
-        _   -> [H|Output]
-    end).
+escape_string("", Output) ->
+	lists:reverse(Output);
+escape_string("/" ++ T, Output) ->
+	escape_string(T, [$/, $\\ | Output]);
+escape_string("\"" ++ T, Output) ->
+	escape_string(T, [$", $\\ | Output]);
+escape_string("'" ++ T, Output) ->
+	escape_string(T, [$', $\\ | Output]);
+escape_string("\b" ++ T, Output) ->
+	escape_string(T, [$b, $\\ | Output]);
+escape_string("\d" ++ T, Output) ->
+	escape_string(T, [$d, $\\ | Output]);
+escape_string("\e" ++ T, Output) ->
+	escape_string(T, [$e, $\\ | Output]);
+escape_string("\f" ++ T, Output) ->
+	escape_string(T, [$f, $\\ | Output]);
+escape_string("\n" ++ T, Output) ->
+	escape_string(T, [$n, $\\ | Output]);
+escape_string("\r" ++ T, Output) ->
+	escape_string(T, [$r, $\\ | Output]);
+escape_string("\s" ++ T, Output) ->
+	escape_string(T, [$s, $\\ | Output]);
+escape_string("\t" ++ T, Output) ->
+	escape_string(T, [$t, $\\ | Output]);
+escape_string("\v" ++ T, Output) ->
+	escape_string(T, [$v, $\\ | Output]);
+escape_string([C | T], Output) ->
+	escape_string(T, [C | Output]).
 
 add_lhs(Symbol, Index) ->
-  case ets:lookup(memo_table_name(), lhs) of
-    [] ->
-      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}]});
-    [{lhs, L}] when is_list(L) ->
-      ets:insert(memo_table_name(), {lhs, [{Symbol,Index}|L]})
-  end.
+	TableName = neotoma_util:memo_table_name(),
+	case ets:lookup(TableName, lhs)
+		of [] ->
+			ets:insert(TableName, {lhs, [{Symbol, Index}]})
+		; [{lhs, L}] when is_list(L) ->
+			ets:insert(TableName, {lhs, [{Symbol, Index} | L]})
+	end.
 
 add_nt(Symbol, Index) ->
-  case ets:lookup(memo_table_name(), nts) of
-    [] ->
-      ets:insert(memo_table_name(), {nts, [{Symbol,Index}]});
-    [{nts, L}] when is_list(L) ->
-      case proplists:is_defined(Symbol, L) of
-        true ->
-          ok;
-        _ ->
-          ets:insert(memo_table_name(), {nts, [{Symbol,Index}|L]})
-      end
-  end.
+	TableName = neotoma_util:memo_table_name(),
+	case ets:lookup(TableName, nts)
+		of [] ->
+			ets:insert(TableName, {nts, [{Symbol, Index}]})
+		; [{nts, L}] when is_list(L) ->
+			case proplists:is_defined(Symbol, L)
+				of true ->
+					ok
+				; _ ->
+					ets:insert(TableName, {nts, [{Symbol, Index} | L]})
+			end
+	end.
 
 verify_rules() ->
-  [{lhs, LHS}] = ets:lookup(memo_table_name(), lhs),
-  [{nts, NTs}] = ets:lookup(memo_table_name(), nts),
-  [Root|NonRoots] = lists:reverse(LHS),
-  lists:foreach(fun({Sym,Idx}) ->
-                    case proplists:is_defined(Sym, NTs) of
-                      true ->
-                        ok;
-                      _ ->
-                        io:format("neotoma warning: rule '~s' is unused. ~p~n", [Sym,Idx])
-                    end
-                end, NonRoots),
-  lists:foreach(fun({S,I}) ->
-                    case proplists:is_defined(S, LHS) of
-                      true ->
-                        ok;
-                      _ ->
-                        io:format("neotoma error: nonterminal '~s' has no reduction. (found at ~p) No parser will be generated!~n", [S,I]),
-                        exit({neotoma, {no_reduction, list_to_atom(binary_to_list(S))}})
-                    end
-                end, NTs),
-    Root.
+	TableName = neotoma_util:memo_table_name(),
+	[{lhs, LHS}] = ets:lookup(TableName, lhs),
+	[{nts, NTs}] = ets:lookup(TableName, nts),
+	[Root | NonRoots] = lists:reverse(LHS),
+	lists:foreach(fun({Sym, Idx}) ->
+		case proplists:is_defined(Sym, NTs)
+			of true ->
+				ok
+			; _ ->
+				io:format("neotoma warning: rule '~s' is unused. ~p~n", [Sym,Idx])
+			end
+		end, NonRoots),
+	lists:foreach(fun({Sym, Idx}) ->
+		case proplists:is_defined(Sym, LHS)
+			of true ->
+				ok
+			; _ ->
+				io:format("neotoma error: nonterminal '~s' has no reduction. (found at ~p) No parser will be generated!~n", [Sym, Idx]),
+				exit({neotoma, {no_reduction, Sym}})
+			end
+		end, NTs),
+	Root.
 `
