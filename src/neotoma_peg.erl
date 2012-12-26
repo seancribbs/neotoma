@@ -13,6 +13,6 @@
 -export([p/4, p/5]).
 -export([setup_memo/0, release_memo/0]).
 
--export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, line/1, column/1]).
+-export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, line/1, column/1]).
 
 -include("priv/peg_includes.hrl").
