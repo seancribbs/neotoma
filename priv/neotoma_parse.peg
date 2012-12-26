@@ -121,7 +121,17 @@ nonterminal <- alpha_char alphanumeric_char*
   {nonterminal, Symbol}
 `;
 
-terminal <- quoted_string / character_class / anything_symbol ~;
+terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
+
+regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
+`
+["p_regexp(<<\"",
+	% Escape \ and " as they are used in erlang string. Other sumbol stay as is.
+	%  \ -> \\
+	%  " -> \"
+   re:replace(proplists:get_value(string, Node), "\"|\\\\", "\\\\&", [{return, binary}, global]),
+   "\">>)"]
+`;
 
 quoted_string <- single_quoted_string / double_quoted_string
 `
