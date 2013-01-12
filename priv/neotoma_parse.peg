@@ -21,7 +21,7 @@ declaration_sequence <- head:declaration tail:(space declaration)*
   [FirstRule|OtherRules]
 `;
 
-declaration <- nonterminal space '<-' space parsing_expression space? code_block? space? ';'
+declaration <- nonterminal space* '<-' space* parsing_expression space? code_block? space? ';'
 `
   [{nonterminal,Symbol}|Tail] = Node,
   add_lhs(Symbol, Index),
@@ -40,7 +40,7 @@ declaration <- nonterminal space '<-' space parsing_expression space? code_block
 parsing_expression <- choice / sequence / primary ~;
 
 choice <- head:alternative tail:(space '/' space alternative)+
-`  
+`
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] ||  TS <- Tail],
@@ -183,7 +183,7 @@ escape_string([], Output) ->
 escape_string([H|T], Output) ->
   escape_string(T,
     case H of
-        $/  -> [$/,$\\|Output]; 
+        $/  -> [$/,$\\|Output];
         $\" -> [$\",$\\|Output];     % " comment inserted to help some editors with highlighting the generated parser
         $\' -> [$\',$\\|Output];     % ' comment inserted to help some editors with highlighting the generated parser
         $\b -> [$b,$\\|Output];
