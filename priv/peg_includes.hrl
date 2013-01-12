@@ -168,6 +168,17 @@ p_charclass(Class) ->
             end
     end.
 
+p_regexp(Regexp) ->
+    {ok, RE} = re:compile(Regexp, [unicode, dotall, anchored]),
+    fun(Inp, Index) ->
+        case re:run(Inp, RE) of
+            {match, [{0, Length}|_]} ->
+                {Head, Tail} = erlang:split_binary(Inp, Length),
+                {Head, Tail, p_advance_index(Head, Index)};
+            _ -> {fail, {expected, {regexp, binary_to_list(Regexp)}, Index}}
+        end
+    end.
+
 line({{line,L},_}) -> L;
 line(_) -> undefined.
 

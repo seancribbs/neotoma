@@ -85,6 +85,14 @@ charclass_test_() ->
      ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"----">>,?STARTINDEX))
     ].
 
+regexp_test_() ->
+	RegexpFun = neotoma_peg:p_regexp(<<"a*">>),
+    [
+     ?_assertEqual({<<"">>,<<"bbb">>,{{line,1},{column,1}}}, RegexpFun(<<"bbb">>,?STARTINDEX)),
+     ?_assertEqual({<<"a">>,<<"bbb">>,{{line,1},{column,2}}}, RegexpFun(<<"abbb">>,?STARTINDEX)),
+     ?_assertEqual({<<"aaa">>,<<"bbb">>,{{line,1},{column,4}}}, RegexpFun(<<"aaabbb">>,?STARTINDEX))
+    ].
+
 line_test() ->
     ?assertEqual(1, neotoma_peg:line({{line,1},{column,2}})).
 

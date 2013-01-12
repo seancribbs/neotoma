@@ -1,7 +1,7 @@
 -module(neotoma_parse).
 -export([parse/1,file/1]).
 -compile(nowarn_unused_vars).
--compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_attempt/4, line/1, column/1]}).
+-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, p_attempt/4, line/1, column/1]}).
 
 
 
@@ -212,7 +212,17 @@ end
  end).
 
 'terminal'(Input, Index) ->
-  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'regexp_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+
+'regexp_string'(Input, Index) ->
+  p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), p_label('string', p_one_or_more(p_seq([p_not(p_string(<<"#">>)), p_choose([p_string(<<"\\#">>), p_anything()])]))), p_string(<<"#">>)]))(I,D) end, fun(Node, Idx) -> 
+["p_regexp(<<\"",
+	% Escape \ and " as they are used in erlang string. Other sumbol stay as is.
+	%  \ -> \\
+	%  " -> \"
+   re:replace(proplists:get_value(string, Node), "\"|\\\\", "\\\\&", [{return, binary}, global]),
+   "\">>)"]
+ end).
 
 'quoted_string'(Input, Index) ->
   p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, Idx) -> 
@@ -430,6 +440,17 @@ p_charclass(Class) ->
                     {Head, Tail, p_advance_index(Head, Index)};
                 _ -> {fail, {expected, {character_class, binary_to_list(Class)}, Index}}
             end
+    end.
+
+p_regexp(Regexp) ->
+    {ok, RE} = re:compile(Regexp, [unicode, dotall, anchored]),
+    fun(Inp, Index) ->
+        case re:run(Inp, RE) of
+            {match, [{0, Length}|_]} ->
+                {Head, Tail} = erlang:split_binary(Inp, Length),
+                {Head, Tail, p_advance_index(Head, Index)};
+            _ -> {fail, {expected, {regexp, binary_to_list(Regexp)}, Index}}
+        end
     end.
 
 line({{line,L},_}) -> L;
