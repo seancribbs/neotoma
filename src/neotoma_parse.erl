@@ -13,7 +13,7 @@ escape_string([], Output) ->
 escape_string([H|T], Output) ->
   escape_string(T,
     case H of
-        $/  -> [$/,$\\|Output]; 
+        $/  -> [$/,$\\|Output];
         $\" -> [$\",$\\|Output];     % " comment inserted to help some editors with highlighting the generated parser
         $\' -> [$\',$\\|Output];     % ' comment inserted to help some editors with highlighting the generated parser
         $\b -> [$b,$\\|Output];
@@ -107,7 +107,7 @@ parse(Input) when is_binary(Input) ->
  end).
 
 'declaration'(Input, Index) ->
-  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, fun 'space'/2, p_string(<<"<-">>), fun 'space'/2, fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2), p_string(<<";">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, p_zero_or_more(fun 'space'/2), p_string(<<"<-">>), p_zero_or_more(fun 'space'/2), fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2), p_string(<<";">>)]))(I,D) end, fun(Node, Idx) -> 
   [{nonterminal,Symbol}|Tail] = Node,
   add_lhs(Symbol, Index),
   Transform = case lists:nth(6,Tail) of
@@ -126,7 +126,7 @@ parse(Input) when is_binary(Input) ->
   p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> Node end).
 
 'choice'(Input, Index) ->
-  p(Input, Index, 'choice', fun(I,D) -> (p_seq([p_label('head', fun 'alternative'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, p_string(<<"\/">>), fun 'space'/2, fun 'alternative'/2])))]))(I,D) end, fun(Node, Idx) ->   
+  p(Input, Index, 'choice', fun(I,D) -> (p_seq([p_label('head', fun 'alternative'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, p_string(<<"\/">>), fun 'space'/2, fun 'alternative'/2])))]))(I,D) end, fun(Node, Idx) -> 
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] ||  TS <- Tail],
