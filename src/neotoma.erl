@@ -14,12 +14,12 @@ main([Filename | Args]) ->
 
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
--spec file(file:filename()) -> ok.
+-spec file(file:filename()) -> ok | {error, atom()}.
 file(InputGrammar) ->
     file(InputGrammar, []).
 
 %% @doc Generates a parser from the specified file with the given options.
--spec file(file:filename(), [option()]) -> ok.
+-spec file(file:filename(), [option()]) -> ok | {error, atom()}.
 file(InputGrammar, Options) ->
     Basename = filename:basename(InputGrammar, ".peg"),
     InputDir = filename:dirname(InputGrammar),
