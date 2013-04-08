@@ -72,6 +72,22 @@ verify_rules() ->
                 end, NTs),
     Root.
 
+used_tranform_variables(Transform) ->
+  Code = unicode:characters_to_list(Transform),
+  {ok, Tokens, _} = erl_scan:string(Code),
+  used_tranform_variables(Tokens, []).
+
+used_tranform_variables([{var, _, Name}|Tokens], Acc) ->
+  used_tranform_variables(Tokens, case Name of
+                                    'Node' -> [Name | Acc];
+                                    'Idx'  -> [Name | Acc];
+                                    _      -> Acc
+                                  end);
+used_tranform_variables([_|Tokens], Acc) ->
+  used_tranform_variables(Tokens, Acc);
+used_tranform_variables([], Acc) ->
+  lists:usort(Acc).
+
 -spec file(file:name()) -> any().
 file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).
 
