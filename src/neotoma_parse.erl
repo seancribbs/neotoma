@@ -71,20 +71,20 @@ verify_rules() ->
                 end, NTs),
     Root.
 
-used_tranform_variables(Transform) ->
+used_transform_variables(Transform) ->
   Code = unicode:characters_to_list(Transform),
   {ok, Tokens, _} = erl_scan:string(Code),
-  used_tranform_variables(Tokens, []).
+  used_transform_variables(Tokens, []).
 
-used_tranform_variables([{var, _, Name}|Tokens], Acc) ->
-  used_tranform_variables(Tokens, case Name of
+used_transform_variables([{var, _, Name}|Tokens], Acc) ->
+  used_transform_variables(Tokens, case Name of
                                     'Node' -> [Name | Acc];
                                     'Idx'  -> [Name | Acc];
                                     _      -> Acc
                                   end);
-used_tranform_variables([_|Tokens], Acc) ->
-  used_tranform_variables(Tokens, Acc);
-used_tranform_variables([], Acc) ->
+used_transform_variables([_|Tokens], Acc) ->
+  used_transform_variables(Tokens, Acc);
+used_transform_variables([], Acc) ->
   lists:usort(Acc).
 
 -spec file(file:name()) -> any().
@@ -131,7 +131,7 @@ parse(Input) when is_binary(Input) ->
                       ets:insert_new(memo_table_name(),{gen_transform, true}),
                       ["transform('",Symbol,"', Node, Idx)"]
                   end,
-  TransformArgs = case used_tranform_variables(Transform) of
+  TransformArgs = case used_transform_variables(Transform) of
     []              -> "_Node, _Idx";
     ['Idx']         -> "_Node, Idx";
     ['Node']        -> "Node, _Idx";
