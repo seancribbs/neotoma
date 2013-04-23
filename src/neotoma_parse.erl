@@ -140,7 +140,7 @@ parse(Input) when is_binary(Input) ->
   ["'",Symbol,"'","(Input, Index) ->\n  ",
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
-        ")(I,D) end, fun(", TransformArgs, ") ->",Transform," end)."]
+        ")(I,D) end, fun(", TransformArgs, ") -> ",Transform," end)."]
  end).
 
 'parsing_expression'(Input, Index) ->
