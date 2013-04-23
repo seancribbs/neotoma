@@ -1,6 +1,5 @@
 -module(neotoma_parse).
 -export([parse/1,file/1]).
--compile(nowarn_unused_vars).
 -compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, p_attempt/4, line/1, column/1]}).
 
 
@@ -72,6 +71,22 @@ verify_rules() ->
                 end, NTs),
     Root.
 
+used_transform_variables(Transform) ->
+  Code = unicode:characters_to_list(Transform),
+  {ok, Tokens, _} = erl_scan:string(Code),
+  used_transform_variables(Tokens, []).
+
+used_transform_variables([{var, _, Name}|Tokens], Acc) ->
+  used_transform_variables(Tokens, case Name of
+                                    'Node' -> [Name | Acc];
+                                    'Idx'  -> [Name | Acc];
+                                    _      -> Acc
+                                  end);
+used_transform_variables([_|Tokens], Acc) ->
+  used_transform_variables(Tokens, Acc);
+used_transform_variables([], Acc) ->
+  lists:usort(Acc).
+
 -spec file(file:name()) -> any().
 file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).
 
@@ -86,7 +101,7 @@ parse(Input) when is_binary(Input) ->
   release_memo(), Result.
 
 'rules'(Input, Index) ->
-  p(Input, Index, 'rules', fun(I,D) -> (p_seq([p_optional(fun 'space'/2), fun 'declaration_sequence'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'rules', fun(I,D) -> (p_seq([p_optional(fun 'space'/2), fun 'declaration_sequence'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2)]))(I,D) end, fun(Node, _Idx) ->
   RootRule = verify_rules(),
   Rules = iolist_to_binary(lists:map(fun(R) -> [R, "\n\n"] end, lists:nth(2, Node))),
   Code = case lists:nth(4, Node) of
@@ -100,14 +115,14 @@ parse(Input) when is_binary(Input) ->
  end).
 
 'declaration_sequence'(Input, Index) ->
-  p(Input, Index, 'declaration_sequence', fun(I,D) -> (p_seq([p_label('head', fun 'declaration'/2), p_label('tail', p_zero_or_more(p_seq([fun 'space'/2, fun 'declaration'/2])))]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'declaration_sequence', fun(I,D) -> (p_seq([p_label('head', fun 'declaration'/2), p_label('tail', p_zero_or_more(p_seq([fun 'space'/2, fun 'declaration'/2])))]))(I,D) end, fun(Node, _Idx) ->
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [I || [_,I] <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules]
  end).
 
 'declaration'(Input, Index) ->
-  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, p_zero_or_more(fun 'space'/2), p_string(<<"<-">>), p_zero_or_more(fun 'space'/2), fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2), p_string(<<";">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'declaration', fun(I,D) -> (p_seq([fun 'nonterminal'/2, p_zero_or_more(fun 'space'/2), p_string(<<"<-">>), p_zero_or_more(fun 'space'/2), fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_optional(fun 'code_block'/2), p_optional(fun 'space'/2), p_string(<<";">>)]))(I,D) end, fun(Node, _Idx) ->
   [{nonterminal,Symbol}|Tail] = Node,
   add_lhs(Symbol, Index),
   Transform = case lists:nth(6,Tail) of
@@ -116,17 +131,23 @@ parse(Input) when is_binary(Input) ->
                       ets:insert_new(memo_table_name(),{gen_transform, true}),
                       ["transform('",Symbol,"', Node, Idx)"]
                   end,
+  TransformArgs = case used_transform_variables(Transform) of
+    []              -> "_Node, _Idx";
+    ['Idx']         -> "_Node, Idx";
+    ['Node']        -> "Node, _Idx";
+    ['Idx', 'Node'] -> "Node, Idx"
+  end,
   ["'",Symbol,"'","(Input, Index) ->\n  ",
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
-        ")(I,D) end, fun(Node, Idx) -> ",Transform," end)."]
+        ")(I,D) end, fun(", TransformArgs, ") -> ",Transform," end)."]
  end).
 
 'parsing_expression'(Input, Index) ->
-  p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'choice'(Input, Index) ->
-  p(Input, Index, 'choice', fun(I,D) -> (p_seq([p_label('head', fun 'alternative'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, p_string(<<"\/">>), fun 'space'/2, fun 'alternative'/2])))]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'choice', fun(I,D) -> (p_seq([p_label('head', fun 'alternative'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, p_string(<<"\/">>), fun 'space'/2, fun 'alternative'/2])))]))(I,D) end, fun(Node, _Idx) ->
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] ||  TS <- Tail],
@@ -134,10 +155,10 @@ parse(Input) when is_binary(Input) ->
  end).
 
 'alternative'(Input, Index) ->
-  p(Input, Index, 'alternative', fun(I,D) -> (p_choose([fun 'sequence'/2, fun 'labeled_primary'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'alternative', fun(I,D) -> (p_choose([fun 'sequence'/2, fun 'labeled_primary'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'primary'(Input, Index) ->
-  p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, _Idx) ->
 case Node of
   [Atomic, one_or_more] -> ["p_one_or_more(", Atomic, ")"];
   [Atomic, zero_or_more] -> ["p_zero_or_more(", Atomic, ")"];
@@ -149,7 +170,7 @@ end
  end).
 
 'sequence'(Input, Index) ->
-  p(Input, Index, 'sequence', fun(I,D) -> (p_seq([p_label('head', fun 'labeled_primary'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, fun 'labeled_primary'/2])))]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'sequence', fun(I,D) -> (p_seq([p_label('head', fun 'labeled_primary'/2), p_label('tail', p_one_or_more(p_seq([fun 'space'/2, fun 'labeled_primary'/2])))]))(I,D) end, fun(Node, _Idx) ->
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] || TS <- Tail],
@@ -157,7 +178,7 @@ end
  end).
 
 'labeled_primary'(Input, Index) ->
-  p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, _Idx) ->
   case hd(Node) of
     [] -> lists:nth(2, Node);
     Label -> ["p_label('",  Label, "', ", lists:nth(2, Node), ")"]
@@ -165,12 +186,12 @@ end
  end).
 
 'label'(Input, Index) ->
-  p(Input, Index, 'label', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2), p_string(<<":">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'label', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2), p_string(<<":">>)]))(I,D) end, fun(Node, _Idx) ->
   lists:sublist(Node, length(Node)-1)
  end).
 
 'suffix'(Input, Index) ->
-  p(Input, Index, 'suffix', fun(I,D) -> (p_choose([fun 'repetition_suffix'/2, fun 'optional_suffix'/2]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'suffix', fun(I,D) -> (p_choose([fun 'repetition_suffix'/2, fun 'optional_suffix'/2]))(I,D) end, fun(Node, _Idx) ->
   case Node of
     <<"*">> -> zero_or_more;
     <<"+">> -> one_or_more;
@@ -179,13 +200,13 @@ end
  end).
 
 'optional_suffix'(Input, Index) ->
-  p(Input, Index, 'optional_suffix', fun(I,D) -> (p_string(<<"?">>))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'optional_suffix', fun(I,D) -> (p_string(<<"?">>))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'repetition_suffix'(Input, Index) ->
-  p(Input, Index, 'repetition_suffix', fun(I,D) -> (p_choose([p_string(<<"+">>), p_string(<<"*">>)]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'repetition_suffix', fun(I,D) -> (p_choose([p_string(<<"+">>), p_string(<<"*">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'prefix'(Input, Index) ->
-  p(Input, Index, 'prefix', fun(I,D) -> (p_choose([p_string(<<"&">>), p_string(<<"!">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'prefix', fun(I,D) -> (p_choose([p_string(<<"&">>), p_string(<<"!">>)]))(I,D) end, fun(Node, _Idx) ->
   case Node of
     <<"&">> -> assert;
     <<"!">> -> not_
@@ -193,7 +214,7 @@ end
  end).
 
 'atomic'(Input, Index) ->
-  p(Input, Index, 'atomic', fun(I,D) -> (p_choose([fun 'terminal'/2, fun 'nonterminal'/2, fun 'parenthesized_expression'/2]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'atomic', fun(I,D) -> (p_choose([fun 'terminal'/2, fun 'nonterminal'/2, fun 'parenthesized_expression'/2]))(I,D) end, fun(Node, _Idx) ->
 case Node of
   {nonterminal, Symbol} ->
                 [<<"fun '">>, Symbol, <<"'/2">>];
@@ -202,20 +223,20 @@ end
  end).
 
 'parenthesized_expression'(Input, Index) ->
-  p(Input, Index, 'parenthesized_expression', fun(I,D) -> (p_seq([p_string(<<"(">>), p_optional(fun 'space'/2), fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_string(<<")">>)]))(I,D) end, fun(Node, Idx) -> lists:nth(3, Node) end).
+  p(Input, Index, 'parenthesized_expression', fun(I,D) -> (p_seq([p_string(<<"(">>), p_optional(fun 'space'/2), fun 'parsing_expression'/2, p_optional(fun 'space'/2), p_string(<<")">>)]))(I,D) end, fun(Node, _Idx) ->lists:nth(3, Node) end).
 
 'nonterminal'(Input, Index) ->
-  p(Input, Index, 'nonterminal', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'nonterminal', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2)]))(I,D) end, fun(Node, Idx) ->
   Symbol = iolist_to_binary(Node),
   add_nt(Symbol, Idx),
   {nonterminal, Symbol}
  end).
 
 'terminal'(Input, Index) ->
-  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'regexp_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'regexp_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'regexp_string'(Input, Index) ->
-  p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), p_label('string', p_one_or_more(p_seq([p_not(p_string(<<"#">>)), p_choose([p_string(<<"\\#">>), p_anything()])]))), p_string(<<"#">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), p_label('string', p_one_or_more(p_seq([p_not(p_string(<<"#">>)), p_choose([p_string(<<"\\#">>), p_anything()])]))), p_string(<<"#">>)]))(I,D) end, fun(Node, _Idx) ->
 ["p_regexp(<<\"",
 	% Escape \ and " as they are used in erlang string. Other sumbol stay as is.
 	%  \ -> \\
@@ -225,45 +246,45 @@ end
  end).
 
 'quoted_string'(Input, Index) ->
-  p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, _Idx) ->
   lists:flatten(["p_string(<<\"",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
    "\">>)"])
  end).
 
 'double_quoted_string'(Input, Index) ->
-  p(Input, Index, 'double_quoted_string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('string', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'double_quoted_string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('string', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'single_quoted_string'(Input, Index) ->
-  p(Input, Index, 'single_quoted_string', fun(I,D) -> (p_seq([p_string(<<"\'">>), p_label('string', p_zero_or_more(p_seq([p_not(p_string(<<"\'">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\'">>), p_anything()])]))), p_string(<<"\'">>)]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'single_quoted_string', fun(I,D) -> (p_seq([p_string(<<"\'">>), p_label('string', p_zero_or_more(p_seq([p_not(p_string(<<"\'">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\'">>), p_anything()])]))), p_string(<<"\'">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'character_class'(Input, Index) ->
-  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
 ["p_charclass(<<\"[",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(characters, Node)))),
  "]\">>)"]
  end).
 
 'anything_symbol'(Input, Index) ->
-  p(Input, Index, 'anything_symbol', fun(I,D) -> (p_string(<<".">>))(I,D) end, fun(Node, Idx) ->  <<"p_anything()">>  end).
+  p(Input, Index, 'anything_symbol', fun(I,D) -> (p_string(<<".">>))(I,D) end, fun(_Node, _Idx) -> <<"p_anything()">>  end).
 
 'alpha_char'(Input, Index) ->
-  p(Input, Index, 'alpha_char', fun(I,D) -> (p_charclass(<<"[A-Za-z_]">>))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'alpha_char', fun(I,D) -> (p_charclass(<<"[A-Za-z_]">>))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'alphanumeric_char'(Input, Index) ->
-  p(Input, Index, 'alphanumeric_char', fun(I,D) -> (p_choose([fun 'alpha_char'/2, p_charclass(<<"[0-9]">>)]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'alphanumeric_char', fun(I,D) -> (p_choose([fun 'alpha_char'/2, p_charclass(<<"[0-9]">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'space'(Input, Index) ->
-  p(Input, Index, 'space', fun(I,D) -> (p_one_or_more(p_choose([fun 'white'/2, fun 'comment_to_eol'/2])))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'space', fun(I,D) -> (p_one_or_more(p_choose([fun 'white'/2, fun 'comment_to_eol'/2])))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'comment_to_eol'(Input, Index) ->
-  p(Input, Index, 'comment_to_eol', fun(I,D) -> (p_seq([p_not(p_string(<<"%{">>)), p_string(<<"%">>), p_zero_or_more(p_seq([p_not(p_string(<<"\n">>)), p_anything()]))]))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'comment_to_eol', fun(I,D) -> (p_seq([p_not(p_string(<<"%{">>)), p_string(<<"%">>), p_zero_or_more(p_seq([p_not(p_string(<<"\n">>)), p_anything()]))]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'white'(Input, Index) ->
-  p(Input, Index, 'white', fun(I,D) -> (p_charclass(<<"[\s\t\n\r]">>))(I,D) end, fun(Node, Idx) -> Node end).
+  p(Input, Index, 'white', fun(I,D) -> (p_charclass(<<"[\s\t\n\r]">>))(I,D) end, fun(Node, _Idx) ->Node end).
 
 'code_block'(Input, Index) ->
-  p(Input, Index, 'code_block', fun(I,D) -> (p_choose([p_seq([p_string(<<"%{">>), p_label('code', p_one_or_more(p_choose([p_string(<<"\\%">>), p_string(<<"$%">>), p_seq([p_not(p_string(<<"%}">>)), p_anything()])]))), p_string(<<"%}">>)]), p_seq([p_string(<<"`">>), p_label('code', p_one_or_more(p_choose([p_string(<<"\\`">>), p_string(<<"$`">>), p_seq([p_not(p_string(<<"`">>)), p_anything()])]))), p_string(<<"`">>)]), p_string(<<"~">>)]))(I,D) end, fun(Node, Idx) -> 
+  p(Input, Index, 'code_block', fun(I,D) -> (p_choose([p_seq([p_string(<<"%{">>), p_label('code', p_one_or_more(p_choose([p_string(<<"\\%">>), p_string(<<"$%">>), p_seq([p_not(p_string(<<"%}">>)), p_anything()])]))), p_string(<<"%}">>)]), p_seq([p_string(<<"`">>), p_label('code', p_one_or_more(p_choose([p_string(<<"\\`">>), p_string(<<"$`">>), p_seq([p_not(p_string(<<"`">>)), p_anything()])]))), p_string(<<"`">>)]), p_string(<<"~">>)]))(I,D) end, fun(Node, _Idx) ->
    case Node of
        <<"~">> -> {code, <<"Node">>};
        _   -> {code, proplists:get_value('code', Node)}
@@ -293,7 +314,7 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   end.
 
 setup_memo() ->
-  put(parse_memo_table, ets:new(?MODULE, [set])).
+  put({parse_memo_table, ?MODULE}, ets:new(?MODULE, [set])).
 
 release_memo() ->
   ets:delete(memo_table_name()).
@@ -316,7 +337,7 @@ get_memo(Index, Name) ->
     end.
 
 memo_table_name() ->
-    get(parse_memo_table).
+    get({parse_memo_table, ?MODULE}).
 
 p_eof() ->
   fun(<<>>, Index) -> {eof, [], Index};

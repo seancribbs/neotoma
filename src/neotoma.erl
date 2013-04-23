@@ -10,16 +10,19 @@
 main([]) ->
     io:format("Usage: neotoma filename [-module output_module] [-output output_dir] [-transform_module transform_module]\n");
 main([Filename | Args]) ->
-    file(Filename, parse_options(Args)).
+    %% code:priv_dir is unreliable when called in escript context, but
+    %% escript:script_name does what we want.
+    PrivDir = filename:join([filename:dirname(escript:script_name()), "priv"]),
+    file(Filename, [{neotoma_priv_dir, PrivDir} | parse_options(Args)]).
 
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
--spec file(file:filename()) -> ok.
+-spec file(file:filename()) -> ok | {error, atom()}.
 file(InputGrammar) ->
     file(InputGrammar, []).
 
 %% @doc Generates a parser from the specified file with the given options.
--spec file(file:filename(), [option()]) -> ok.
+-spec file(file:filename(), [option()]) -> ok | {error, atom()}.
 file(InputGrammar, Options) ->
     Basename = filename:basename(InputGrammar, ".peg"),
     InputDir = filename:dirname(InputGrammar),
@@ -39,7 +42,8 @@ file(InputGrammar, Options) ->
     ModuleAttrs = generate_module_attrs(ModuleName),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
-    {ok, PegIncludes} = file:read_file(filename:dirname(filename:dirname(code:where_is_file("neotoma.beam"))) ++ "/priv/peg_includes.hrl"),
+    PrivDir = proplists:get_value(neotoma_priv_dir, Options, code:priv_dir(neotoma)),
+    {ok, PegIncludes} = file:read_file(filename:join([PrivDir, "peg_includes.hrl"])),
     file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
 
 -spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
@@ -63,12 +67,6 @@ validate_params(_,_, TransformModule, OutputFile) ->
 generate_module_attrs(ModName) ->
     ["-module(",atom_to_list(ModName),").\n",
      "-export([parse/1,file/1]).\n",
-     % This option could be problematic if your grammar is broken in
-     % some way, but hides warnings about unused parser combinators
-     % and unused Node/Idx variables in your transform functions.
-     % In a future version we should just emit the used combinators,
-     % excluding the rest.
-     "-compile(nowarn_unused_vars).\n",
      "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, p_attempt/4, line/1, column/1]}).\n\n"].
 
 -spec generate_entry_functions({iodata(),_}) -> iolist().

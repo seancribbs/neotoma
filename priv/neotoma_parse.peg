@@ -31,10 +31,16 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
                       ets:insert_new(memo_table_name(),{gen_transform, true}),
                       ["transform('",Symbol,"', Node, Idx)"]
                   end,
+  TransformArgs = case used_transform_variables(Transform) of
+    []              -> "_Node, _Idx";
+    ['Idx']         -> "_Node, Idx";
+    ['Node']        -> "Node, _Idx";
+    ['Idx', 'Node'] -> "Node, Idx"
+  end,
   ["'",Symbol,"'","(Input, Index) ->\n  ",
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
-        ")(I,D) end, fun(Node, Idx) -> ",Transform," end)."]
+        ")(I,D) end, fun(", TransformArgs, ") ->",Transform," end)."]
 `;
 
 parsing_expression <- choice / sequence / primary ~;
@@ -241,4 +247,20 @@ verify_rules() ->
                     end
                 end, NTs),
     Root.
+
+used_transform_variables(Transform) ->
+  Code = unicode:characters_to_list(Transform),
+  {ok, Tokens, _} = erl_scan:string(Code),
+  used_transform_variables(Tokens, []).
+
+used_transform_variables([{var, _, Name}|Tokens], Acc) ->
+  used_transform_variables(Tokens, case Name of
+                                    'Node' -> [Name | Acc];
+                                    'Idx'  -> [Name | Acc];
+                                    _      -> Acc
+                                  end);
+used_transform_variables([_|Tokens], Acc) ->
+  used_transform_variables(Tokens, Acc);
+used_transform_variables([], Acc) ->
+  lists:usort(Acc).
 `
