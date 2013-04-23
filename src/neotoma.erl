@@ -10,7 +10,10 @@
 main([]) ->
     io:format("Usage: neotoma filename [-module output_module] [-output output_dir] [-transform_module transform_module]\n");
 main([Filename | Args]) ->
-    file(Filename, parse_options(Args)).
+    %% code:priv_dir is unreliable when called in escript context, but
+    %% escript:script_name does what we want.
+    PrivDir = filename:join([filename:dirname(escript:script_name()), "priv"]),
+    file(Filename, [{neotoma_priv_dir, PrivDir} | parse_options(Args)]).
 
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
@@ -39,7 +42,8 @@ file(InputGrammar, Options) ->
     ModuleAttrs = generate_module_attrs(ModuleName),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
-    {ok, PegIncludes} = file:read_file(filename:dirname(filename:dirname(code:where_is_file("neotoma.beam"))) ++ "/priv/peg_includes.hrl"),
+    PrivDir = proplists:get_value(neotoma_priv_dir, Options, code:priv_dir(neotoma)),
+    {ok, PegIncludes} = file:read_file(filename:join([PrivDir, "peg_includes.hrl"])),
     file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
 
 -spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
