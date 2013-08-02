@@ -122,7 +122,7 @@ generate_transform_stub(XfFile,ModName) ->
 %% @equiv file("src/neotoma_parse.peg")
 -spec bootstrap() -> 'ok'.
 bootstrap() ->
-    file("priv/neotoma_parse.peg", [{output, "src/"}]).
+    file("priv/neotoma_parse.peg", [{output, "src/"}, {neotoma_priv_dir, "priv"}]).
 
 %% @doc Parses arguments passed to escript
 -spec parse_options(list()) -> list().
