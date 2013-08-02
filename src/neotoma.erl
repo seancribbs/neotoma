@@ -73,7 +73,7 @@ generate_module_attrs(ModName) ->
 generate_entry_functions(Root) ->
     {RootRule,_} = Root,
      ["-spec file(file:name()) -> any().\n",
-     "file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).\n\n",
+     "file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.\n\n",
      "-spec parse(binary() | list()) -> any().\n",
      "parse(List) when is_list(List) -> parse(list_to_binary(List));\n",
      "parse(Input) when is_binary(Input) ->\n",
