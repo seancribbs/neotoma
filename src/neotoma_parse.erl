@@ -88,7 +88,7 @@ used_transform_variables([], Acc) ->
   lists:usort(Acc).
 
 -spec file(file:name()) -> any().
-file(Filename) -> {ok, Bin} = file:read_file(Filename), parse(Bin).
+file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
 
 -spec parse(binary() | list()) -> any().
 parse(List) when is_list(List) -> parse(list_to_binary(List));
@@ -140,7 +140,7 @@ parse(Input) when is_binary(Input) ->
   ["'",Symbol,"'","(Input, Index) ->\n  ",
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
-        ")(I,D) end, fun(", TransformArgs, ") -> ",Transform," end)."]
+        ")(I,D) end, fun(", TransformArgs, ") ->",Transform," end)."]
  end).
 
 'parsing_expression'(Input, Index) ->
