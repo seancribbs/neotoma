@@ -1,20 +1,24 @@
 all: compile
 
 compile:
-	@ rebar compile
+	@./rebar compile
 
-tests:
-	@ rebar eunit
+test:
+	@./rebar eunit
 
 clean:
-	@ rebar clean
+	@./rebar clean
 
-dialyze: compile
-	@ rebar dialyze
+neotoma.plt:
+	@dialyzer --build_plt --apps erts kernel stdlib compiler crypto hipe \
+		syntax_tools --output_plt neotoma.plt
+
+dialyzer: compile neotoma.plt
+	@dialyzer --plt neotoma.plt ebin
 
 bootstrap: compile
-	@ erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
-	@ rebar compile
+	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
+	@./rebar compile
 
 escript:
-	@ rebar escriptize
+	@./rebar escriptize
