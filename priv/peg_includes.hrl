@@ -1,7 +1,17 @@
+-file("neotoma/priv/peg_includes.hrl", 1).
+-type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
+-type input() :: binary().
+-type parse_failure() :: {fail, term()}.
+-type parse_success() :: {term(), input(), index()}.
+-type parse_result() :: parse_failure() | parse_success().
+-type parse_fun() :: fun((input(), index()) -> parse_result()).
+-type xform_fun() :: fun((input(), index()) -> term()).
 
+-spec p(input(), index(), atom(), parse_fun()) -> parse_result().
 p(Inp, Index, Name, ParseFun) ->
   p(Inp, Index, Name, ParseFun, fun(N, _Idx) -> N end).
 
+-spec p(input(), index(), atom(), parse_fun(), xform_fun()) -> parse_result().
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
   case get_memo(StartIndex, Name) of      % See if the current reduction is memoized
     {ok, Memo} -> %Memo;                     % If it is, return the stored result
@@ -44,10 +54,12 @@ get_memo(Index, Name) ->
 memo_table_name() ->
     get({parse_memo_table, ?MODULE}).
 
+-spec p_eof() -> parse_fun().
 p_eof() ->
   fun(<<>>, Index) -> {eof, [], Index};
      (_, Index) -> {fail, {expected, eof, Index}} end.
 
+-spec p_optional(parse_fun()) -> parse_fun().
 p_optional(P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
@@ -56,6 +68,7 @@ p_optional(P) ->
       end
   end.
 
+-spec p_not(parse_fun()) -> parse_fun().
 p_not(P) ->
   fun(Input, Index)->
       case P(Input,Index) of
@@ -65,6 +78,7 @@ p_not(P) ->
       end
   end.
 
+-spec p_assert(parse_fun()) -> parse_fun().
 p_assert(P) ->
   fun(Input,Index) ->
       case P(Input,Index) of
@@ -73,14 +87,17 @@ p_assert(P) ->
       end
   end.
 
+-spec p_and([parse_fun()]) -> parse_fun().
 p_and(P) ->
   p_seq(P).
 
+-spec p_seq([parse_fun()]) -> parse_fun().
 p_seq(P) ->
   fun(Input, Index) ->
       p_all(P, Input, Index, [])
   end.
 
+-spec p_all([parse_fun()], input(), index(), [term()]) -> parse_result().
 p_all([], Inp, Index, Accum ) -> {lists:reverse( Accum ), Inp, Index};
 p_all([P|Parsers], Inp, Index, Accum) ->
   case P(Inp, Index) of
@@ -88,11 +105,13 @@ p_all([P|Parsers], Inp, Index, Accum) ->
     {Result, InpRem, NewIndex} -> p_all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
 
+-spec p_choose([parse_fun()]) -> parse_fun().
 p_choose(Parsers) ->
   fun(Input, Index) ->
       p_attempt(Parsers, Input, Index, none)
   end.
 
+-spec p_attempt([parse_fun()], input(), index(), none | parse_failure()) -> parse_result().
 p_attempt([], _Input, _Index, Failure) -> Failure;
 p_attempt([P|Parsers], Input, Index, FirstFailure)->
   case P(Input, Index) of
@@ -104,11 +123,13 @@ p_attempt([P|Parsers], Input, Index, FirstFailure)->
     Result -> Result
   end.
 
+-spec p_zero_or_more(parse_fun()) -> parse_fun().
 p_zero_or_more(P) ->
   fun(Input, Index) ->
       p_scan(P, Input, Index, [])
   end.
 
+-spec p_one_or_more(parse_fun()) -> parse_fun().
 p_one_or_more(P) ->
   fun(Input, Index)->
       Result = p_scan(P, Input, Index, []),
@@ -121,6 +142,7 @@ p_one_or_more(P) ->
       end
   end.
 
+-spec p_label(atom(), parse_fun()) -> parse_fun().
 p_label(Tag, P) ->
   fun(Input, Index) ->
       case P(Input, Index) of
@@ -131,6 +153,7 @@ p_label(Tag, P) ->
       end
   end.
 
+-spec p_scan(parse_fun(), input(), index(), [term()]) -> parse_result().
 p_scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
 p_scan(P, Inp, Index, Accum) ->
   case P(Inp, Index) of
@@ -138,7 +161,7 @@ p_scan(P, Inp, Index, Accum) ->
     {Result, InpRem, NewIndex} -> p_scan(P, InpRem, NewIndex, [Result | Accum])
   end.
 
-p_string(S) when is_list(S) -> p_string(list_to_binary(S));
+-spec p_string(binary()) -> parse_fun().
 p_string(S) ->
     Length = erlang:byte_size(S),
     fun(Input, Index) ->
@@ -150,6 +173,7 @@ p_string(S) ->
       end
     end.
 
+-spec p_anything() -> parse_fun().
 p_anything() ->
   fun(<<>>, Index) -> {fail, {expected, any_character, Index}};
      (Input, Index) when is_binary(Input) ->
@@ -157,6 +181,7 @@ p_anything() ->
           {<<C/utf8>>, Rest, p_advance_index(<<C/utf8>>, Index)}
   end.
 
+-spec p_charclass(string() | binary()) -> parse_fun().
 p_charclass(Class) ->
     {ok, RE} = re:compile(Class, [unicode, dotall]),
     fun(Inp, Index) ->
@@ -168,6 +193,7 @@ p_charclass(Class) ->
             end
     end.
 
+-spec p_regexp(string() | binary()) -> parse_fun().
 p_regexp(Regexp) ->
     {ok, RE} = re:compile(Regexp, [unicode, dotall, anchored]),
     fun(Inp, Index) ->
@@ -179,12 +205,15 @@ p_regexp(Regexp) ->
         end
     end.
 
+-spec line(index() | term()) -> pos_integer() | undefined.
 line({{line,L},_}) -> L;
 line(_) -> undefined.
 
+-spec column(index() | term()) -> pos_integer() | undefined.
 column({_,{column,C}}) -> C;
 column(_) -> undefined.
 
+-spec p_advance_index(input() | unicode:charlist() | pos_integer(), index()) -> index().
 p_advance_index(MatchedInput, Index) when is_list(MatchedInput) orelse is_binary(MatchedInput)-> % strings
   lists:foldl(fun p_advance_index/2, Index, unicode:characters_to_list(MatchedInput));
 p_advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters

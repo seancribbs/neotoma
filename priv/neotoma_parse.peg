@@ -37,7 +37,8 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
     ['Node']        -> "Node, _Idx";
     ['Idx', 'Node'] -> "Node, Idx"
   end,
-  ["'",Symbol,"'","(Input, Index) ->\n  ",
+  ["-spec '", Symbol, "'(input(), index()) -> parse_result().\n",
+   "'",Symbol,"'","(Input, Index) ->\n  ",
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
         ")(I,D) end, fun(", TransformArgs, ") ->",Transform," end)."]
@@ -182,8 +183,10 @@ code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
 %% Extra functions
 `
 % insert escapes into a string
+-spec escape_string(string()) -> string().
 escape_string(String) -> escape_string(String, []).
 
+-spec escape_string(string(), string()) -> string().
 escape_string([], Output) ->
   lists:reverse(Output);
 escape_string([H|T], Output) ->
@@ -204,6 +207,7 @@ escape_string([H|T], Output) ->
         _   -> [H|Output]
     end).
 
+-spec add_lhs(binary(), index()) -> true.
 add_lhs(Symbol, Index) ->
   case ets:lookup(memo_table_name(), lhs) of
     [] ->
@@ -212,6 +216,7 @@ add_lhs(Symbol, Index) ->
       ets:insert(memo_table_name(), {lhs, [{Symbol,Index}|L]})
   end.
 
+-spec add_nt(binary(), index()) -> true | ok.
 add_nt(Symbol, Index) ->
   case ets:lookup(memo_table_name(), nts) of
     [] ->
@@ -225,6 +230,7 @@ add_nt(Symbol, Index) ->
       end
   end.
 
+-spec verify_rules() -> ok | no_return().
 verify_rules() ->
   [{lhs, LHS}] = ets:lookup(memo_table_name(), lhs),
   [{nts, NTs}] = ets:lookup(memo_table_name(), nts),
@@ -248,6 +254,7 @@ verify_rules() ->
                 end, NTs),
     Root.
 
+-spec used_transform_variables(binary()) -> [ 'Node' | 'Idx' ].
 used_transform_variables(Transform) ->
   Code = unicode:characters_to_list(Transform),
   {ok, Tokens, _} = erl_scan:string(Code),
