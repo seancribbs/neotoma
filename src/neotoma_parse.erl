@@ -1,6 +1,16 @@
 -module(neotoma_parse).
 -export([parse/1,file/1]).
--compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, p_attempt/4, line/1, column/1]}).
+-define(p_anything,true).
+-define(p_charclass,true).
+-define(p_choose,true).
+-define(p_label,true).
+-define(p_not,true).
+-define(p_one_or_more,true).
+-define(p_optional,true).
+-define(p_scan,true).
+-define(p_seq,true).
+-define(p_string,true).
+-define(p_zero_or_more,true).
 
 
 
@@ -76,6 +86,15 @@ verify_rules() ->
                 end, NTs),
     Root.
 
+-spec used_combinator(atom()) -> true.
+used_combinator(C) ->
+    case ets:lookup(memo_table_name(), combinators) of
+        [] ->
+            ets:insert(memo_table_name(), {combinators, ordsets:from_list([C])});
+        [{combinators, Cs}] ->
+            ets:insert(memo_table_name(), {combinators, ordsets:add_element(C, Cs)})
+    end.
+
 -spec used_transform_variables(binary()) -> [ 'Node' | 'Idx' ].
 used_transform_variables(Transform) ->
   Code = unicode:characters_to_list(Transform),
@@ -118,7 +137,9 @@ parse(Input) when is_binary(Input) ->
   [{rules, Rules},
    {code, Code},
    {root, RootRule},
-   {transform, ets:lookup(memo_table_name(),gen_transform)}]
+   {transform, ets:lookup(memo_table_name(),gen_transform)},
+   {combinators, ets:lookup_element(memo_table_name(), combinators, 2)}]
+
  end).
 
 -spec 'declaration_sequence'(input(), index()) -> parse_result().
@@ -163,6 +184,7 @@ parse(Input) when is_binary(Input) ->
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] ||  TS <- Tail],
+  used_combinator(p_choose),
   ["p_choose([", Head, Statements, "])"]
  end).
 
@@ -174,11 +196,23 @@ parse(Input) when is_binary(Input) ->
 'primary'(Input, Index) ->
   p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, _Idx) ->
 case Node of
-  [Atomic, one_or_more] -> ["p_one_or_more(", Atomic, ")"];
-  [Atomic, zero_or_more] -> ["p_zero_or_more(", Atomic, ")"];
-  [Atomic, optional] -> ["p_optional(", Atomic, ")"];
-  [assert, Atomic] -> ["p_assert(", Atomic, ")"];
-  [not_, Atomic] -> ["p_not(", Atomic, ")"];
+  [Atomic, one_or_more] ->
+        used_combinator(p_one_or_more),
+        used_combinator(p_scan),
+        ["p_one_or_more(", Atomic, ")"];
+  [Atomic, zero_or_more] ->
+        used_combinator(p_zero_or_more),
+        used_combinator(p_scan),
+        ["p_zero_or_more(", Atomic, ")"];
+  [Atomic, optional] ->
+        used_combinator(p_optional),
+        ["p_optional(", Atomic, ")"];
+  [assert, Atomic] ->
+        used_combinator(p_assert),
+        ["p_assert(", Atomic, ")"];
+  [not_, Atomic] ->
+        used_combinator(p_not),
+        ["p_not(", Atomic, ")"];
   _ -> Node
 end
  end).
@@ -189,6 +223,7 @@ end
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] || TS <- Tail],
+  used_combinator(p_seq),
   ["p_seq([", Head, Statements, "])"]
  end).
 
@@ -197,7 +232,9 @@ end
   p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, _Idx) ->
   case hd(Node) of
     [] -> lists:nth(2, Node);
-    Label -> ["p_label('",  Label, "', ", lists:nth(2, Node), ")"]
+    Label ->
+          used_combinator(p_label),
+          ["p_label('",  Label, "', ", lists:nth(2, Node), ")"]
   end
  end).
 
@@ -263,7 +300,8 @@ end
 -spec 'regexp_string'(input(), index()) -> parse_result().
 'regexp_string'(Input, Index) ->
   p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), p_label('string', p_one_or_more(p_seq([p_not(p_string(<<"#">>)), p_choose([p_string(<<"\\#">>), p_anything()])]))), p_string(<<"#">>)]))(I,D) end, fun(Node, _Idx) ->
-["p_regexp(<<\"",
+  used_combinator(p_regexp),
+  ["p_regexp(<<\"",
 	% Escape \ and " as they are used in erlang string. Other sumbol stay as is.
 	%  \ -> \\
 	%  " -> \"
@@ -274,6 +312,7 @@ end
 -spec 'quoted_string'(input(), index()) -> parse_result().
 'quoted_string'(Input, Index) ->
   p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, _Idx) ->
+  used_combinator(p_string),
   lists:flatten(["p_string(<<\"",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
    "\">>)"])
@@ -290,14 +329,15 @@ end
 -spec 'character_class'(input(), index()) -> parse_result().
 'character_class'(Input, Index) ->
   p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
-["p_charclass(<<\"[",
+  used_combinator(p_charclass),
+  ["p_charclass(<<\"[",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(characters, Node)))),
- "]\">>)"]
+   "]\">>)"]
  end).
 
 -spec 'anything_symbol'(input(), index()) -> parse_result().
 'anything_symbol'(Input, Index) ->
-  p(Input, Index, 'anything_symbol', fun(I,D) -> (p_string(<<".">>))(I,D) end, fun(_Node, _Idx) -> <<"p_anything()">>  end).
+  p(Input, Index, 'anything_symbol', fun(I,D) -> (p_string(<<".">>))(I,D) end, fun(_Node, _Idx) -> used_combinator(p_anything), <<"p_anything()">>  end).
 
 -spec 'alpha_char'(input(), index()) -> parse_result().
 'alpha_char'(Input, Index) ->
@@ -330,7 +370,7 @@ end
 
 
 
--file("neotoma/priv/peg_includes.hrl", 1).
+-file("peg_includes.hrl", 1).
 -type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
 -type input() :: binary().
 -type parse_failure() :: {fail, term()}.
@@ -338,10 +378,6 @@ end
 -type parse_result() :: parse_failure() | parse_success().
 -type parse_fun() :: fun((input(), index()) -> parse_result()).
 -type xform_fun() :: fun((input(), index()) -> term()).
-
--spec p(input(), index(), atom(), parse_fun()) -> parse_result().
-p(Inp, Index, Name, ParseFun) ->
-  p(Inp, Index, Name, ParseFun, fun(N, _Idx) -> N end).
 
 -spec p(input(), index(), atom(), parse_fun(), xform_fun()) -> parse_result().
 p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
@@ -368,6 +404,7 @@ setup_memo() ->
 release_memo() ->
   ets:delete(memo_table_name()).
 
+-spec memoize(index(), atom(), term()) -> true.
 memoize(Index, Name, Result) ->
   Memo = case ets:lookup(memo_table_name(), Index) of
               [] -> [];
@@ -375,6 +412,7 @@ memoize(Index, Name, Result) ->
          end,
   ets:insert(memo_table_name(), {Index, [{Name, Result}|Memo]}).
 
+-spec get_memo(index(), atom()) -> {ok, term()} | {error, not_found}.
 get_memo(Index, Name) ->
   case ets:lookup(memo_table_name(), Index) of
     [] -> {error, not_found};
@@ -385,14 +423,18 @@ get_memo(Index, Name) ->
       end
     end.
 
+-spec memo_table_name() -> ets:tid().
 memo_table_name() ->
     get({parse_memo_table, ?MODULE}).
 
+-ifdef(p_eof).
 -spec p_eof() -> parse_fun().
 p_eof() ->
   fun(<<>>, Index) -> {eof, [], Index};
      (_, Index) -> {fail, {expected, eof, Index}} end.
+-endif.
 
+-ifdef(p_optional).
 -spec p_optional(parse_fun()) -> parse_fun().
 p_optional(P) ->
   fun(Input, Index) ->
@@ -401,7 +443,9 @@ p_optional(P) ->
         {_, _, _} = Success -> Success
       end
   end.
+-endif.
 
+-ifdef(p_not).
 -spec p_not(parse_fun()) -> parse_fun().
 p_not(P) ->
   fun(Input, Index)->
@@ -411,7 +455,9 @@ p_not(P) ->
         {Result, _, _} -> {fail, {expected, {no_match, Result},Index}}
       end
   end.
+-endif.
 
+-ifdef(p_assert).
 -spec p_assert(parse_fun()) -> parse_fun().
 p_assert(P) ->
   fun(Input,Index) ->
@@ -420,11 +466,9 @@ p_assert(P) ->
         _ -> {[], Input, Index}
       end
   end.
+-endif.
 
--spec p_and([parse_fun()]) -> parse_fun().
-p_and(P) ->
-  p_seq(P).
-
+-ifdef(p_seq).
 -spec p_seq([parse_fun()]) -> parse_fun().
 p_seq(P) ->
   fun(Input, Index) ->
@@ -438,7 +482,9 @@ p_all([P|Parsers], Inp, Index, Accum) ->
     {fail, _} = Failure -> Failure;
     {Result, InpRem, NewIndex} -> p_all(Parsers, InpRem, NewIndex, [Result|Accum])
   end.
+-endif.
 
+-ifdef(p_choose).
 -spec p_choose([parse_fun()]) -> parse_fun().
 p_choose(Parsers) ->
   fun(Input, Index) ->
@@ -456,13 +502,17 @@ p_attempt([P|Parsers], Input, Index, FirstFailure)->
       end;
     Result -> Result
   end.
+-endif.
 
+-ifdef(p_zero_or_more).
 -spec p_zero_or_more(parse_fun()) -> parse_fun().
 p_zero_or_more(P) ->
   fun(Input, Index) ->
       p_scan(P, Input, Index, [])
   end.
+-endif.
 
+-ifdef(p_one_or_more).
 -spec p_one_or_more(parse_fun()) -> parse_fun().
 p_one_or_more(P) ->
   fun(Input, Index)->
@@ -475,7 +525,9 @@ p_one_or_more(P) ->
           {fail, {expected, {at_least_one, Failure}, Index}}
       end
   end.
+-endif.
 
+-ifdef(p_label).
 -spec p_label(atom(), parse_fun()) -> parse_fun().
 p_label(Tag, P) ->
   fun(Input, Index) ->
@@ -486,7 +538,9 @@ p_label(Tag, P) ->
           {{Tag, Result}, InpRem, NewIndex}
       end
   end.
+-endif.
 
+-ifdef(p_scan).
 -spec p_scan(parse_fun(), input(), index(), [term()]) -> parse_result().
 p_scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
 p_scan(P, Inp, Index, Accum) ->
@@ -494,7 +548,9 @@ p_scan(P, Inp, Index, Accum) ->
     {fail,_} -> {lists:reverse(Accum), Inp, Index};
     {Result, InpRem, NewIndex} -> p_scan(P, InpRem, NewIndex, [Result | Accum])
   end.
+-endif.
 
+-ifdef(p_string).
 -spec p_string(binary()) -> parse_fun().
 p_string(S) ->
     Length = erlang:byte_size(S),
@@ -506,7 +562,9 @@ p_string(S) ->
           error:{badmatch,_} -> {fail, {expected, {string, S}, Index}}
       end
     end.
+-endif.
 
+-ifdef(p_anything).
 -spec p_anything() -> parse_fun().
 p_anything() ->
   fun(<<>>, Index) -> {fail, {expected, any_character, Index}};
@@ -514,7 +572,9 @@ p_anything() ->
           <<C/utf8, Rest/binary>> = Input,
           {<<C/utf8>>, Rest, p_advance_index(<<C/utf8>>, Index)}
   end.
+-endif.
 
+-ifdef(p_charclass).
 -spec p_charclass(string() | binary()) -> parse_fun().
 p_charclass(Class) ->
     {ok, RE} = re:compile(Class, [unicode, dotall]),
@@ -526,7 +586,9 @@ p_charclass(Class) ->
                 _ -> {fail, {expected, {character_class, binary_to_list(Class)}, Index}}
             end
     end.
+-endif.
 
+-ifdef(p_regexp).
 -spec p_regexp(binary()) -> parse_fun().
 p_regexp(Regexp) ->
     {ok, RE} = re:compile(Regexp, [unicode, dotall, anchored]),
@@ -538,14 +600,19 @@ p_regexp(Regexp) ->
             _ -> {fail, {expected, {regexp, binary_to_list(Regexp)}, Index}}
         end
     end.
+-endif.
 
+-ifdef(line).
 -spec line(index() | term()) -> pos_integer() | undefined.
 line({{line,L},_}) -> L;
 line(_) -> undefined.
+-endif.
 
+-ifdef(column).
 -spec column(index() | term()) -> pos_integer() | undefined.
 column({_,{column,C}}) -> C;
 column(_) -> undefined.
+-endif.
 
 -spec p_advance_index(input() | unicode:charlist() | pos_integer(), index()) -> index().
 p_advance_index(MatchedInput, Index) when is_list(MatchedInput) orelse is_binary(MatchedInput)-> % strings

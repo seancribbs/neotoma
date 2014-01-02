@@ -3,7 +3,12 @@
 -export([file/1, file/2, bootstrap/0]).
 -export([main/1]).
 
--type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()}.
+-define(ALL_COMBINATORS, [p_eof, p_optional, p_not, p_assert, p_seq,
+        p_choose, p_zero_or_more, p_one_or_more, p_label, p_scan,
+        p_string, p_anything, p_charclass, p_regexp, line, column]).
+
+-type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()} |
+                  {neotoma_priv_dir, file:filename()}.
 
 %% @doc Handler function for escript.
 -spec main(list()) -> ok | no_return().
@@ -39,7 +44,8 @@ file(InputGrammar, Options) ->
     Root = proplists:get_value(root, Parsed),
     Code = proplists:get_value(code, Parsed),
     GenTransform = proplists:get_value(transform, Parsed),
-    ModuleAttrs = generate_module_attrs(ModuleName),
+    Combinators = proplists:get_value(combinators, Parsed, ?ALL_COMBINATORS),
+    ModuleAttrs = generate_module_attrs(ModuleName, Combinators),
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
     PrivDir = proplists:get_value(neotoma_priv_dir, Options, code:priv_dir(neotoma)),
@@ -49,8 +55,6 @@ file(InputGrammar, Options) ->
 -spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
     throw({badarg, "Input and output file are the same!"});
-validate_params(_,ModName,_,_) when not is_atom(ModName) ->
-    throw({badarg, "Output module name is not an atom!"});
 validate_params(_,_, false, _) -> ok;
 validate_params(_,_, TransformModule, _) when not is_atom(TransformModule) ->
     throw({badarg, "transform_module option must be an atom"});
@@ -63,11 +67,16 @@ validate_params(_,_, TransformModule, OutputFile) ->
         _ -> ok
     end.
 
--spec generate_module_attrs(atom()) -> iolist().
-generate_module_attrs(ModName) ->
-    ["-module(",atom_to_list(ModName),").\n",
+-spec generate_module_attrs(atom(), [atom()]) -> iolist().
+generate_module_attrs(ModName, Combinators) ->
+    ["-module(", atom_to_list(ModName) ,").\n",
      "-export([parse/1,file/1]).\n",
-     "-compile({nowarn_unused_function,[p/4, p/5, p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_and/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, p_attempt/4, line/1, column/1]}).\n\n"].
+     [ generate_combinator_macro(C) || Combinators /= undefined, C <- Combinators ],
+     "\n"
+     ].
+
+generate_combinator_macro(C) ->
+    ["-define(", atom_to_list(C), ",true).\n"].
 
 -spec generate_entry_functions({iodata(),_}) -> iolist().
 generate_entry_functions(Root) ->

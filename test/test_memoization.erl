@@ -1,6 +1,7 @@
 -module(test_memoization).
 -author("Sean Cribbs <seancribbs@gmail.com>").
 -include_lib("eunit/include/eunit.hrl").
+-define(I, fun(V,_) -> V end).
 
 setup_memo_test() ->
     neotoma_peg:setup_memo(),
@@ -14,10 +15,10 @@ release_memo_test() ->
 
 step_memo_test() ->
     neotoma_peg:setup_memo(),
-    Result = neotoma_peg:p(<<"abcdefghi">>, {{line,1},{column,1}}, anything, neotoma_peg:p_anything()),
+    Result = neotoma_peg:p(<<"abcdefghi">>, {{line,1},{column,1}}, anything, neotoma_peg:p_anything(), ?I),
     ?assertEqual({<<"a">>, <<"bcdefghi">>, {{line,1},{column,2}}}, Result),
     Result2 = neotoma_peg:p(<<"abcdefghi">>, {{line,1},{column,1}}, anything, fun(_) ->
-                                                                                  throw(bork) end),
+                                                                                  throw(bork) end, ?I),
     ?assertEqual(Result, Result2),
     neotoma_peg:release_memo().
 
