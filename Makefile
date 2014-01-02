@@ -1,3 +1,5 @@
+.PHONY: test compile clean dialyzer bootstrap escript
+
 all: compile
 
 compile:
