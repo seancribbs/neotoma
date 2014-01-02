@@ -28,9 +28,11 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
       Result
   end.
 
+-spec setup_memo() -> ets:tid().
 setup_memo() ->
   put({parse_memo_table, ?MODULE}, ets:new(?MODULE, [set])).
 
+-spec release_memo() -> true.
 release_memo() ->
   ets:delete(memo_table_name()).
 
@@ -193,7 +195,7 @@ p_charclass(Class) ->
             end
     end.
 
--spec p_regexp(string() | binary()) -> parse_fun().
+-spec p_regexp(binary()) -> parse_fun().
 p_regexp(Regexp) ->
     {ok, RE} = re:compile(Regexp, [unicode, dotall, anchored]),
     fun(Inp, Index) ->
