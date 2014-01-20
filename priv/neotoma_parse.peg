@@ -1,7 +1,7 @@
 %% Grammar and transformations
 
 rules <- space? declaration_sequence space? code_block? space?
-`
+%{
   RootRule = verify_rules(),
   Rules = iolist_to_binary(lists:map(fun(R) -> [R, "\n\n"] end, lists:nth(2, Node))),
   Code = case lists:nth(4, Node) of
@@ -14,17 +14,17 @@ rules <- space? declaration_sequence space? code_block? space?
    {transform, ets:lookup(memo_table_name(),gen_transform)},
    {combinators, ets:lookup_element(memo_table_name(), combinators, 2)}]
 
-`;
+%};
 
 declaration_sequence <- head:declaration tail:(space declaration)*
-`
+%{
   FirstRule = proplists:get_value(head, Node),
   OtherRules =  [I || [_,I] <- proplists:get_value(tail, Node, [])],
   [FirstRule|OtherRules]
-`;
+%};
 
 declaration <- nonterminal space* '<-' space* parsing_expression space? code_block? space? ';'
-`
+%{
   [{nonterminal,Symbol}|Tail] = Node,
   add_lhs(Symbol, Index),
   Transform = case lists:nth(6,Tail) of
@@ -44,23 +44,23 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
         "p(Input, Index, '",Symbol,"', fun(I,D) -> (",
         lists:nth(4, Tail),
         ")(I,D) end, fun(", TransformArgs, ") ->",Transform," end)."]
-`;
+%};
 
 parsing_expression <- choice / sequence / primary ~;
 
 choice <- head:alternative tail:(space '/' space alternative)+
-`
+%{
   Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] ||  TS <- Tail],
   used_combinator(p_choose),
   ["p_choose([", Head, Statements, "])"]
-`;
+%};
 
 alternative <- sequence / labeled_primary ~;
 
 primary <- prefix atomic / atomic suffix / atomic
-`
+%{
 case Node of
   [Atomic, one_or_more] ->
         used_combinator(p_one_or_more),
@@ -81,75 +81,75 @@ case Node of
         ["p_not(", Atomic, ")"];
   _ -> Node
 end
-`;
+%};
 
 sequence <- head:labeled_primary tail:(space labeled_primary)+
-`
+%{
   Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
   Head = proplists:get_value(head, Node),
   Statements = [[", ", TS] || TS <- Tail],
   used_combinator(p_seq),
   ["p_seq([", Head, Statements, "])"]
-`;
+%};
 
 labeled_primary <- label? primary
-`
+%{
   case hd(Node) of
     [] -> lists:nth(2, Node);
     Label ->
           used_combinator(p_label),
           ["p_label('",  Label, "', ", lists:nth(2, Node), ")"]
   end
-`;
+%};
 
 label <- alpha_char alphanumeric_char* ':'
-`
+%{
   lists:sublist(Node, length(Node)-1)
-`;
+%};
 
 suffix <- repetition_suffix / optional_suffix
-`
+%{
   case Node of
     <<"*">> -> zero_or_more;
     <<"+">> -> one_or_more;
     <<"?">> -> optional
   end
-`;
+%};
 
 optional_suffix <- '?' ~;
 
 repetition_suffix <- '+' / '*' ~;
 
 prefix <- '&' / '!'
-`
+%{
   case Node of
     <<"&">> -> assert;
     <<"!">> -> not_
   end
-`;
+%};
 
 atomic <- terminal / nonterminal / parenthesized_expression
-`
+%{
 case Node of
   {nonterminal, Symbol} ->
                 [<<"fun '">>, Symbol, <<"'/2">>];
   _ -> Node
 end
-`;
+%};
 
 parenthesized_expression <- '(' space? parsing_expression space? ')' `lists:nth(3, Node)`;
 
 nonterminal <- alpha_char alphanumeric_char*
-`
+%{
   Symbol = iolist_to_binary(Node),
   add_nt(Symbol, Idx),
   {nonterminal, Symbol}
-`;
+%};
 
 terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
 
 regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
-`
+%{
   used_combinator(p_regexp),
   ["p_regexp(<<\"",
 	% Escape \ and " as they are used in erlang string. Other sumbol stay as is.
@@ -157,29 +157,31 @@ regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
 	%  " -> \"
    re:replace(proplists:get_value(string, Node), "\"|\\\\", "\\\\&", [{return, binary}, global]),
    "\">>)"]
-`;
+%};
 
 quoted_string <- single_quoted_string / double_quoted_string
-`
+%{
   used_combinator(p_string),
   lists:flatten(["p_string(<<\"",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
    "\">>)"])
-`;
+%};
 
 double_quoted_string <- '"' string:(!'"' ("\\\\" / '\\"' / .))* '"' ~;
 
 single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 
 character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
-`
+%{
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
    escape_string(binary_to_list(iolist_to_binary(proplists:get_value(characters, Node)))),
    "]\">>)"]
-`;
+%};
 
-anything_symbol <- '.' ` used_combinator(p_anything), <<"p_anything()">> `;
+anything_symbol <- '.' %{
+  used_combinator(p_anything), <<"p_anything()">>
+%};
 
 alpha_char <- [A-Za-z_] ~;
 
@@ -194,15 +196,15 @@ white <- [ \t\n\r] ~;
 code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
               ('`' code:('\\`' / '$`' / !'`' .)+ '`') /
               '~'
-`
+%{
    case Node of
        <<"~">> -> {code, <<"Node">>};
        _   -> {code, proplists:get_value('code', Node)}
    end
-`;
+%};
 
 %% Extra functions
-`
+%{
 % insert escapes into a string
 -spec escape_string(string()) -> string().
 escape_string(String) -> escape_string(String, []).
@@ -300,4 +302,4 @@ used_transform_variables([_|Tokens], Acc) ->
   used_transform_variables(Tokens, Acc);
 used_transform_variables([], Acc) ->
   lists:usort(Acc).
-`
+%}
