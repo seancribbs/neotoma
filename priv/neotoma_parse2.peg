@@ -1,0 +1,257 @@
+%% Grammar and transformations
+
+rules <- space? declaration_sequence space? code_block? space?
+%{
+  [_, Decls, _, Code0, _] = Node,
+  Code = case Code0 of
+             #code{} -> Code0;
+             _ -> undefined
+         end,
+  #grammar{declarations = Decls,
+           code = Code}
+%};
+
+declaration_sequence <- head:declaration tail:(space declaration)*
+%{
+  FirstRule = proplists:get_value(head, Node),
+  OtherRules =  [I || [_,I] <- proplists:get_value(tail, Node, [])],
+  [FirstRule|OtherRules]
+%};
+
+declaration <- nonterminal space* '<-' space* parsing_expression space? code_block? space? ';'
+%{
+  [NT, _, _, _, Expr, _, Code0|_] = Node,
+  Code = case Code0 of
+      #code{} -> Code0;
+      _ -> undefined
+  end,
+  #declaration{ name = NT,
+                expr = Expr,
+                code = Code,
+                index = Idx }
+%};
+
+parsing_expression <- choice / sequence / primary ~;
+
+choice <- head:alternative tail:(space '/' space alternative)+
+%{
+  Tail = [lists:last(S) || S <- proplists:get_value(tail, Node)],
+  Head = proplists:get_value(head, Node),
+  #choice{alts = [Head|Tail],
+          index = Idx}
+%};
+
+alternative <- sequence / labeled_primary ~;
+
+primary <- prefix atomic / atomic suffix / atomic
+%{
+    {Expression, Modifier} = case Node of
+        [Atomic, one_or_more] ->
+              {Atomic, one_or_more};
+        [Atomic, zero_or_more] ->
+              {Atomic, zero_or_more};
+        [Atomic, optional] ->
+              {Atomic, optional};
+        [assert, Atomic] ->
+              {Atomic, assert};
+        [deny, Atomic] ->
+              {Atomic, deny};
+        _ -> {Node, undefined}
+    end,
+    #primary{expr = Expression,
+             modifier = Modifier,
+             index = Idx}
+%};
+
+sequence <- head:labeled_primary tail:(space labeled_primary)+
+%{
+  Tail = [lists:nth(2, S) || S <- proplists:get_value(tail, Node)],
+  Head = proplists:get_value(head, Node),
+  #sequence{exprs = [Head|Tail],
+            index = Idx}
+%};
+
+labeled_primary <- label? primary
+%{
+  Primary = lists:nth(2, Node),
+  case hd(Node) of
+    [] -> Primary;
+    Label -> Primary#primary{label=Label, index=Idx}
+  end
+%};
+
+label <- alpha_char alphanumeric_char* ':'
+%{
+  lists:sublist(Node, length(Node)-1)
+%};
+
+suffix <- repetition_suffix / optional_suffix
+%{
+  case Node of
+    <<"*">> -> zero_or_more;
+    <<"+">> -> one_or_more;
+    <<"?">> -> optional
+  end
+%};
+
+optional_suffix <- '?' ~;
+
+repetition_suffix <- '+' / '*' ~;
+
+prefix <- '&' / '!'
+%{
+  case Node of
+    <<"&">> -> assert;
+    <<"!">> -> deny
+  end
+%};
+
+atomic <- terminal / nonterminal / parenthesized_expression ~;
+
+parenthesized_expression <- '(' space? parsing_expression space? ')' %{
+   lists:nth(3, Node)
+%};
+
+nonterminal <- alpha_char alphanumeric_char*
+%{
+  Symbol = unicode:characters_to_binary(Node),
+  #nonterminal{name = binary_to_atom(Symbol, utf8),
+               index = Idx}
+%};
+
+terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
+
+regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
+%{
+  #regexp{regexp = unicode:characters_to_binary(proplists:get_value(string, Node)),
+          index = Idx}
+%};
+
+quoted_string <- single_quoted_string / double_quoted_string
+%{
+  #string{string = unicode:characters_to_binary(proplists:get_value(string, Node)),
+          index = Idx}
+%};
+
+double_quoted_string <- '"' string:(!'"' ("\\\\" / '\\"' / .))* '"' ~;
+
+single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
+
+character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
+%{
+  #charclass{
+     charclass = proplists:get_value(characters, Node),
+     index = Idx
+  }
+%};
+
+anything_symbol <- '.' %{
+  #anything{index=Idx}
+%};
+
+alpha_char <- [A-Za-z_] ~;
+
+alphanumeric_char <- alpha_char / [0-9] ~;
+
+space <- (white / comment_to_eol)+ ~;
+
+comment_to_eol <- !'%{' '%' (!"\n" .)* ~;
+
+white <- [ \t\n\r] ~;
+
+code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
+              ('`' code:('\\`' / '$`' / !'`' .)+ '`') /
+              '~'
+%{
+   case Node of
+       <<"~">> -> #code{identity=true, index=Idx};
+       %% Note I use c2l here instead of c2b so that we can use
+       %% erl_scan and friends. Erlang code should probably be latin1
+       %% for safety.
+       _   -> #code{code=unicode:characters_to_list(proplists:get_value('code', Node)),
+                    index=Idx}
+   end
+%};
+
+%% Extra functions
+
+%{
+
+%% A nonterminal, which must have a corresponding declaration
+-record(nonterminal, {
+          name :: atom(),
+          index :: index()
+         }).
+
+%% A regexp
+-record(regexp, {
+          regexp :: unicode:chardata(),
+          index :: index()
+         }).
+
+%% A literal string
+-record(string, {
+          string :: unicode:chardata(),
+          index :: index()
+         }).
+
+%% A character class, e.g. [A-Z]
+-record(charclass, {
+          charclass :: unicode:chardata(),
+          index :: index()
+         }).
+
+%% The '.' parsing expression
+-record(anything, {
+          index :: index()
+         }).
+
+%% Either the '~' sigil or a block of Erlang code
+-record(code, {
+          code :: unicode:chardata(),
+          identity = false :: boolean(),
+          index :: index()
+         }).
+
+%% A primary parsing expression, which may be labeled and have a
+%% modifier, such as lookahead or repetition
+-record(primary, {
+          expr :: terminal() | #nonterminal{} | expression(),
+          label :: atom(),
+          modifier :: modifier() | undefined,
+          index :: index()
+         }).
+
+%% A sequence of consecutive expressions
+-record(sequence, {
+          exprs = [ #primary{} ],
+          index :: index()
+         }).
+
+%% A series of alternative expressions that use ordered choice
+-record(choice, {
+          alts :: [ #sequence{} | #primary{} ],
+          index :: index()
+         }).
+
+%% A declaration maps a nonterminal to a parsing expression and
+%% optional associated transformation code.
+-record(declaration, {
+          name :: #nonterminal{},
+          expr :: expression(),
+          code :: #code{} | undefined,
+          index :: index()
+         }).
+
+%% An entire grammar, with its optional code block
+-record(grammar, {
+          declarations :: [ #declaration{} ],
+          code :: #code{} | undefined
+         }).
+
+-type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{}.
+-type modifier() :: one_or_more | zero_or_more | optional | assert | deny.
+
+%% An abstract representation of a parsing expression.
+-type expression() :: #choice{} | #sequence{} | #primary{}.
+%}
