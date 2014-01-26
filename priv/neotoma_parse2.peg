@@ -25,7 +25,7 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
       #code{} -> Code0;
       _ -> undefined
   end,
-  #declaration{ name = NT,
+  #declaration{ name = NT#nonterminal.name,
                 expr = Expr,
                 code = Code,
                 index = Idx }
@@ -82,7 +82,9 @@ labeled_primary <- label? primary
 
 label <- alpha_char alphanumeric_char* ':'
 %{
-  lists:sublist(Node, length(Node)-1)
+  binary_to_atom(
+    unicode:characters_to_binary(lists:sublist(Node, length(Node)-1)),
+    utf8)
 %};
 
 suffix <- repetition_suffix / optional_suffix
@@ -140,7 +142,7 @@ single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 %{
   #charclass{
-     charclass = proplists:get_value(characters, Node),
+     charclass = unicode:characters_to_binary(proplists:get_value(characters, Node)),
      index = Idx
   }
 %};
@@ -176,82 +178,5 @@ code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
 %% Extra functions
 
 %{
-
-%% A nonterminal, which must have a corresponding declaration
--record(nonterminal, {
-          name :: atom(),
-          index :: index()
-         }).
-
-%% A regexp
--record(regexp, {
-          regexp :: unicode:chardata(),
-          index :: index()
-         }).
-
-%% A literal string
--record(string, {
-          string :: unicode:chardata(),
-          index :: index()
-         }).
-
-%% A character class, e.g. [A-Z]
--record(charclass, {
-          charclass :: unicode:chardata(),
-          index :: index()
-         }).
-
-%% The '.' parsing expression
--record(anything, {
-          index :: index()
-         }).
-
-%% Either the '~' sigil or a block of Erlang code
--record(code, {
-          code :: unicode:chardata(),
-          identity = false :: boolean(),
-          index :: index()
-         }).
-
-%% A primary parsing expression, which may be labeled and have a
-%% modifier, such as lookahead or repetition
--record(primary, {
-          expr :: terminal() | #nonterminal{} | expression(),
-          label :: atom(),
-          modifier :: modifier() | undefined,
-          index :: index()
-         }).
-
-%% A sequence of consecutive expressions
--record(sequence, {
-          exprs = [ #primary{} ],
-          index :: index()
-         }).
-
-%% A series of alternative expressions that use ordered choice
--record(choice, {
-          alts :: [ #sequence{} | #primary{} ],
-          index :: index()
-         }).
-
-%% A declaration maps a nonterminal to a parsing expression and
-%% optional associated transformation code.
--record(declaration, {
-          name :: #nonterminal{},
-          expr :: expression(),
-          code :: #code{} | undefined,
-          index :: index()
-         }).
-
-%% An entire grammar, with its optional code block
--record(grammar, {
-          declarations :: [ #declaration{} ],
-          code :: #code{} | undefined
-         }).
-
--type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{}.
--type modifier() :: one_or_more | zero_or_more | optional | assert | deny.
-
-%% An abstract representation of a parsing expression.
--type expression() :: #choice{} | #sequence{} | #primary{}.
+-include("neotoma.hrl").
 %}
