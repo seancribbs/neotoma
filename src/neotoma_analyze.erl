@@ -62,12 +62,11 @@ analyze_expression(#sequence{exprs=Exprs}, #symbols{}=ST) ->
     ST1#symbols{combinators=ordsets:add_element(seq, C)};
 
 %% Primary expressions
-analyze_expression(#primary{expr=Expr, modifier=Mod}, #symbols{}=ST) ->
+analyze_expression(#primary{expr=Expr, modifier=Mod, label=L}, #symbols{}=ST) ->
     #symbols{combinators=C} = ST1 = analyze_expression(Expr, ST),
-    case Mod of
-        undefined -> ST1;
-        _ -> ST1#symbols{combinators=ordsets:add_element(Mod, C)}
-    end;
+    Combs = [ Comb || {Type, Comb} <- [{Mod, Mod}, {L, label}],
+                      Type /= undefined ],
+    ST1#symbols{combinators=ordsets:union(C, ordsets:from_list(Combs))}.
 
 %% Non-terminals, record the name and index
 analyze_expression(#nonterminal{name=Name, index=Index},
