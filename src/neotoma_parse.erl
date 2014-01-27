@@ -404,7 +404,7 @@ setup_memo() ->
 release_memo() ->
   ets:delete(memo_table_name()).
 
--spec memoize(index(), atom(), term()) -> true.
+-spec memoize(index(), atom(), parse_result()) -> true.
 memoize(Index, Name, Result) ->
   Memo = case ets:lookup(memo_table_name(), Index) of
               [] -> [];
@@ -541,8 +541,8 @@ p_label(Tag, P) ->
 -endif.
 
 -ifdef(p_scan).
--spec p_scan(parse_fun(), input(), index(), [term()]) -> parse_result().
-p_scan(_, [], Index, Accum) -> {lists:reverse( Accum ), [], Index};
+-spec p_scan(parse_fun(), input(), index(), [term()]) -> {[term()], input(), index()}.
+p_scan(_, <<>>, Index, Accum) -> {lists:reverse(Accum), <<>>, Index};
 p_scan(P, Inp, Index, Accum) ->
   case P(Inp, Index) of
     {fail,_} -> {lists:reverse(Accum), Inp, Index};
