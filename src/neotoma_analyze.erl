@@ -66,7 +66,7 @@ analyze_expression(#primary{expr=Expr, modifier=Mod, label=L}, #symbols{}=ST) ->
     #symbols{combinators=C} = ST1 = analyze_expression(Expr, ST),
     Combs = [ Comb || {Type, Comb} <- [{Mod, Mod}, {L, label}],
                       Type /= undefined ],
-    ST1#symbols{combinators=ordsets:union(C, ordsets:from_list(Combs))}.
+    ST1#symbols{combinators=ordsets:union(C, ordsets:from_list(Combs))};
 
 %% Non-terminals, record the name and index
 analyze_expression(#nonterminal{name=Name, index=Index},
