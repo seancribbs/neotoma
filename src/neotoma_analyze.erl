@@ -4,7 +4,8 @@
 %%
 %% <ul><li>A non-terminal has no reduction/rule.</li>
 %%     <li>An inline code-block is not a well-formed Erlang expression</li>
-%%     <li>The top-level code block is not a well-formed Erlang form list.</li></ul>
+%%     <li>The top-level code block is not a well-formed Erlang form list.</li>
+%%     <li>A non-terminal has more than one reduction/rule.</li></ul>
 %%
 %% <p>Warning conditions are recorded when:</p>
 %%
@@ -16,7 +17,24 @@
 
 -include("neotoma.hrl").
 
--export([analyze/1]).
+-export([file/1,
+         analyze/1]).
+
+%% @doc Open a grammar file, parse and analyze it.
+-spec file(file:name()) -> {ok, #grammar{}} | {error, [{error, semantic_error() |
+                                                        syntax_error()} |
+                                                       {warning, semantic_warning()}]}.
+file(Filename) ->
+    case neotoma_parse2:file(Filename) of
+        #grammar{}=G ->
+            %% We got a successful grammar, so analyze it.
+            analyze(G);
+        {_AST, _Rest, Index} ->
+            %% We should really make the grammar intolerant of
+            %% incomplete parses, but for now we can simply report the
+            %% point past which the parsing failed.
+            {error, [{error, {syntax_error, Index}}]}
+    end.
 
 -spec analyze(#grammar{}) -> {ok, #grammar{}} | {error, [{error, semantic_error()} |
                                                          {warning, semantic_warning()}]}.

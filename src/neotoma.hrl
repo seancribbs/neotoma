@@ -85,6 +85,7 @@
 
 %% An abstract representation of a parsing expression.
 -type expression() :: #choice{} | #sequence{} | #primary{}.
+-type syntax_error() :: {syntax_error, index()}.
 
 %%----------------------------
 %% Analyzer records and types
