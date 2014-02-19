@@ -118,7 +118,7 @@ file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -
 -spec parse(binary() | list()) -> any().
 parse(List) when is_list(List) -> parse(list_to_binary(List));
 parse(Input) when is_binary(Input) ->
-  setup_memo(),
+  _ = setup_memo(),
   Result = case 'rules'(Input,{{line,1},{column,1}}) of
              {AST, <<>>, _Index} -> AST;
              Any -> Any
