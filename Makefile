@@ -18,6 +18,9 @@ neotoma.plt:
 dialyzer: compile neotoma.plt
 	@dialyzer --plt neotoma.plt ebin
 
+xref: compile
+	@./rebar xref skip_deps=true
+
 bootstrap: compile
 	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
 	@./rebar compile
