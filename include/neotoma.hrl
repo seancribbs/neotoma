@@ -85,7 +85,7 @@
 
 %% An abstract representation of a parsing expression.
 -type expression() :: #choice{} | #sequence{} | #primary{}.
--type syntax_error() :: {syntax_error, index()}.
+-type syntax_error() :: {syntax_error, tuple()}.
 
 %%----------------------------
 %% Analyzer records and types
@@ -99,7 +99,8 @@
 
 -type unused_rule() :: {unused_rule, {atom(), index()}}.
 -type no_reduction() :: {no_reduction, {atom(), [ index() ]}}.
+-type duplicate_rule() :: {duplicate_rule, atom(), OrigIndex::index(), Duplicates::[index()]}.
 -type code_scan_error() :: {erl_scan:error_info(), erl_scan:location()}.
 -type code_parse_error() :: erl_parse:error_info().
--type semantic_error() :: no_reduction() | code_scan_error() | code_parse_error().
+-type semantic_error() :: no_reduction() | code_scan_error() | code_parse_error() | duplicate_rule().
 -type semantic_warning() :: unused_rule().

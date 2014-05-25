@@ -29,11 +29,13 @@ file(Filename) ->
         #grammar{}=G ->
             %% We got a successful grammar, so analyze it.
             analyze(G);
+        {fail, Reason} ->
+            {error, [{error, {syntax_error, Reason}}]};
         {_AST, _Rest, Index} ->
             %% We should really make the grammar intolerant of
             %% incomplete parses, but for now we can simply report the
             %% point past which the parsing failed.
-            {error, [{error, {syntax_error, Index}}]}
+            {error, [{error, {syntax_error, {incomplete_parse, Index}}}]}
     end.
 
 -spec analyze(#grammar{}) -> {ok, #grammar{}} | {error, [{error, semantic_error()} |
@@ -128,10 +130,11 @@ check_nonterminal(NT, Indexes, Rules, Errors) ->
     end.
 
 %% Checks that every rule except the root of the grammar is used.
-check_rules({#symbols{nts=NTs, rules=[_Root|Rules]}=ST, Errors}) ->
+check_rules({#symbols{nts=NTs, rules=[_Root|Rules]=AllRules}=ST, Errors}) ->
     {ST, lists:foldl(fun(Rule, Errs) ->
                              check_rule(Rule, NTs, Errs)
-                     end, Errors, Rules)}.
+                     end, Errors, Rules) ++
+         check_rule_uniqueness(AllRules, [])}.
 
 %% Checks that an individual rule for a non-terminal is used by some
 %% other reduction.
@@ -140,6 +143,23 @@ check_rule({Name, Index, _Code}, NTs, Errors) ->
         true -> Errors;
         false -> [{warning, {unused_rule, {Name, Index}}}|Errors]
     end.
+
+%% Checks that rules are only defined once.
+check_rule_uniqueness([{Name, Index, _Code}|Rest], Errors) ->
+    {Others, DupesRemoved} = lists:partition(fun({Name2, _, _}) ->
+                                                     Name2 == Name
+                                             end, Rest),
+    case Others of
+        [] ->
+            check_rule_uniqueness(DupesRemoved, Errors);
+        _ ->
+            check_rule_uniqueness(DupesRemoved,
+                                  [{error, {duplicate_rule,
+                                            Name, Index,
+                                            [I || {_,I,_} <- Others]}}|Errors])
+    end;
+check_rule_uniqueness([], Errors) -> Errors.
+
 
 %% Checks that every code block is a well-formed Erlang expression and
 %% annotates the code block node with the used implicit arguments.
