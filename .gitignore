@@ -1,5 +1,6 @@
 ebin/*.beam
 ebin/neotoma.app
+_build/
 extra/*.beam
 *#*
 .eunit
