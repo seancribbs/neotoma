@@ -77,7 +77,7 @@
 -record(grammar, {
           declarations :: [ #declaration{} ],
           code :: #code{} | undefined,
-          analysis
+          analysis % :: #symbols{} | undefined
          }).
 
 -type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{}.
