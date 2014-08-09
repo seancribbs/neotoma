@@ -1,6 +1,6 @@
 -module(neotoma_peg).
 -author("Sean Cribbs <seancribbs@gmail.com>").
-
+-include("neotoma.hrl").
 % Thanks to Jeffrey A. Meunier for the original parser.erl library from which I
 % lifted many of these functions, which in turn was based on the Haskell
 % "parsec" library by Erik Meijer.  I've renamed the functions to be more
