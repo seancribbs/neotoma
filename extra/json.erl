@@ -45,15 +45,15 @@ parse(Input) when is_binary(Input) ->
                                                                                                                                                                                                                                                                                                                                                                                                                            end).
 
 'string'(Input, Index) ->
-    p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\\\\\">>), p_string(<<"\\\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) -> iolist_to_binary(proplists:get_value(chars, Node)) end).
+    p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\\\\\">>), p_string(<<"\\\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) -> unicode:characters_to_binary(proplists:get_value(chars, Node)) end).
 
 'number'(Input, Index) ->
     p(Input, Index, 'number', fun(I,D) -> (p_seq([fun 'int'/2, p_optional(fun 'frac'/2), p_optional(fun 'exp'/2)]))(I,D) end, fun(Node, Idx) ->
                                                                                                                                       case Node of
-                                                                                                                                          [Int, [], []] -> list_to_integer(binary_to_list(iolist_to_binary(Int)));
-                                                                                                                                          [Int, Frac, []] -> list_to_float(binary_to_list(iolist_to_binary([Int, Frac])));
-                                                                                                                                          [Int, [], Exp] -> list_to_float(binary_to_list(iolist_to_binary([Int, ".0", Exp])));
-                                                                                                                                          _ -> list_to_float(binary_to_list(iolist_to_binary(Node)))
+                                                                                                                                          [Int, [], []] -> list_to_integer(binary_to_list(unicode:characters_to_binary(Int)));
+                                                                                                                                          [Int, Frac, []] -> list_to_float(binary_to_list(unicode:characters_to_binary([Int, Frac])));
+                                                                                                                                          [Int, [], Exp] -> list_to_float(binary_to_list(unicode:characters_to_binary([Int, ".0", Exp])));
+                                                                                                                                          _ -> list_to_float(binary_to_list(unicode:characters_to_binary(Node)))
                                                                                                                                       end
                                                                                                                               end).
 

@@ -41,7 +41,7 @@ parse(Input) when is_binary(Input) ->
                                                                                                                                                                                                    end).
 
 'field'(Input, Index) ->
-    p(Input, Index, 'field', fun(I,D) -> (p_choose([fun 'quoted_field'/2, p_zero_or_more(p_seq([p_not(fun 'field_sep'/2), p_not(fun 'crlf'/2), p_anything()]))]))(I,D) end, fun(Node, Idx) -> iolist_to_binary(Node) end).
+    p(Input, Index, 'field', fun(I,D) -> (p_choose([fun 'quoted_field'/2, p_zero_or_more(p_seq([p_not(fun 'field_sep'/2), p_not(fun 'crlf'/2), p_anything()]))]))(I,D) end, fun(Node, Idx) -> unicode:characters_to_binary(Node) end).
 
 'quoted_field'(Input, Index) ->
     p(Input, Index, 'quoted_field', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('string', p_zero_or_more(p_choose([p_string(<<"\"\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) ->
