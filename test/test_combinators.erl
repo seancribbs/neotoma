@@ -99,3 +99,8 @@ line_test() ->
 column_test() ->
     ?assertEqual(2, neotoma_peg:column({{line,1},{column,2}})).
 
+utf8_string_test_() ->
+    [
+     ?_assertEqual({<<"世界">>, <<"def">>,{{line,1},{column,3}}}, (neotoma_peg:p_string(<<"世界">>))(<<"世界def">>,?STARTINDEX)),
+     ?_assertEqual({fail,{expected, {string, <<"世界">>}, ?STARTINDEX}}, (neotoma_peg:p_string(<<"世界">>))(<<"界世abc">>,?STARTINDEX))
+    ].

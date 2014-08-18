@@ -3,7 +3,7 @@
 rules <- space? declaration_sequence space? code_block? space?
 `
   RootRule = verify_rules(),
-  Rules = iolist_to_binary(lists:map(fun(R) -> [R, "\n\n"] end, lists:nth(2, Node))),
+  Rules = unicode:characters_to_binary(lists:map(fun(R) -> [R, "\n\n"] end, lists:nth(2, Node))),
   Code = case lists:nth(4, Node) of
              {code, Block} -> Block;
              _ -> []
@@ -141,7 +141,7 @@ parenthesized_expression <- '(' space? parsing_expression space? ')' `lists:nth(
 
 nonterminal <- alpha_char alphanumeric_char*
 `
-  Symbol = iolist_to_binary(Node),
+  Symbol = unicode:characters_to_binary(Node),
   add_nt(Symbol, Idx),
   {nonterminal, Symbol}
 `;
@@ -163,7 +163,7 @@ quoted_string <- single_quoted_string / double_quoted_string
 `
   used_combinator(p_string),
   lists:flatten(["p_string(<<\"",
-   escape_string(binary_to_list(iolist_to_binary(proplists:get_value(string, Node)))),
+   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(string, Node)))),
    "\">>)"])
 `;
 
@@ -175,7 +175,7 @@ character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 `
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
-   escape_string(binary_to_list(iolist_to_binary(proplists:get_value(characters, Node)))),
+   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(characters, Node)))),
    "]\">>)"]
 `;
 
