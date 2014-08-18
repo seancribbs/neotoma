@@ -163,7 +163,7 @@ quoted_string <- single_quoted_string / double_quoted_string
 `
   used_combinator(p_string),
   lists:flatten(["p_string(<<\"",
-   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(string, Node)))),
+   escape_string(unicode:characters_to_list(proplists:get_value(string, Node))),
    "\">>)"])
 `;
 
@@ -175,7 +175,7 @@ character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 `
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
-   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(characters, Node)))),
+   escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
    "]\">>)"]
 `;
 

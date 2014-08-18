@@ -314,7 +314,7 @@ end
   p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, _Idx) ->
   used_combinator(p_string),
   lists:flatten(["p_string(<<\"",
-   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(string, Node)))),
+   escape_string(unicode:characters_to_list(proplists:get_value(string, Node))),
    "\">>)"])
  end).
 
@@ -331,7 +331,7 @@ end
   p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
-   escape_string(binary_to_list(unicode:characters_to_binary(proplists:get_value(characters, Node)))),
+   escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
    "]\">>)"]
  end).
 
