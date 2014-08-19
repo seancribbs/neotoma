@@ -1,3 +1,4 @@
+%% -*- coding: utf-8 -*-
 -module(test_parse).
 -include_lib("eunit/include/eunit.hrl").
 
