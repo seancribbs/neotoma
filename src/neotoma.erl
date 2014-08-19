@@ -84,7 +84,7 @@ generate_entry_functions(Root) ->
      ["-spec file(file:name()) -> any().\n",
      "file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.\n\n",
      "-spec parse(binary() | list()) -> any().\n",
-     "parse(List) when is_list(List) -> parse(list_to_binary(List));\n",
+     "parse(List) when is_list(List) -> parse(unicode:characters_to_binary(List));\n",
      "parse(Input) when is_binary(Input) ->\n",
      "  _ = setup_memo(),\n",
      "  Result = case '",RootRule,"'(Input,{{line,1},{column,1}}) of\n",

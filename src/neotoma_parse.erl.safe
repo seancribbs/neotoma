@@ -116,7 +116,7 @@ used_transform_variables([], Acc) ->
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
 
 -spec parse(binary() | list()) -> any().
-parse(List) when is_list(List) -> parse(list_to_binary(List));
+parse(List) when is_list(List) -> parse(unicode:characters_to_binary(List));
 parse(Input) when is_binary(Input) ->
   setup_memo(),
   Result = case 'rules'(Input,{{line,1},{column,1}}) of
