@@ -1,4 +1,3 @@
-%% -*- coding: utf-8 -*-
 -module(test_parse).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -9,7 +8,7 @@ parser_test() ->
     neotoma:file("test_parser.peg"),
     compile:file("test_parser.erl", []),
     try 
-        TestString = "世界 foo",
+        TestString =  [19990,30028,32,102,111,111],
         Result = test_parser:parse(TestString),
         ?assertEqual(6, length(Result)),
         StringResult = lists:flatten(io_lib:format("~ts", [Result])),
