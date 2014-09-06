@@ -74,7 +74,7 @@
 %% A declaration maps a nonterminal to a parsing expression and
 %% optional associated transformation code.
 -record(declaration, {
-          name :: #nonterminal{},
+          name :: atom(),
           expr :: expression(),
           code :: #code{} | undefined,
           index :: index()

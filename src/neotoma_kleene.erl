@@ -30,26 +30,26 @@ transform_expression(#primary{expr=E, modifier=one_or_more, index=I}=P, Count) -
     %%     / c:LetterOrDigit -> {[c]}
     {SubExpr, SubRules, SubCount} = transform_expression(E, Count),
     {NewName, NewCount} = name_expansion(P, SubCount),
-    LHS = #nonterminal{name=NewName, index=I},
+    NewNT = #nonterminal{name=NewName, index=I},
     Base = #primary{expr=SubExpr, index=I},
-    Reduction = #choice{alts=[#sequence{exprs=[Base, LHS], index=I},
+    Reduction = #choice{alts=[#sequence{exprs=[Base, NewNT], index=I},
                               Base],
                         index=I},
-    Rule = #declaration{name=LHS, expr=Reduction, code=#code{identity=true}, index=I},
-    {P#primary{expr=LHS, modifier=undefined}, [Rule|SubRules], NewCount};
+    Rule = #declaration{name=NewName, expr=Reduction, code=#code{identity=true}, index=I},
+    {P#primary{expr=NewNT, modifier=undefined}, [Rule|SubRules], NewCount};
 transform_expression(#primary{expr=E, modifier=zero_or_more, index=I}=P, Count) ->
     %% LetterOrDigitStar :: {[Char]} =
     %%     c:LetterOrDigit cs:LetterOrDigitStar -> {c : cs}
     %%     / -> {[]}
     {SubExpr, SubRules, SubCount} = transform_expression(E, Count),
     {NewName, NewCount} = name_expansion(P, SubCount),
-    LHS = #nonterminal{name=NewName, index=I},
+    NewNT = #nonterminal{name=NewName, index=I},
     Base = #primary{expr=SubExpr, index=I},
-    Reduction = #choice{alts=[#sequence{exprs=[Base, LHS], index=I},
+    Reduction = #choice{alts=[#sequence{exprs=[Base, NewNT], index=I},
                               #epsilon{index=I}],
                         index=I},
-    Rule = #declaration{name=LHS, expr=Reduction, code=#code{identity=true}, index=I},
-    {P#primary{expr=LHS, modifier=undefined}, [Rule|SubRules], NewCount};
+    Rule = #declaration{name=NewName, expr=Reduction, code=#code{identity=true}, index=I},
+    {P#primary{expr=NewNT, modifier=undefined}, [Rule|SubRules], NewCount};
 
 transform_expression(#primary{expr=E}=P, Count) ->
     {NewExpr, NewRules, NewCount} = transform_expression(E, Count),
@@ -113,15 +113,14 @@ modifier_name(zero_or_more) -> <<"star">>.
 dedupe_expansions(Rules) ->
     lists:foldr(fun dedupe_expansion/2, [], Rules).
     
-dedupe_expansion(#declaration{name=#nonterminal{name=Name}, 
-                              index=Idx}=Decl, 
+dedupe_expansion(#declaration{name=Name, index=Idx}=Decl, 
                  Acc) ->
     %% TODO: This could be done more cleanly
-    case lists:dropwhile(fun(D) -> D#declaration.name#nonterminal.name /= Name end, Acc) of
-        [] -> [Decl|Acc];
-        [Other|_] ->
+    case lists:keytake(Name, #declaration.name, Acc) of
+        false -> [Decl|Acc];
+        {value, Other, NewAcc} ->
             if Other#declaration.index >= Idx ->
-                    [Decl|lists:delete(Other, Acc)];
+                    [Decl|NewAcc];
                true ->
                     Acc
             end
