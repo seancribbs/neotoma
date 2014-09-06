@@ -90,14 +90,14 @@ name_expansion(#primary{expr=#anything{}, modifier=one_or_more}, Count) ->
     {anything_plus, Count};
 name_expansion(#primary{expr=#anything{}, modifier=zero_or_more}, Count) ->
     {anything_star, Count};
-name_expansion(#primary{label=L, modifier=M}, Count) when label /= undefined ->
+name_expansion(#primary{label=L, modifier=M}, Count) when L /= undefined ->
     IdStr = unicode:characters_to_binary([atom_to_list(L), $_,
                                           modifier_name(M), $_,
                                           integer_to_list(Count)]),
     {binary_to_atom(IdStr, utf8), Count+1};
-name_expansion(#primary{expr=E, modifier=M}, Count) when is_record(regexp, E);
-                                                         is_record(string, E);
-                                                         is_record(charclass, E) ->
+name_expansion(#primary{expr=E, modifier=M}, Count) when is_record(E, regexp);
+                                                         is_record(E, string);
+                                                         is_record(E, charclass) ->
     IdStr = unicode:characters_to_binary([atom_to_list(element(1, E)), $_,
                                           modifier_name(M), $_,
                                           integer_to_list(Count)]),
