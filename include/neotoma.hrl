@@ -28,8 +28,15 @@
           index :: index()
          }).
 
-%% The '.' parsing expression
+%% The '.' parsing expression, matches any character.
 -record(anything, {
+          index :: index()
+         }).
+
+%% The epsilon expression, trivially matches nothing. This is not
+%% directly available in grammars but is used in transformation and
+%% optimization phases.
+-record(epsilon, {
           index :: index()
          }).
 
@@ -80,7 +87,7 @@
           analysis % :: #symbols{} | undefined
          }).
 
--type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{}.
+-type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{} | #epsilon{}.
 -type modifier() :: one_or_more | zero_or_more | optional | assert | deny.
 
 %% An abstract representation of a parsing expression.
