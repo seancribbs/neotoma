@@ -8,3 +8,7 @@ extra/*.beam
 ._*
 neotoma.plt
 /neotoma
+/.eqc-info
+/.qc/
+/.rebar/
+/deps/
