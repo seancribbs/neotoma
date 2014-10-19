@@ -1,0 +1,4 @@
+%% erlang
+{['src/*', 'test/*'], [{parse_transform, eqc_cover}, {i, "src"}, {i, "include"}, {i, ".."},
+		       {d, 'EQC'}, {d, 'TEST'}, {outdir, "ebin"},
+                       debug_info, warnings_as_errors, warn_export_vars]}.
