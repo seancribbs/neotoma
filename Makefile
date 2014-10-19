@@ -28,5 +28,8 @@ bootstrap: compile
 escript:
 	@./rebar escriptize
 
-eqc-ci: clean all
-	@./rebar -D EQC_CI -C rebar_eqc_ci.config qc compile_only=true --verbose
+eqc-compile:
+	mkdir ebin
+	mkdir tbin
+	(cd test; erl -noshell -DEQC -DTEST -eval 'make:all([{parse_transform, eqc_cover}, {outdir, "../tbin"}])' -s init stop)
+	(cd src; erl -noshell -DEQC -DTEST -eval 'make:all([{parse_transform, eqc_cover}, {i, "../include"}, {outdir, "../ebin"}])' -s init stop)

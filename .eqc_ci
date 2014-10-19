@@ -1,2 +1,3 @@
-{build, "make eqc-ci"}.
-{test_path, ".qc"}.
+{build, "make eqc-compile"}.
+{test_path, "tbin"}.
+{deps, "ebin"}.
