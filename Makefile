@@ -29,7 +29,7 @@ escript:
 	@./rebar escriptize
 
 eqc-compile:
-	mkdir ebin
-	mkdir tbin
-	(cd test; erl -noshell -DEQC -DTEST -eval 'make:all([{parse_transform, eqc_cover}, {i, "../include"}, {i, "../src"}, {outdir, "../tbin"}])' -s init stop)
-	(cd src; erl -noshell -DEQC -DTEST -eval 'make:all([{parse_transform, eqc_cover}, {i, "../include"}, {outdir, "../ebin"}])' -s init stop)
+	-mkdir ebin
+	-mkdir tbin
+	(cd test; erl -make)
+	(cd src; erl -make)
