@@ -5,7 +5,8 @@
 -compile(export_all).
 
 prop_peephole_equiv() ->
-    %% The peephole optimizer should not add or change existing errors in the 
+    %% The peephole optimizer should not add or change existing errors
+    %% in the analysis
     ?FORALL(G, grammar(),
             begin
                 Normal = neotoma_analyze:analyze(G),
