@@ -1,0 +1,4 @@
+{build, "./rebar get-deps qc compile_only=true"}.
+{test_path, ".qc"}.
+{deps, "deps"}.
+{test_root, ".qc"}.

@@ -51,21 +51,17 @@ expr(Size) ->
            sequence(Size)]).
 
 sequence(Size) ->
-    #sequence{exprs = non_empty(list(primary(Size-1))),
+    #sequence{exprs = non_empty(list(primary(Size div 2))),
               index = index()}.
 
 choice(Size) ->
-    #choice{alts=non_empty(list(oneof([sequence(Size-1), primary(Size-1)]))),
+    #choice{alts=non_empty(list(oneof([sequence(Size div 2), primary(Size div 2)]))),
             index = index()}.
 
 primary(Size) ->
-    Expr = if Size > 1 ->
-                   oneof([terminal(),
-                          nonterminal(),
-                          expr(Size - 1)]);
-              true ->
-                   oneof([terminal(), nonterminal()])
-           end,
+    Expr = oneof([terminal(),
+                  nonterminal()] ++ 
+                 [expr(Size div 2) || Size > 1]),
     #primary{expr = Expr,
              label = undefined,
              modifier = modifier(),
