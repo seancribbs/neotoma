@@ -1,3 +1,2 @@
 {build, "make eqc-compile"}.
-{test_path, "tbin"}.
-{deps, "ebin"}.
+{test_path, ["tbin", "ebin"]}.
