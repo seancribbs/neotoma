@@ -30,5 +30,4 @@ escript:
 
 eqc-compile:
 	-mkdir ebin
-	erl -make
-	erl -noshell -eval "make:all([{parse_transform, eqc_cover}])" -s init stop 
+	erl -noshell -eval "make:all([{parse_transform, eqc_cover}])" -s init stop
