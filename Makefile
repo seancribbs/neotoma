@@ -29,4 +29,4 @@ escript:
 	@./rebar escriptize
 
 eqc-ci: clean all
-	@./rebar -D EQC_CI -C rebar_eqc_ci.config compile eunit skip_deps=true --verbose
+	@./rebar -D EQC_CI -C rebar_eqc_ci.config qc compile_only=true --verbose

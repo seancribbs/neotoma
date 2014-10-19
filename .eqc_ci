@@ -1,2 +1,2 @@
 {build, "make eqc-ci"}.
-{test_path, ".eunit"}.
+{test_path, ".qc"}.
