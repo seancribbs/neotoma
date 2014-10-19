@@ -1,6 +1,9 @@
-.PHONY: test compile clean dialyzer bootstrap escript
+.PHONY: deps eqc-ci test compile clean dialyzer bootstrap escript
 
-all: compile
+all: deps compile
+
+deps:
+	@./rebar get-deps
 
 compile:
 	@./rebar compile
@@ -24,3 +27,6 @@ bootstrap: compile
 
 escript:
 	@./rebar escriptize
+
+eqc-ci: clean all
+	@./rebar -D EQC_CI rebar_eqc_ci.config compile eunit skip_deps=true --verbose
