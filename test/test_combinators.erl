@@ -82,7 +82,7 @@ anything_test_() ->
 charclass_test_() ->
     [
      ?_assertEqual({<<"+">>,<<"----">>,{{line,1},{column,2}}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"+----">>,?STARTINDEX)),
-     ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"----">>,?STARTINDEX))
+     ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"----">>,?STARTINDEX)),
     ].
 
 regexp_test_() ->
@@ -101,6 +101,6 @@ column_test() ->
 
 utf8_string_test_() ->
     [
-     ?_assertEqual({<<"世界">>, <<"def">>,{{line,1},{column,3}}}, (neotoma_peg:p_string(<<"世界">>))(<<"世界def">>,?STARTINDEX)),
-     ?_assertEqual({fail,{expected, {string, <<"世界">>}, ?STARTINDEX}}, (neotoma_peg:p_string(<<"世界">>))(<<"界世abc">>,?STARTINDEX))
+     ?_assertEqual({<<"世界"/utf8>>, <<"def">>,{{line,1},{column,3}}}, (neotoma_peg:p_string(<<"世界"/utf8>>))(<<"世界def"/utf8>>,?STARTINDEX)),
+     ?_assertEqual({fail,{expected, {string, <<"世界"/utf8>>}, ?STARTINDEX}}, (neotoma_peg:p_string(<<"世界"/utf8>>))(<<"界世abc"/utf8>>,?STARTINDEX))
     ].
