@@ -82,7 +82,7 @@ anything_test_() ->
 charclass_test_() ->
     [
      ?_assertEqual({<<"+">>,<<"----">>,{{line,1},{column,2}}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"+----">>,?STARTINDEX)),
-     ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"----">>,?STARTINDEX)),
+     ?_assertEqual({fail,{expected, {character_class, "[+]"}, ?STARTINDEX}}, (neotoma_peg:p_charclass(<<"[+]">>))(<<"----">>,?STARTINDEX))
     ].
 
 regexp_test_() ->
