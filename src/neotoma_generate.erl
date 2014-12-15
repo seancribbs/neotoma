@@ -63,6 +63,10 @@ generate(#sequence{exprs=[]}, InputName, Success, _Fail) ->
     %% we simply call Success with an empty list (the tail of the
     %% result captures) and the input name. This should flatten out
     %% all of the results into a single list.
+    %%
+    %% The below is a hack because the 'Success' callback must always
+    %% return a list of expressions suitable for assigning to the body
+    %% of a clause, but generate/4 returns a single syntaxTree().
     case Success(abstract([]), InputName) of
         %% If the result is just one expression, simply return it
         %% bare.
