@@ -1,3 +1,5 @@
+-define(FMT(F,A), lists:flatten(io_lib:format(F,A))).
+
 -type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
 
 %%----------------------------
