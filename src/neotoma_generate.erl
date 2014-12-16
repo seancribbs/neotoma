@@ -3,21 +3,25 @@
 -include("neotoma.hrl").
 -compile(export_all).
 -import(erl_syntax, [
+                     abstract/1,
+                     add_ann/2,
                      application/2,
                      application/3,
-                     abstract/1,
-                     block_expr/1,
-                     case_expr/2,
-                     clause/3,
-                     cons/2,
-                     variable/1,
                      atom/1,
                      binary/1,
                      binary_field/2,
-                     underscore/0,
+                     block_expr/1,
+                     block_expr_body/1,
+                     case_expr/2,
+                     clause/3,
+                     cons/2,
+                     fun_expr/1,
                      list/2,
+                     match_expr/2,
                      tuple/1,
-                     match_expr/2
+                     type/1,
+                     underscore/0,
+                     variable/1
                     ]).
 
 %% -type continuation() :: fun((Result::erl_syntax:syntaxTree(),
@@ -37,6 +41,76 @@
 %% -spec generate(tuple(), InputVar::erl_syntax:syntaxTree(),
 %%                Success::continuation(), Fail::continuation()) ->
 %%                       erl_syntax:syntaxTree().
+
+generate(#choice{alts=[Alt]}, InputName, Success, Fail0) ->
+    %% When we have only one alternate left, we should generate its
+    %% code with the original Fail function.
+    generate(Alt, InputName, Success, Fail0);
+
+generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
+    %% We want to generate a structure that recursively tries each
+    %% expression, terminating on the first that succeeds, or failing
+    %% if they all fail.
+    %%
+    %% This means that the Success function is the same at every step,
+    %% but the Fail function generates the next alternate in the
+    %% chain.
+    %%
+    %% Unlike the Haskell version in the paper, we can't have "named
+    %% expressions" that can be referred to from any related
+    %% sub-expression (boo no laziness!). However, we *can* generate
+    %% functions that can be called from within the nested structure.
+    %%
+    %% A / B ==>
+    %%
+    %% Choice1 = fun(InputVar0) -> {{Generate B, InputVar0, Success, Fail0}} end,
+    %% {{Generate A, InputVar, Success, FailByCalling(Choice1)}}
+    %%
+    %% A / B / C ==>
+    %%
+    %% begin
+    %% Choice1 = fun(InputVar0) -> 
+    %%       begin
+    %%         Choice2 = fun(InputVar1) -> {{Generate C, InputVar1, Success, Fail0}} end,
+    %%         begin
+    %%           {{Generate B, InputVar0, Success, FailByCalling(Choice2)}}
+    %%         end
+    %%       end
+    %% end,
+    %% {{Generate A, InputVar, Success, FailByCalling(Choice1)}}
+    %% end
+    %%
+    %% This is obviously ugly and could be potentially flattened out
+    %% with some clever finagling.
+    AltName = variable(new_name("Choice")),
+    NewInputName = variable(new_name("Input")),
+    Fail = fun(IV, _Reason) ->
+                   %% TODO: Deal with the failure reason!
+                   [application(AltName, [IV])]
+           end,
+    FirstAlt = generate(A, InputName, Success, Fail),
+
+    AltContents = generate(C#choice{alts=As}, NewInputName, Success, Fail0),
+
+    %% Unwrap nested block expressions. This way we don't introduce
+    %% them needlessly when a function clause suffices.
+    FunContents = case type(AltContents) of 
+                      block_expr -> block_expr_body(AltContents);
+                      _ -> [AltContents]
+                  end,
+
+    %% Now set up the expression to call the next alternate on
+    %% failure.
+    block_expr([
+                %% NOTE: Added annotation here so it can be
+                %% potentially unrolled later
+                add_ann(choice_fun, 
+                        match_expr(AltName,
+                                   fun_expr([clause([NewInputName],
+                                                    none,
+                                                    FunContents)]))),
+                FirstAlt
+               ]);
 
 generate(#sequence{exprs=[E|Es]}=S, InputName, Success0, Fail) ->
     %% We want to generate a structure that recursively tries each
@@ -96,7 +170,7 @@ generate(#primary{expr=E, label=L, modifier=_M}, InputName, Success0, Fail0) ->
     %%                                               Success1(abstract([]), InputName, Reason)
     %%                                       end};
     %%                        deny ->
-    %%                            %% TODO: essentially invert, but 
+    %%                            %% TODO: essentially invert, but
     %%                            {Fail0, Success1};
     %%                        assert ->
     %%                            %% TODO: lookahead but don't consume
