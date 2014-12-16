@@ -149,39 +149,49 @@ generate(#sequence{exprs=[]}, InputName, Success, _Fail) ->
         Exprs -> block_expr(Exprs)
     end;
 
-generate(#primary{expr=E, label=L, modifier=_M}, InputName, Success0, Fail0) ->
-    %% NOTE: We assume that repetition has been optimized out here and
-    %% simply apply the label if it exists.
-    Success1 = if L /= undefined ->
-                      fun(Capture, Rest) ->
-                              Success0(tuple([atom(L), Capture]), Rest)
-                      end;
-                 true -> Success0
+generate(#primary{expr=E, label=undefined, modifier=undefined}, InputName, Success, Fail) ->
+    %% Where there is no label or modifier (or we've already applied
+    %% them), just generate the nested expression.
+    generate(E, InputName, Success, Fail);
+
+generate(#primary{label=L, modifier=undefined}=P, InputName, Success0, Fail) ->
+    %% When a label is defined and there's no modifier (or we've
+    %% already applied it), we wrap the capture in a tuple with the
+    %% label.
+    Success = fun(Capture, Rest) ->
+                      Success0(tuple([atom(L), Capture]), Rest)
               end,
-    %% {Success2, Fail} = case M of
-    %%                        optional ->
-    %%                            %% TODO: rewrite as choice with
-    %%                            %% epsilon?
-    %%                            %%
-    %%                            %% failure is also a success but
-    %%                            %% doesn't advance input, keep the
-    %%                            %% original input
-    %%                            {Success1, fun(Term, Input, Reason) ->
-    %%                                               Success1(abstract([]), InputName, Reason)
-    %%                                       end};
-    %%                        deny ->
-    %%                            %% TODO: essentially invert, but
-    %%                            {Fail0, Success1};
-    %%                        assert ->
-    %%                            %% TODO: lookahead but don't consume
-    %%                            {Success1, Fail0};
-    %%                        _ ->
-    %%                            {Success1, Fail0}
-    %%                    end,
-    generate(E, InputName, Success1, Fail0);
+    generate(P#primary{label=undefined}, InputName, Success, Fail);
+
+generate(#primary{modifier=optional}=P, InputName, Success, _Fail0) ->
+    %% If the expression is optional, failure is also success!
+    Fail = fun(InputVar, _Reason) ->
+                   Success(abstract([]), InputVar)
+           end,
+    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+
+generate(#primary{modifier=assert}=P, InputName, Success0, Fail) ->
+    %% Zero-width positive lookahead. Failed match still fails, but a
+    %% successful match does not advance the input.
+    Success = fun(_Capture, _Rest) ->
+                      Success0(abstract([]), InputName)
+              end,
+    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+
+generate(#primary{modifier=deny}=P, InputName, Success0, Fail0) ->
+    %% Zero-width negative lookahead. Successful match fails, failed
+    %% match succeeds but consumes nothing.
+    Success = fun(_Capture, _Rest) ->
+                      %% TODO: better error reason here
+                      Fail0(InputName, deny)
+              end,
+    Fail = fun(InputVar, _Reason) ->
+                   Success0(abstract([]), InputVar)
+           end,
+    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+
 
 generate(#nonterminal{name=NT}, InputName, Success, Fail) ->
-    %%
     %% Template:
     %%
     %% case {{NT}}(???) of
