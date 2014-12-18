@@ -15,6 +15,7 @@
                      case_expr/2,
                      clause/3,
                      cons/2,
+                     form_list/1,
                      function/2,
                      fun_expr/1,
                      list/2,
@@ -43,12 +44,16 @@
 %%                Success::continuation(), Fail::continuation()) ->
 %%                       erl_syntax:syntaxTree().
 
+generate(#grammar{declarations=Decls}, InputName, Success, Fail) ->
+    form_list([generate(D, InputName, Success, Fail) || D <- Decls]);
+
 generate(#declaration{name=Name, expr=E}, InputName, Success, Fail) ->
     %% TODO: Handle #code{}
     %% TODO: memoization
     %% TODO: virtual-inlining
     %% TODO: add comments with rule declaration
     %% TODO: add type-specs (via add_ann?)
+    %% TODO: add -file annotations?
     ExprCode = generate(E, InputName, Success, Fail),
     function(atom(Name),
              [clause([InputName],
