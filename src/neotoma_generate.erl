@@ -15,6 +15,7 @@
                      case_expr/2,
                      clause/3,
                      cons/2,
+                     function/2,
                      fun_expr/1,
                      list/2,
                      match_expr/2,
@@ -41,6 +42,18 @@
 %% -spec generate(tuple(), InputVar::erl_syntax:syntaxTree(),
 %%                Success::continuation(), Fail::continuation()) ->
 %%                       erl_syntax:syntaxTree().
+
+generate(#declaration{name=Name, expr=E}, InputName, Success, Fail) ->
+    %% TODO: Handle #code{}
+    %% TODO: memoization
+    %% TODO: virtual-inlining
+    %% TODO: add comments with rule declaration
+    %% TODO: add type-specs (via add_ann?)
+    ExprCode = generate(E, InputName, Success, Fail),
+    function(atom(Name),
+             [clause([InputName],
+                     none,
+                     [ExprCode])]);
 
 generate(#choice{alts=[Alt]}, InputName, Success, Fail0) ->
     %% When we have only one alternate left, we should generate its
@@ -208,7 +221,9 @@ generate(#nonterminal{name=NT}, InputName, Success, Fail) ->
 generate(#charclass{charclass=C, index=I}, InputName, Success, Fail) ->
     %% TODO: For now, treating character class as a regexp. In the
     %% future, this can be exploded into a more efficient case
-    %% statement.
+    %% statement. 
+    %% BUG: the charclass has the brackets already stripped out! We
+    %% should reinsert them.
     generate(#regexp{regexp=C, index=I}, InputName, Success, Fail);
 
 generate(#regexp{regexp=R}, InputName, Success, Fail) ->
