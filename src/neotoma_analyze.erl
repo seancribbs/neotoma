@@ -68,25 +68,18 @@ analyze_declaration(#declaration{name=DName, expr=Reduction,
     ST1 = analyze_expression(Reduction, ST),
     ST1#symbols{rules=[{DName, Index, Code}|Rules]}.
 
-%% Ordered-Choice expressions, recurse into each alternative and add
-%% the 'choose' combinator.
+%% Ordered-Choice expressions, recurse into each alternative.
 analyze_expression(#choice{alts=Alternatives},
                    #symbols{}=ST) ->
-    #symbols{combinators=C} = ST1 = lists:foldl(fun analyze_expression/2, ST, Alternatives),
-    ST1#symbols{combinators=ordsets:add_element(choose, C)};
+    lists:foldl(fun analyze_expression/2, ST, Alternatives);
 
-%% Sequences of expressions, recurse into each sub-expression and add
-%% the 'seq' combinator.
+%% Sequences of expressions, recurse into each sub-expression.
 analyze_expression(#sequence{exprs=Exprs}, #symbols{}=ST) ->
-    #symbols{combinators=C} = ST1 = lists:foldl(fun analyze_expression/2, ST, Exprs),
-    ST1#symbols{combinators=ordsets:add_element(seq, C)};
+    lists:foldl(fun analyze_expression/2, ST, Exprs);
 
 %% Primary expressions
-analyze_expression(#primary{expr=Expr, modifier=Mod, label=L}, #symbols{}=ST) ->
-    #symbols{combinators=C} = ST1 = analyze_expression(Expr, ST),
-    Combs = [ Comb || {Type, Comb} <- [{Mod, Mod}, {L, label}],
-                      Type /= undefined ],
-    ST1#symbols{combinators=ordsets:union(C, ordsets:from_list(Combs))};
+analyze_expression(#primary{expr=Expr}, #symbols{}=ST) ->
+    analyze_expression(Expr, ST);
 
 %% Non-terminals, record the name and index
 analyze_expression(#nonterminal{name=Name, index=Index},
@@ -94,11 +87,11 @@ analyze_expression(#nonterminal{name=Name, index=Index},
     ST#symbols{nts=orddict:append(Name, Index, NTs)};
 
 %% Terminals, add the appropriate combinator
-analyze_expression(T, #symbols{combinators=C}=ST) when is_record(T, regexp);
-                                                       is_record(T, string);
-                                                       is_record(T, charclass);
-                                                       is_record(T, anything) ->
-    ST#symbols{combinators=ordsets:add_element(element(1, T), C)}.
+analyze_expression(T, #symbols{}=ST) when is_record(T, regexp);
+                                          is_record(T, string);
+                                          is_record(T, charclass);
+                                          is_record(T, anything) ->
+    ST.
 
 %% The symbol table is built in an efficient manner, but things might
 %% be reversed or out of order. This sorts the rules and non-terminals

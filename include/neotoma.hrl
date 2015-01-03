@@ -102,8 +102,7 @@
 -type rule() :: {atom(), index(), #code{}}.
 -record(symbols, {
           nts = orddict:new() :: orddict:orddict(),
-          rules = [] :: [ rule() ],
-          combinators = ordsets:new() :: ordsets:ordset()
+          rules = [] :: [ rule() ]
          }).
 
 -type unused_rule() :: {unused_rule, {atom(), index()}}.
