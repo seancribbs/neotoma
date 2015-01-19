@@ -79,6 +79,8 @@
           name :: atom(),
           expr :: expression(),
           code :: #code{} | undefined,
+          cost :: non_neg_integer() | undefined,
+          calls = orddict:new() :: orddict:orddict(),
           index :: index()
          }).
 
