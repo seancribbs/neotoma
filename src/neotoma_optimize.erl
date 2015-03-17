@@ -40,7 +40,13 @@ sizeof(#string{}) -> 1;
 sizeof(#charclass{}) -> 1;
 sizeof(#anything{}) -> 1;
 sizeof(#epsilon{}) -> 0;
-sizeof(#primary{expr=E, modifier=M}) when M /= undefined -> 1 + sizeof(E);
+sizeof(#primary{expr=E, modifier=M}) when M /= undefined -> add_cost(1, sizeof(E));
 sizeof(#primary{expr=E}) -> sizeof(E);
-sizeof(#sequence{exprs=Es}) -> lists:foldl(fun(E,C) -> C + sizeof(E) end, 1, Es);
-sizeof(#choice{alts=As}) -> lists:foldl(fun(E,C) -> C + sizeof(E) end, 1, As).
+sizeof(#sequence{exprs=Es}) -> lists:foldl(fun(E,C) -> add_cost(C, sizeof(E)) end, 1, Es);
+sizeof(#choice{alts=As}) -> lists:foldl(fun(E,C) -> add_cost(C, sizeof(E)) end, 1, As).
+
+-spec add_cost(cost(), cost()) -> cost().
+add_cost(infinite, _) -> infinite;
+add_cost(_, infinite) -> infinite;
+add_cost(N, M) -> N + M.
+

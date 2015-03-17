@@ -1,7 +1,7 @@
 -define(FMT(F,A), lists:flatten(io_lib:format(F,A))).
 
 -type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
-
+-type cost() :: non_neg_integer() | infinite | undefined.
 %%----------------------------
 %% Parser records and types
 %%----------------------------
@@ -79,7 +79,7 @@
           name :: atom(),
           expr :: expression(),
           code :: #code{} | undefined,
-          cost :: non_neg_integer() | undefined,
+          cost :: cost(),
           calls = orddict:new() :: orddict:orddict(),
           index :: index()
          }).
