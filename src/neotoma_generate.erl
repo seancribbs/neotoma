@@ -8,6 +8,8 @@
                      application/2,
                      application/3,
                      atom/1,
+                     %% attribute/1,
+                     attribute/2,
                      binary/1,
                      binary_field/2,
                      block_expr/1,
@@ -16,8 +18,8 @@
                      clause/3,
                      cons/2,
                      form_list/1,
-                     function/2,
                      fun_expr/1,
+                     function/2,
                      list/2,
                      match_expr/2,
                      tuple/1,
@@ -25,6 +27,7 @@
                      underscore/0,
                      variable/1
                     ]).
+-import(erl_recomment, [recomment_forms/2]).
 
 %% -type continuation() :: fun((Result::erl_syntax:syntaxTree(),
 %%                              Input::erl_syntax:syntaxTree(),
@@ -44,8 +47,17 @@
 %%                Success::continuation(), Fail::continuation()) ->
 %%                       erl_syntax:syntaxTree().
 
-generate(#grammar{declarations=Decls}, InputName, Success, Fail) ->
-    form_list([generate(D, InputName, Success, Fail) || D <- Decls]);
+generate(#grammar{declarations=Decls, code=Code}, InputName, Success, Fail) ->
+    CodeBlock = case Code of
+                    #code{} ->
+                        [
+                         %% attribute(atom(file), [abstract("test.peg"), abstract(Line)]),
+                         recomment_forms(form_list(Code#code.parsed), Code#code.comments)
+                        ];
+                    undefined ->
+                        []
+                end,
+    form_list(CodeBlock ++ [generate(D, InputName, Success, Fail) || D <- Decls]);
 
 generate(#declaration{name=Name, expr=E}, InputName, Success, Fail) ->
     %% TODO: Handle #code{}
@@ -87,7 +99,7 @@ generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
     %% A / B / C ==>
     %%
     %% begin
-    %% Choice1 = fun(InputVar0) -> 
+    %% Choice1 = fun(InputVar0) ->
     %%       begin
     %%         Choice2 = fun(InputVar1) -> {{Generate C, InputVar1, Success, Fail0}} end,
     %%         begin
@@ -112,7 +124,7 @@ generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
 
     %% Unwrap nested block expressions. This way we don't introduce
     %% them needlessly when a function clause suffices.
-    FunContents = case type(AltContents) of 
+    FunContents = case type(AltContents) of
                       block_expr -> block_expr_body(AltContents);
                       _ -> [AltContents]
                   end,
@@ -122,7 +134,7 @@ generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
     block_expr([
                 %% NOTE: Added annotation here so it can be
                 %% potentially unrolled later
-                add_ann(choice_fun, 
+                add_ann(choice_fun,
                         match_expr(AltName,
                                    fun_expr([clause([NewInputName],
                                                     none,
@@ -226,7 +238,7 @@ generate(#nonterminal{name=NT}, InputName, Success, Fail) ->
 generate(#charclass{charclass=C, index=I}, InputName, Success, Fail) ->
     %% TODO: For now, treating character class as a regexp. In the
     %% future, this can be exploded into a more efficient case
-    %% statement. 
+    %% statement.
     %% BUG: the charclass has the brackets already stripped out! We
     %% should reinsert them.
     generate(#regexp{regexp=C, index=I}, InputName, Success, Fail);
