@@ -3,11 +3,13 @@
 
 ;; Customize
 
+;;;###autoload
 (defgroup neotoma nil
   "Support for Neotoma PEG grammars"
   :group 'languages
   :prefix "neotoma-")
 
+;;;###autoload
 (defcustom neotoma-mode-hook nil
   "Hook run when entering Neotoma mode"
   :type 'hook
@@ -45,11 +47,13 @@
 (font-lock-add-keywords
  'neotoma-mode
  '(
-   ("\\<[A-Za-z_][A-Za-z0-9_]+\\>\s*<-" 1 font-lock-function-name-face t)
-   ("\[.*\]" font-lock-string-face)
-   ("<-" 0 font-lock-keyword-face)
-   ("%\{" 0 font-lock-keyword-face)
-   ("%\}" 0 font-lock-keyword-face)
+   ("\\<[A-Za-z_][A-Za-z0-9_]+\\>\s*<-" 1 'font-lock-function-name-face t)
+   ("\[.*\]" 'font-lock-string-face)
+   ("<-" 0 'font-lock-keyword-face)
+   ("%\{" 0 'font-lock-keyword-face)
+   ("%\}" 0 'font-lock-keyword-face)
+   ("~" 0 'font-lock-builtin-face)
+   ("\\[!?&]" 0 'font-lock-negation-char-face)
    )
  )
 
