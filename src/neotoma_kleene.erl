@@ -11,7 +11,7 @@ transform(G=#grammar{declarations=Decls}) ->
     G#grammar{declarations=transform_declarations(Decls)}.
 
 transform_declarations(Decls) ->
-    {Xformed, Expansions, _NewCount} = 
+    {Xformed, Expansions, _NewCount} =
         lists:foldr(fun transform_declaration/2,
                     {[], [], 0},
                     Decls),
@@ -112,8 +112,8 @@ modifier_name(zero_or_more) -> <<"star">>.
 
 dedupe_expansions(Rules) ->
     lists:foldr(fun dedupe_expansion/2, [], Rules).
-    
-dedupe_expansion(#declaration{name=Name, index=Idx}=Decl, 
+
+dedupe_expansion(#declaration{name=Name, index=Idx}=Decl,
                  Acc) ->
     %% TODO: This could be done more cleanly
     case lists:keytake(Name, #declaration.name, Acc) of
@@ -125,4 +125,3 @@ dedupe_expansion(#declaration{name=Name, index=Idx}=Decl,
                     Acc
             end
     end.
-                                  
