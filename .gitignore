@@ -12,3 +12,4 @@ neotoma.plt
 /.qc/
 /.rebar/
 /deps/
+/tmp/
