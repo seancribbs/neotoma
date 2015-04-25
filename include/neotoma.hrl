@@ -88,7 +88,8 @@
 -record(grammar, {
           declarations :: [ #declaration{} ],
           code :: #code{} | undefined,
-          analysis % :: #symbols{} | undefined
+          analysis, % :: #symbols{} | undefined
+          filename :: filename:filename()
          }).
 
 -type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{} | #epsilon{}.

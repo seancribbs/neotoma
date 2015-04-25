@@ -47,11 +47,11 @@
 %%                Success::continuation(), Fail::continuation()) ->
 %%                       erl_syntax:syntaxTree().
 
-generate(#grammar{declarations=Decls, code=Code}, InputName, Success, Fail) ->
+generate(#grammar{declarations=Decls, code=Code, filename=FN}, InputName, Success, Fail) ->
     CodeBlock = case Code of
-                    #code{} ->
+                    #code{index={{line,Line},_}} ->
                         [
-                         %% attribute(atom(file), [abstract("test.peg"), abstract(Line)]),
+                         attribute(atom(file), [abstract(FN), abstract(Line)]),
                          recomment_forms(form_list(Code#code.parsed), Code#code.comments)
                         ];
                     undefined ->

@@ -28,7 +28,7 @@ file(Filename) ->
     case neotoma_parse2:file(Filename) of
         #grammar{}=G ->
             %% We got a successful grammar, so analyze it.
-            analyze(G);
+            analyze(G#grammar{filename=Filename});
         {fail, Reason} ->
             {error, [{error, {syntax_error, Reason}}]};
         {_AST, _Rest, Index} ->
