@@ -15,7 +15,8 @@ simplify(G=#grammar{declarations=Decls}) ->
         Peepholed == Decls ->
             G;
        true ->
-            simplify(G#grammar{declarations=Collapsed})
+            %% simplify(G#grammar{declarations=Collapsed})
+            simplify(G#grammar{declarations=Peepholed})
     end.
 
 peephole(D=#declaration{expr=E}) ->
