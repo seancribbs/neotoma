@@ -24,7 +24,8 @@
   :group 'neotoma
   (set (make-local-variable 'font-lock-multiline) t)
   (set (make-local-variable 'comment-start) "%% ")
-  (setq indent-tabs-mode nil))
+  (setq indent-tabs-mode nil)
+  (neotoma-add-font-lock))
 
 ;; Syntax table
 (modify-syntax-entry ?< "." neotoma-mode-syntax-table) ;; Left arrow in rule
@@ -44,19 +45,22 @@
 (modify-syntax-entry ?_ "w" neotoma-mode-syntax-table) ;; Underscores in symbols
 
 ;; Fontification (TODO)
-(font-lock-add-keywords
- 'neotoma-mode
- '(
-   ("\\<[A-Za-z_][A-Za-z0-9_]+\\>\s*<-" 1 'font-lock-function-name-face t)
-   ("\[.*\]" 'font-lock-string-face)
-   ("<-" 0 'font-lock-keyword-face)
-   ("%\{" 0 'font-lock-keyword-face)
-   ("%\}" 0 'font-lock-keyword-face)
-   ("~" 0 'font-lock-builtin-face)
-   ("\\[!?&]" 0 'font-lock-negation-char-face)
-   )
- )
+(defun neotoma-add-font-lock ()
+  "Hook to add neotoma font-lock highlighting"
+  (font-lock-add-keywords
+   nil
+   '(
+     ("\\<[A-Za-z_][A-Za-z0-9_]+\\>\s*<-" 1 'font-lock-function-name-face t)
+     ("\[.*\]" 'font-lock-string-face)
+     ("<-" 0 'font-lock-keyword-face)
+     ("%\{" 0 'font-lock-keyword-face prepend)
+     ("%\}" 0 'font-lock-keyword-face prepend)
+     ("~" 0 'font-lock-builtin-face)
+     ("\\[!?&]" 0 'font-lock-negation-char-face)
+     )
+   ))
 
+;; (add-hook 'neotoma-mode-hook 'neotoma-add-font-lock)
 
 ;; Key bindings (TODO)
 
