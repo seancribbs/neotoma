@@ -25,12 +25,12 @@ prop_peephole_equiv() ->
 %% Grammar generator
 grammar() ->
     #grammar{declarations=non_empty(list(declaration())),
-             code = code()}.
+             code = undefined}.
 
 declaration() ->
     #declaration{name = name(),
                  expr = expr(),
-                 code = code(),
+                 code = rule_code(),
                  index = index()}.
 
 name() ->
@@ -39,7 +39,7 @@ name() ->
 index() ->
     {{line, nat()}, {column, nat()}}.
 
-code() ->
+rule_code() ->
     oneof([ undefined,
             #code{identity=true,
                   index=index()},
