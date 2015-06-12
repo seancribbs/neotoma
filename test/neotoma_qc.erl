@@ -40,8 +40,19 @@ index() ->
     {{line, nat()}, {column, nat()}}.
 
 code() ->
-    %% TODO
-    undefined.
+    oneof([ undefined,
+            #code{identity=true,
+                  index=index()},
+            #code{code = code_content(),
+                  index = index()}
+          ]).
+
+code_content() ->
+    oneof([" ok ",
+           " Node ",
+           " Idx ",
+           " {Node, Idx} "
+          ]).
 
 expr() ->
     ?SIZED(Size, expr(Size)).
