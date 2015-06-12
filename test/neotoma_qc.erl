@@ -22,6 +22,71 @@ prop_peephole_equiv() ->
                 end
             end).
 
+prop_pp() ->
+    ?FORALL({G, Printed}, ?LET(G0, grammar(), {G0, iolist_to_binary(neotoma_pp:print(G))}),
+            begin
+                G2 = neotoma_analyze:analyze(neotoma_parse2:parse(Printed)),
+                tree_equal(G, G2)
+            end).
+
+tree_equal(L1, L2) when is_list(L1), is_list(L2),
+                        length(L1) == length(L2) ->
+    lists:all(fun({A,B}) ->
+                      tree_equal(A,B)
+              end, lists:zip(L1, L2));
+
+tree_equal(#grammar{declarations=D1, code=C1},
+           #grammar{declaration=D2, code=C2}) ->
+    tree_equal(C1, C2) andalso tree_equal(D1, D2);
+
+tree_equal(#declaration{name=N, expr=E1, code=C1},
+           #declaration{name=N, expr=E2, code=C2}) ->
+    tree_equal(E1, E2) andalso tree_equal(C1, C2);
+
+tree_equal(#sequence{exprs=Es1},
+           #sequence{exprs=Es2}) ->
+    tree_equal(Es1, Es2);
+
+tree_equal(#choice{alts=As1},
+           #choice{alts=As2}) ->
+    tree_equal(As1, As2);
+
+tree_equal(#primary{label=L, modifier=M, expr=E1},
+           #primary{label=L, modifier=M, expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#nonterminal{name=N},
+           #nonterminal{name=N}) ->
+    true;
+
+tree_equal(#anything{} = _, #anything{} = _B) ->
+    true;
+
+tree_equal(#epsilon{} = _, #epsilon{} = _B) ->
+    true;
+
+tree_equal(#charclass{charclass=C}, #charclass{charclass=C}) ->
+    true;
+
+tree_equal(#string{string=S}, #string{string=S}) ->
+    true;
+
+tree_equal(#regexp{regexp=R}, #regexp{regexp=R}) ->
+    true;
+
+tree_equal(#code{code=C, identity=I},
+           #code{code=C, identity=I}) ->
+    true;
+
+tree_equal(A,A) ->
+    %% mostly for code = undefined
+    true;
+
+tree_equal(_,_) ->
+    false.
+
+
+
 %% Grammar generator
 grammar() ->
     #grammar{declarations=non_empty(list(declaration())),
