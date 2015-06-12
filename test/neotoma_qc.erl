@@ -23,8 +23,9 @@ prop_peephole_equiv() ->
             end).
 
 prop_pp() ->
-    ?FORALL({G, Printed}, ?LET(G0, grammar(), {G0, iolist_to_binary(neotoma_pp:print(G0))}),
+    ?FORALL(G, grammar(),
             begin
+                Printed = iolist_to_binary(neotoma_pp:print(G))
                 G2 = neotoma_analyze:analyze(neotoma_parse2:parse(Printed)),
                 tree_equal(G, G2)
             end).
@@ -82,8 +83,8 @@ tree_equal(A,A) ->
     %% mostly for code = undefined
     true;
 
-tree_equal(_,_) ->
-    false.
+tree_equal(A,B) ->
+    {fail, A, B}.
 
 
 
