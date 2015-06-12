@@ -10,7 +10,7 @@ prop_peephole_equiv() ->
     ?FORALL(G, grammar(),
             begin
                 Normal = neotoma_analyze:analyze(G),
-                PeepOpt = neotoma_peephole:optimize(G),
+                PeepOpt = neotoma_simplify:simplify(G),
                 case Normal of
                     {ok, _G0} ->
                         case neotoma_analyze:analyze(PeepOpt) of
@@ -27,9 +27,9 @@ grammar() ->
     #grammar{declarations=non_empty(list(declaration())),
              code = code()}.
 
-declaration() ->        
-    #declaration{name = name(), 
-                 expr = expr(), 
+declaration() ->
+    #declaration{name = name(),
+                 expr = expr(),
                  code = code(),
                  index = index()}.
 
@@ -61,7 +61,7 @@ choice(Size) ->
 
 primary(Size) ->
     Expr = oneof([terminal(),
-                  nonterminal()] ++ 
+                  nonterminal()] ++
                  [expr(Size div 2) || Size > 1]),
     #primary{expr = Expr,
              label = undefined,
@@ -93,8 +93,8 @@ epsilon() ->
     #epsilon{index = index()}.
 
 modifier() ->
-    elements([undefined, 
-              one_or_more, 
+    elements([undefined,
+              one_or_more,
               zero_or_more,
               optional,
               assert,
