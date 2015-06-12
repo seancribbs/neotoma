@@ -41,7 +41,7 @@ index() ->
     {{line, line()}, {column, column()}}.
 
 line() ->
-    ?SUCHTHAT(I, nat(), I > 0).
+    ?SUCHTHAT(I, noshrink(nat()), I > 0).
 
 column() ->
     line().
