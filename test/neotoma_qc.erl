@@ -37,7 +37,10 @@ name() ->
     elements([a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z]).
 
 index() ->
-    {{line, nat()}, {column, nat()}}.
+    {{line, non_neg_integer()}, {column, non_neg_integer()}}.
+
+non_neg_integer() ->
+    ?SUCHTHAT(I, nat(), I > 0).
 
 rule_code() ->
     oneof([ undefined,
