@@ -13,3 +13,5 @@ neotoma.plt
 /.rebar/
 /deps/
 /tmp/
+/_build/
+/rebar.lock
