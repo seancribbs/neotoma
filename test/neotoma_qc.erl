@@ -25,7 +25,7 @@ prop_peephole_equiv() ->
 prop_pp() ->
     ?FORALL(G, grammar(),
             begin
-                Printed = iolist_to_binary(neotoma_pp:print(G))
+                Printed = iolist_to_binary(neotoma_pp:print(G)),
                 G2 = neotoma_analyze:analyze(neotoma_parse2:parse(Printed)),
                 tree_equal(G, G2)
             end).
