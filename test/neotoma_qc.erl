@@ -23,7 +23,7 @@ prop_peephole_equiv() ->
             end).
 
 prop_pp() ->
-    ?FORALL({G, Printed}, ?LET(G0, grammar(), {G0, iolist_to_binary(neotoma_pp:print(G))}),
+    ?FORALL({G, Printed}, ?LET(G0, grammar(), {G0, iolist_to_binary(neotoma_pp:print(G0))}),
             begin
                 G2 = neotoma_analyze:analyze(neotoma_parse2:parse(Printed)),
                 tree_equal(G, G2)
@@ -36,7 +36,7 @@ tree_equal(L1, L2) when is_list(L1), is_list(L2),
               end, lists:zip(L1, L2));
 
 tree_equal(#grammar{declarations=D1, code=C1},
-           #grammar{declaration=D2, code=C2}) ->
+           #grammar{declarations=D2, code=C2}) ->
     tree_equal(C1, C2) andalso tree_equal(D1, D2);
 
 tree_equal(#declaration{name=N, expr=E1, code=C1},
