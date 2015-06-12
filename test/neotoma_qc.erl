@@ -31,6 +31,17 @@ prop_pp() ->
                 tree_equal(G, G2)
             end).
 
+%% Do the same as the peephole optimizer and remove choice and
+%% sequence with single sub-expressions. Flip the argument order so we
+%% only have to match on the first argument
+tree_equal(#choice{alts=[A]}, B) ->
+    tree_equal(B,A);
+tree_equal(#sequence{exprs=[A]}, B) ->
+    tree_equal(B,A);
+
+%% If we're dealing with lists of expressions, as from within a choice
+%% or sequence or the top-level declaration list, compare them
+%% pair-wise.
 tree_equal(L1, L2) when is_list(L1), is_list(L2),
                         length(L1) == length(L2) ->
     lists:all(fun({A,B}) ->
