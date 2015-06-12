@@ -26,7 +26,8 @@ prop_pp() ->
     ?FORALL(G, grammar(),
             begin
                 Printed = iolist_to_binary(neotoma_pp:print(G)),
-                G2 = neotoma_analyze:analyze(neotoma_parse2:parse(Printed)),
+                {ok, G1} = neotoma_parse2:parse(Printed),
+                G2 = neotoma_analyze:analyze(G1),
                 tree_equal(G, G2)
             end).
 
