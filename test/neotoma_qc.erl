@@ -171,15 +171,15 @@ nonterminal() ->
     #nonterminal{name = name(), index = index()}.
 
 string() ->
-    #string{string = non_empty(list(char())),
+    #string{string = text(),
             index = index()}.
 
 regexp() ->
-    #regexp{regexp = non_empty(list(char())),
+    #regexp{regexp = text(),
             index = index()}.
 
 charclass() ->
-    #charclass{charclass = non_empty(list(char())),
+    #charclass{charclass = text(),
                index = index()}.
 
 anything() ->
@@ -195,4 +195,7 @@ modifier() ->
               optional,
               assert,
               deny]).
+
+text() ->
+    ?LET(B, non_empty(list(char())), list_to_binary(B))
 -endif.
