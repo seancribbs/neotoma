@@ -27,8 +27,8 @@ prop_pp() ->
             begin
                 Printed = iolist_to_binary(neotoma_pp:print(G)),
                 G1 = neotoma_parse2:parse(Printed),
-                {ok, G2} = neotoma_analyze:analyze(G1),
-                tree_equal(G, G2)
+                %% {ok, G2} = neotoma_analyze:analyze(G1),
+                tree_equal(G, G1)
             end).
 
 %% Do the same as the peephole optimizer and remove choice and
