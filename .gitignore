@@ -15,3 +15,5 @@ neotoma.plt
 /tmp/
 /_build/
 /rebar.lock
+/current_counterexample.eqc
+/test/rebar.lock

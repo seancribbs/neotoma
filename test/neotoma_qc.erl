@@ -27,17 +27,29 @@ prop_pp() ->
             begin
                 Printed = iolist_to_binary(neotoma_pp:print(G)),
                 G1 = neotoma_parse2:parse(Printed),
-                %% {ok, G2} = neotoma_analyze:analyze(G1),
-                tree_equal(G, G1)
+                ?WHENFAIL(begin
+                              io:format("PP:~n~s~n"
+                                        "Simplified:~n~p~n"
+                                        "Parsed:~n~p~n",
+
+                                        [Printed,
+                                         neotoma_simplify:simplify(G),
+                                         G1])
+                          end,
+                          is_record(G1, grammar) andalso tree_equal(G, G1))
             end).
 
 %% Do the same as the peephole optimizer and remove choice and
-%% sequence with single sub-expressions. Flip the argument order so we
-%% only have to match on the first argument
+%% sequence with single sub-expressions.
 tree_equal(#choice{alts=[A]}, B) ->
-    tree_equal(B,A);
+    tree_equal(A,B);
+tree_equal(A, #choice{alts=[B]}) ->
+    tree_equal(A,B);
+
 tree_equal(#sequence{exprs=[A]}, B) ->
-    tree_equal(B,A);
+    tree_equal(A,B);
+tree_equal(A, #sequence{exprs=[B]}) ->
+    tree_equal(A,B);
 
 %% If we're dealing with lists of expressions, as from within a choice
 %% or sequence or the top-level declaration list, compare them
@@ -95,8 +107,8 @@ tree_equal(A,A) ->
     %% mostly for code = undefined
     true;
 
-tree_equal(A,B) ->
-    {fail, A, B}.
+tree_equal(_A,_B) ->
+    false.
 
 
 
@@ -156,13 +168,19 @@ choice(Size) ->
             index = index()}.
 
 primary(Size) ->
-    Expr = oneof([terminal(),
-                  nonterminal()] ++
-                 [expr(Size div 2) || Size > 1]),
-    #primary{expr = Expr,
-             label = undefined,
-             modifier = modifier(),
-             index = index()}.
+    ?LET({M,Expr,I}, {modifier(), primary_expr(Size), index()},
+         if M == undefined ->
+                 Expr;
+            true ->
+                 #primary{expr = Expr,
+                          label = undefined,
+                          modifier = M,
+                          index = I}
+         end).
+
+primary_expr(Size) ->
+    oneof([terminal(), nonterminal()] ++
+              [expr(Size div 2) || Size > 1]).
 
 terminal() ->
     oneof([string(), regexp(), charclass(), anything()]).
@@ -171,16 +189,13 @@ nonterminal() ->
     #nonterminal{name = name(), index = index()}.
 
 string() ->
-    #string{string = text(),
-            index = index()}.
+    #string{string = text(), index = index()}.
 
 regexp() ->
-    #regexp{regexp = text(),
-            index = index()}.
+    #regexp{regexp = text(), index = index()}.
 
 charclass() ->
-    #charclass{charclass = text(),
-               index = index()}.
+    #charclass{charclass = text(), index = index()}.
 
 anything() ->
     #anything{index = index()}.
@@ -197,5 +212,6 @@ modifier() ->
               deny]).
 
 text() ->
-    ?LET(B, non_empty(list(char())), list_to_binary(B))
+    ?LET(B, non_empty(list(char())), unicode:characters_to_binary(B,latin1,utf8)).
+
 -endif.

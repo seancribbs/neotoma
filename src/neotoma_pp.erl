@@ -70,7 +70,9 @@ quote_and_escape_string(Str, false, true)  ->
 quote_and_escape_string(Str, _, _) ->
     {$", escape_chars(Str, $")}.
 
-escape_chars(Str, E) ->
+escape_chars(Bin, E) when is_binary(Bin) ->
+    [ escape(C, E) || <<C/utf8>> <= Bin ];
+escape_chars(Str, E) when is_list(Str) ->
     [ escape(C, E) || C <- Str ].
 
 escape(C, C) ->

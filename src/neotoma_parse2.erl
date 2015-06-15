@@ -83,22 +83,20 @@ parse(Input) when is_binary(Input) ->
 -spec 'primary'(input(), index()) -> parse_result().
 'primary'(Input, Index) ->
   p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, Idx) ->
-    {Expression, Modifier} = case Node of
-        [Atomic, one_or_more] ->
-              {Atomic, one_or_more};
-        [Atomic, zero_or_more] ->
-              {Atomic, zero_or_more};
-        [Atomic, optional] ->
-              {Atomic, optional};
-        [assert, Atomic] ->
-              {Atomic, assert};
-        [deny, Atomic] ->
-              {Atomic, deny};
-        _ -> {Node, undefined}
-    end,
-    #primary{expr = Expression,
-             modifier = Modifier,
-             index = Idx}
+    case Node of
+        [Atomic, Suffix] when Suffix == one_or_more;
+                              Suffix == zero_or_more;
+                              Suffix == optional ->
+            #primary{expr = Atomic,
+                     modifier = Suffix,
+                     index = Idx };
+        [Prefix, Atomic] when Prefix == assert;
+                              Prefix == deny ->
+            #primary{expr = Atomic,
+                     modifier = Prefix,
+                     index = Idx};
+        _ -> Node
+    end
  end).
 
 -spec 'sequence'(input(), index()) -> parse_result().
@@ -113,10 +111,13 @@ parse(Input) when is_binary(Input) ->
 -spec 'labeled_primary'(input(), index()) -> parse_result().
 'labeled_primary'(Input, Index) ->
   p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) ->
-  Primary = lists:nth(2, Node),
-  case hd(Node) of
-    [] -> Primary;
-    Label -> Primary#primary{label=Label, index=Idx}
+  [Label, Primary] = Node,
+  if Label == [] ->
+          Primary;
+     is_record(Primary, primary) ->
+          Primary#primary{label=Label, index=Idx};
+     true ->
+          #primary{expr=Primary, label=Label, index=Idx}
   end
  end).
 

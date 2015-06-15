@@ -45,22 +45,20 @@ alternative <- sequence / labeled_primary ~;
 
 primary <- prefix atomic / atomic suffix / atomic
 %{
-    {Expression, Modifier} = case Node of
-        [Atomic, one_or_more] ->
-              {Atomic, one_or_more};
-        [Atomic, zero_or_more] ->
-              {Atomic, zero_or_more};
-        [Atomic, optional] ->
-              {Atomic, optional};
-        [assert, Atomic] ->
-              {Atomic, assert};
-        [deny, Atomic] ->
-              {Atomic, deny};
-        _ -> {Node, undefined}
-    end,
-    #primary{expr = Expression,
-             modifier = Modifier,
-             index = Idx}
+    case Node of
+        [Atomic, Suffix] when Suffix == one_or_more;
+                              Suffix == zero_or_more;
+                              Suffix == optional ->
+            #primary{expr = Atomic,
+                     modifier = Suffix,
+                     index = Idx };
+        [Prefix, Atomic] when Prefix == assert;
+                              Prefix == deny ->
+            #primary{expr = Atomic,
+                     modifier = Prefix,
+                     index = Idx};
+        _ -> Node
+    end
 %};
 
 sequence <- head:labeled_primary tail:(space labeled_primary)+
@@ -73,10 +71,13 @@ sequence <- head:labeled_primary tail:(space labeled_primary)+
 
 labeled_primary <- label? primary
 %{
-  Primary = lists:nth(2, Node),
-  case hd(Node) of
-    [] -> Primary;
-    Label -> Primary#primary{label=Label, index=Idx}
+  [Label, Primary] = Node,
+  if Label == [] ->
+          Primary;
+     is_record(Primary, primary) ->
+          Primary#primary{label=Label, index=Idx};
+     true ->
+          #primary{expr=Primary, label=Label, index=Idx}
   end
 %};
 
