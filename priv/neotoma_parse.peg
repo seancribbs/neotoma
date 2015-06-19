@@ -174,8 +174,9 @@ single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 `
   used_combinator(p_charclass),
+  Data = re:replace(proplists:get_value(characters, Node), "\\s", "", [{return, binary}, global]),
   ["p_charclass(<<\"[",
-   escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
+   re:replace(Data, "\"|\\\\", "\\\\&", [{return, binary}, global]),
    "]\">>)"]
 `;
 
@@ -189,7 +190,7 @@ space <- (white / comment_to_eol)+ ~;
 
 comment_to_eol <- !'%{' '%' (!"\n" .)* ~;
 
-white <- [ \t\n\r] ~;
+white <- [ \s \t \n \r ] ~;
 
 code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
               ('`' code:('\\`' / '$`' / !'`' .)+ '`') /
