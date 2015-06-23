@@ -1,5 +1,7 @@
 h1. Neotoma
 
+!https://travis-ci.org/seancribbs/neotoma.svg?branch=master!:https://travis-ci.org/seancribbs/neotoma
+
 h2. About
 
 Neotoma is a packrat parser-generator for Erlang for Parsing Expression Grammars (PEGs).
