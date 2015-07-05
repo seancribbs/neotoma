@@ -1,0 +1,20 @@
+MerlDep = {merl, ".*", {git, "git://github.com/richcarl/merl.git",
+                        {branch, "master"}}},
+
+OldDeps = case lists:keyfind(deps, 1, CONFIG) of
+              false ->
+                  [];
+              {deps, Deps} -> Deps
+          end,
+
+NewDeps = case erlang:system_info(otp_release) of
+              [$R|_] ->
+                  lists:keystore(merl, 1, OldDeps, MerlDep);
+              "17" ->
+                  lists:keystore(merl, 1, OldDeps, MerlDep);
+              _ ->
+                  %% merl is included in OTP 18+
+                  OldDeps
+          end,
+
+lists:keystore(deps, 1, CONFIG, {deps, NewDeps}).
