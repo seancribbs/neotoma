@@ -1,32 +1,26 @@
-.PHONY: deps eqc-ci test compile clean dialyzer bootstrap escript
+.PHONY: deps eqc-compile test compile clean dialyzer bootstrap escript
+REBAR ?= $(shell which rebar3)
 
-all: deps compile
-
-deps:
-	@./rebar get-deps
+all: compile
 
 compile:
-	@./rebar compile
+	@${REBAR} compile
 
 test:
-	@./rebar eunit
+	@${REBAR} eunit
 
 clean:
-	@./rebar clean
+	@${REBAR} clean
 
-neotoma.plt:
-	@dialyzer --build_plt --apps erts kernel stdlib compiler crypto hipe \
-		syntax_tools --output_plt neotoma.plt
-
-dialyzer: compile neotoma.plt
-	@dialyzer --plt neotoma.plt ebin
+dialyzer:
+	@${REBAR} dialyzer
 
 bootstrap: compile
 	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
-	@./rebar compile
+	@${REBAR} compile
 
 escript:
-	@./rebar escriptize
+	@${REBAR} escriptize
 
 eqc-compile:
 	-mkdir ebin
