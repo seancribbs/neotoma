@@ -7,3 +7,6 @@ extra/*.beam
 .DS_Store
 ._*
 neotoma.plt
+/_build/
+/doc/
+/rebar.lock
