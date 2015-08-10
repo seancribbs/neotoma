@@ -40,8 +40,8 @@ peephole(C=#choice{alts=Alts}) ->
 peephole(S=#sequence{exprs=Exprs}) ->
     NewExprs = lists:foldr(flattener(sequence, #sequence.exprs), [], Exprs),
     S#sequence{exprs=NewExprs};
-peephole(P=#primary{expr=E}) ->
-    P#primary{expr=peephole(E)};
+peephole(Record) when ?IS_PRIMARY(Record) ->
+    ?SET_EXPR(Record, peephole(?PRIMARY_EXPR(Record)));
 peephole(Other) ->
     Other.
 

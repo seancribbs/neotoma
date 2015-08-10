@@ -78,8 +78,8 @@ analyze_expression(#sequence{exprs=Exprs}, #symbols{}=ST) ->
     lists:foldl(fun analyze_expression/2, ST, Exprs);
 
 %% Primary expressions
-analyze_expression(#primary{expr=Expr}, #symbols{}=ST) ->
-    analyze_expression(Expr, ST);
+analyze_expression(Primary, #symbols{}=ST) when ?IS_PRIMARY(Primary) ->
+    analyze_expression(?PRIMARY_EXPR(Primary), ST);
 
 %% Non-terminals, record the name and index
 analyze_expression(#nonterminal{name=Name, index=Index},

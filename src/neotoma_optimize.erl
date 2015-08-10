@@ -22,8 +22,11 @@ collect_calls(Expr) ->
 -spec collect_calls(expression() | terminal(), orddict:orddict()) -> orddict:orddict().
 collect_calls(#nonterminal{name=N}, Dict) ->
     orddict:update_counter(N, 1, Dict);
-collect_calls(#primary{expr=E}, Dict) ->
+
+collect_calls(Record, Dict) when ?IS_PRIMARY(Record) ->
+    E = element(2, Record),
     collect_calls(E, Dict);
+
 collect_calls(#sequence{exprs=Es}, Dict) ->
     lists:foldl(fun collect_calls/2, Dict, Es);
 collect_calls(#choice{alts=As}, Dict) ->
@@ -40,13 +43,13 @@ sizeof(#string{}) -> 1;
 sizeof(#charclass{}) -> 1;
 sizeof(#anything{}) -> 1;
 sizeof(#epsilon{}) -> 0;
-sizeof(#primary{expr=E, modifier=M}) when M /= undefined -> add_cost(1, sizeof(E));
-sizeof(#primary{expr=E}) -> sizeof(E);
+sizeof(Record) when ?IS_MODIFIER(Record) -> add_cost(1, sizeof(?PRIMARY_EXPR(Record)));
 sizeof(#sequence{exprs=Es}) -> lists:foldl(fun(E,C) -> add_cost(C, sizeof(E)) end, 1, Es);
 sizeof(#choice{alts=As}) -> lists:foldl(fun(E,C) -> add_cost(C, sizeof(E)) end, 1, As).
 
 -spec add_cost(cost(), cost()) -> cost().
-add_cost(infinite, _) -> infinite;
-add_cost(_, infinite) -> infinite;
+%% TODO: In what cases will we get infinite cost?
+%% add_cost(infinite, _) -> infinite;
+%% add_cost(_, infinite) -> infinite;
 add_cost(N, M) -> N + M.
 

@@ -25,23 +25,18 @@ print(#sequence{exprs=[E0|Es]}) ->
 print(#choice{alts=[A0|As]}) ->
     [ print(A0), [ [" / ", print(A) ] || A <- As] ];
 
-print(#primary{label=L}=P) when L /= undefined ->
-    [ atom_to_binary(L, utf8), $:, print(P#primary{label=undefined}) ];
-print(#primary{modifier=assert}=P) ->
-    [$&, print(P#primary{modifier=undefined})];
-print(#primary{modifier=deny}=P) ->
-    [$!, print(P#primary{modifier=undefined})];
-print(#primary{modifier=optional}=P) ->
-    [ print(P#primary{modifier=undefined}), $? ];
-print(#primary{modifier=one_or_more}=P) ->
-    [ print(P#primary{modifier=undefined}), $+ ];
-print(#primary{modifier=zero_or_more}=P) ->
-    [ print(P#primary{modifier=undefined}), $* ];
-print(#primary{expr=Es}) when is_record(Es, sequence);
-                              is_record(Es, choice) ->
-    [ $(, print(Es), $) ];
-print(#primary{expr=E}) ->
-    print(E);
+print(#label{expr=E, label=L}) ->
+    [ atom_to_binary(L, utf8), $:, maybe_paren(E) ];
+print(#assert{expr=E}) ->
+    [$&, maybe_paren(E)];
+print(#deny{expr=E}) ->
+    [$!, maybe_paren(E)];
+print(#optional{expr=E}) ->
+    [ maybe_paren(E), $? ];
+print(#plus{expr=E}) ->
+    [ maybe_paren(E), $+ ];
+print(#star{expr=E}) ->
+    [ maybe_paren(E), $* ];
 
 print(#nonterminal{name=N}) ->
     atom_to_binary(N, utf8);
@@ -64,6 +59,14 @@ print(#string{string=S}) ->
 
 print(#regexp{regexp=R}) ->
     [ $#, escape_chars(R, $#), $# ].
+
+
+maybe_paren(Record) when is_record(Record, sequence);
+                         is_record(Record, choice) ->
+    [ $(, print(Record), $) ];
+maybe_paren(Other) ->
+    print(Other).
+
 
 quote_and_escape_string(Str, false, true)  ->
     {$', escape_chars(Str, $')};

@@ -80,21 +80,38 @@ parse(Input) when is_binary(Input) ->
 'alternative'(Input, Index) ->
   p(Input, Index, 'alternative', fun(I,D) -> (p_choose([fun 'sequence'/2, fun 'labeled_primary'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
+-spec 'labeled_primary'(input(), index()) -> parse_result().
+'labeled_primary'(Input, Index) ->
+  p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) ->
+  case Node of
+      [[], Primary] -> Primary;
+      [Label, Primary] ->
+          #label{expr=Primary, label=Label, index=Idx}
+  end
+ end).
+
+-spec 'label'(input(), index()) -> parse_result().
+'label'(Input, Index) ->
+  p(Input, Index, 'label', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2), p_string(<<":">>)]))(I,D) end, fun(Node, _Idx) ->
+  binary_to_atom(
+    unicode:characters_to_binary(lists:sublist(Node, length(Node)-1)),
+    utf8)
+ end).
+
 -spec 'primary'(input(), index()) -> parse_result().
 'primary'(Input, Index) ->
   p(Input, Index, 'primary', fun(I,D) -> (p_choose([p_seq([fun 'prefix'/2, fun 'atomic'/2]), p_seq([fun 'atomic'/2, fun 'suffix'/2]), fun 'atomic'/2]))(I,D) end, fun(Node, Idx) ->
     case Node of
-        [Atomic, Suffix] when Suffix == one_or_more;
-                              Suffix == zero_or_more;
-                              Suffix == optional ->
-            #primary{expr = Atomic,
-                     modifier = Suffix,
-                     index = Idx };
-        [Prefix, Atomic] when Prefix == assert;
-                              Prefix == deny ->
-            #primary{expr = Atomic,
-                     modifier = Prefix,
-                     index = Idx};
+        [Atomic, plus] ->
+            #plus{expr=Atomic, index=Idx};
+        [Atomic, star] ->
+            #star{expr=Atomic, index=Idx};
+        [Atomic, optional] ->
+            #optional{expr=Atomic, index=Idx};
+        [assert, Atomic] ->
+            #assert{expr=Atomic, index=Idx};
+        [deny, Atomic] ->
+            #deny{expr=Atomic, index=Idx};
         _ -> Node
     end
  end).
@@ -108,33 +125,12 @@ parse(Input) when is_binary(Input) ->
             index = Idx}
  end).
 
--spec 'labeled_primary'(input(), index()) -> parse_result().
-'labeled_primary'(Input, Index) ->
-  p(Input, Index, 'labeled_primary', fun(I,D) -> (p_seq([p_optional(fun 'label'/2), fun 'primary'/2]))(I,D) end, fun(Node, Idx) ->
-  [Label, Primary] = Node,
-  if Label == [] ->
-          Primary;
-     is_record(Primary, primary) ->
-          Primary#primary{label=Label, index=Idx};
-     true ->
-          #primary{expr=Primary, label=Label, index=Idx}
-  end
- end).
-
--spec 'label'(input(), index()) -> parse_result().
-'label'(Input, Index) ->
-  p(Input, Index, 'label', fun(I,D) -> (p_seq([fun 'alpha_char'/2, p_zero_or_more(fun 'alphanumeric_char'/2), p_string(<<":">>)]))(I,D) end, fun(Node, _Idx) ->
-  binary_to_atom(
-    unicode:characters_to_binary(lists:sublist(Node, length(Node)-1)),
-    utf8)
- end).
-
 -spec 'suffix'(input(), index()) -> parse_result().
 'suffix'(Input, Index) ->
   p(Input, Index, 'suffix', fun(I,D) -> (p_choose([fun 'repetition_suffix'/2, fun 'optional_suffix'/2]))(I,D) end, fun(Node, _Idx) ->
   case Node of
-    <<"*">> -> zero_or_more;
-    <<"+">> -> one_or_more;
+    <<"*">> -> star;
+    <<"+">> -> plus;
     <<"?">> -> optional
   end
  end).

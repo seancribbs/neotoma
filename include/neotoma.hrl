@@ -47,29 +47,60 @@
           code :: unicode:chardata() | undefined,
           identity = false :: boolean(),
           index :: index(),
-          parsed :: syntax_tools:syntaxTree(),
+          parsed :: erl_syntax:syntaxTree(),
           comments :: [ erl_comment_scan:comment() ],
           used_args = []
          }).
 
-%% A primary parsing expression, which may be labeled and have a
-%% modifier, such as lookahead or repetition
--record(primary, {
-          expr :: terminal() | #nonterminal{} | expression(),
+%% A labeling of an expression for simpler extraction
+-record(label, {
+          expr :: expression(),
           label :: atom(),
-          modifier :: modifier() | undefined,
           index :: index()
          }).
 
+%% A Kleene '+' operator representing greedy repetition of at least
+%% one.
+-record(plus, {
+          expr :: expression(),
+          index :: index()
+         }).
+
+%% A Kleene '*' operator representing greedy repetition of zero or
+%% more.
+-record(star, {
+          expr :: expression(),
+          index :: index()
+         }).
+
+%% Optional expression, which consumes nothing if not present
+-record(optional, {
+          expr :: expression(),
+          index :: index()
+         }).
+
+%% Positive lookahead
+-record(assert, {
+          expr :: expression(),
+          index :: index()
+         }).
+
+%% Negative lookahead
+-record(deny, {
+          expr :: expression(),
+          index :: index()
+         }).
+
+
 %% A sequence of consecutive expressions
 -record(sequence, {
-          exprs = [ #primary{} ],
+          exprs :: [ choice() | primary() ],
           index :: index()
          }).
 
 %% A series of alternative expressions that use ordered choice
 -record(choice, {
-          alts :: [ #sequence{} | #primary{} ],
+          alts :: [ sequence() | primary() ],
           index :: index()
          }).
 
@@ -89,14 +120,20 @@
           declarations :: [ #declaration{} ],
           code :: #code{} | undefined,
           analysis, % :: #symbols{} | undefined
-          filename :: filename:filename()
+          filename :: file:filename()
          }).
 
--type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{} | #epsilon{}.
--type modifier() :: one_or_more | zero_or_more | optional | assert | deny.
+-type terminal() :: #regexp{} | #string{} | #charclass{} | #anything{} |
+                    #epsilon{}.
+
+-type primary() :: terminal() | #nonterminal{} | #star{} | #plus{} |
+                   #optional{} | #assert{} | #deny{} | #label{}.
+
+-type choice() :: #choice{}.
+-type sequence() :: #sequence{}.
 
 %% An abstract representation of a parsing expression.
--type expression() :: #choice{} | #sequence{} | #primary{}.
+-type expression() :: choice() | sequence() | primary().
 -type syntax_error() :: {syntax_error, tuple()}.
 
 %%----------------------------
@@ -115,3 +152,22 @@
 -type code_parse_error() :: erl_parse:error_info().
 -type semantic_error() :: no_reduction() | code_scan_error() | code_parse_error() | duplicate_rule().
 -type semantic_warning() :: unused_rule().
+
+
+%%----------------------------
+%% Some useful guard macros
+%%----------------------------
+-define(IS_REPETITION(Record), is_record(Record, plus) orelse is_record(Record, star)).
+
+-define(IS_MODIFIER(Record),
+        ?IS_REPETITION(Record) orelse
+        is_record(Record, optional) orelse
+        is_record(Record, assert) orelse
+        is_record(Record, deny)).
+
+-define(IS_PRIMARY(Record),
+        ?IS_MODIFIER(Record) orelse
+        is_record(Record, label)).
+
+-define(PRIMARY_EXPR(Record), element(2, Record)).
+-define(SET_EXPR(Record, Value), setelement(2, Record, Value)).

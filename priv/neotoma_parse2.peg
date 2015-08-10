@@ -43,20 +43,35 @@ choice <- head:alternative tail:(space '/' space alternative)+
 
 alternative <- sequence / labeled_primary ~;
 
+labeled_primary <- label? primary
+%{
+  case Node of
+      [[], Primary] -> Primary;
+      [Label, Primary] ->
+          #label{expr=Primary, label=Label, index=Idx}
+  end
+%};
+
+label <- alpha_char alphanumeric_char* ':'
+%{
+  binary_to_atom(
+    unicode:characters_to_binary(lists:sublist(Node, length(Node)-1)),
+    utf8)
+%};
+
 primary <- prefix atomic / atomic suffix / atomic
 %{
     case Node of
-        [Atomic, Suffix] when Suffix == one_or_more;
-                              Suffix == zero_or_more;
-                              Suffix == optional ->
-            #primary{expr = Atomic,
-                     modifier = Suffix,
-                     index = Idx };
-        [Prefix, Atomic] when Prefix == assert;
-                              Prefix == deny ->
-            #primary{expr = Atomic,
-                     modifier = Prefix,
-                     index = Idx};
+        [Atomic, plus] ->
+            #plus{expr=Atomic, index=Idx};
+        [Atomic, star] ->
+            #star{expr=Atomic, index=Idx};
+        [Atomic, optional] ->
+            #optional{expr=Atomic, index=Idx};
+        [assert, Atomic] ->
+            #assert{expr=Atomic, index=Idx};
+        [deny, Atomic] ->
+            #deny{expr=Atomic, index=Idx};
         _ -> Node
     end
 %};
@@ -69,30 +84,12 @@ sequence <- head:labeled_primary tail:(space labeled_primary)+
             index = Idx}
 %};
 
-labeled_primary <- label? primary
-%{
-  [Label, Primary] = Node,
-  if Label == [] ->
-          Primary;
-     is_record(Primary, primary) ->
-          Primary#primary{label=Label, index=Idx};
-     true ->
-          #primary{expr=Primary, label=Label, index=Idx}
-  end
-%};
-
-label <- alpha_char alphanumeric_char* ':'
-%{
-  binary_to_atom(
-    unicode:characters_to_binary(lists:sublist(Node, length(Node)-1)),
-    utf8)
-%};
 
 suffix <- repetition_suffix / optional_suffix
 %{
   case Node of
-    <<"*">> -> zero_or_more;
-    <<"+">> -> one_or_more;
+    <<"*">> -> star;
+    <<"+">> -> plus;
     <<"?">> -> optional
   end
 %};
