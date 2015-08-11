@@ -18,30 +18,30 @@ transform_declarations(Decls) ->
     lists:keysort(#declaration.index, Xformed ++ dedupe_expansions(Expansions)).
 
 transform_declaration(#declaration{expr=E}=D, {Decls, Expansions, Count}) ->
-    {NewExpr, NewRules, NewCount} = transform_expression(E, Count),
+    {NewExpr, NewRules, NewCount} = transform_expression(E, undefined, Count),
     {[D#declaration{expr=NewExpr}|Decls], NewRules ++ Expansions, NewCount}.
 
 
 %% @doc Recurses through the RHS of declarations/rules and expands
 %% repetition into recursion, naming new rules as it goes along.
-transform_expression(#plus{expr=E, index=I}=P, Count) ->
+transform_expression(#plus{expr=E, index=I}=P, Label, Count) ->
     %% LetterOrDigitPlus :: {[Char]} =
     %%     c:LetterOrDigit cs:LetterOrDigitPlus -> {c : cs}
     %%     / c:LetterOrDigit -> {[c]}
-    {SubExpr, SubRules, SubCount} = transform_expression(E, Count),
-    {NewName, NewCount} = name_expansion(P, SubCount),
+    {SubExpr, SubRules, SubCount} = transform_expression(E, undefined, Count),
+    {NewName, NewCount} = name_expansion(P, Label, SubCount),
     NewNT = #nonterminal{name=NewName, index=I},
     Reduction = #choice{alts=[#sequence{exprs=[SubExpr, NewNT], index=I},
                               SubExpr],
                         index=I},
     Rule = #declaration{name=NewName, expr=Reduction, code=#code{identity=true}, index=I},
     {NewNT, [Rule|SubRules], NewCount};
-transform_expression(#star{expr=E, index=I}=P, Count) ->
+transform_expression(#star{expr=E, index=I}=P, Label, Count) ->
     %% LetterOrDigitStar :: {[Char]} =
     %%     c:LetterOrDigit cs:LetterOrDigitStar -> {c : cs}
     %%     / -> {[]}
-    {SubExpr, SubRules, SubCount} = transform_expression(E, Count),
-    {NewName, NewCount} = name_expansion(P, SubCount),
+    {SubExpr, SubRules, SubCount} = transform_expression(E, undefined, Count),
+    {NewName, NewCount} = name_expansion(P, Label, SubCount),
     NewNT = #nonterminal{name=NewName, index=I},
     Reduction = #choice{alts=[#sequence{exprs=[SubExpr, NewNT], index=I},
                               #epsilon{index=I}],
@@ -49,31 +49,36 @@ transform_expression(#star{expr=E, index=I}=P, Count) ->
     Rule = #declaration{name=NewName, expr=Reduction, code=#code{identity=true}, index=I},
     {NewNT, [Rule|SubRules], NewCount};
 
-transform_expression(Primary, Count) when ?IS_PRIMARY(Primary) ->
-    {NewExpr, NewRules, NewCount} = transform_expression(?PRIMARY_EXPR(Primary), Count),
+transform_expression(#label{expr=E, label=L}=Primary, _Label, Count) when ?IS_REPETITION(E) ->
+    {NewExpr, NewRules, NewCount} = transform_expression(E, L, Count),
     {?SET_EXPR(Primary, NewExpr), NewRules, NewCount};
 
-transform_expression(#sequence{exprs=E}=S, Count) ->
+
+transform_expression(Primary, Label, Count) when ?IS_PRIMARY(Primary) ->
+    {NewExpr, NewRules, NewCount} = transform_expression(?PRIMARY_EXPR(Primary), Label, Count),
+    {?SET_EXPR(Primary, NewExpr), NewRules, NewCount};
+
+transform_expression(#sequence{exprs=E}=S, Label, Count) ->
     {NewExprs, NewRules, NewCount} = lists:foldr(
                                        fun(Expr, {Exprs, Rules, C}) ->
-                                               {SubExpr, SubRules, SubCount} = transform_expression(Expr, C),
+                                               {SubExpr, SubRules, SubCount} = transform_expression(Expr, Label, C),
                                                {[SubExpr|Exprs], SubRules ++ Rules, SubCount}
                                        end,
                                        {[], [], Count},
                                        E),
     {S#sequence{exprs=NewExprs}, NewRules, NewCount};
 
-transform_expression(#choice{alts=E}=Choice, Count) ->
+transform_expression(#choice{alts=E}=Choice, Label, Count) ->
     {NewExprs, NewRules, NewCount} = lists:foldr(
                                        fun(Expr, {Exprs, Rules, C}) ->
-                                               {SubExpr, SubRules, SubCount} = transform_expression(Expr, C),
+                                               {SubExpr, SubRules, SubCount} = transform_expression(Expr, Label, C),
                                                {[SubExpr|Exprs], SubRules ++ Rules, SubCount}
                                        end,
                                        {[], [], Count},
                                        E),
     {Choice#choice{alts=NewExprs}, NewRules, NewCount};
 
-transform_expression(TermOrNonTerm, Count) ->
+transform_expression(TermOrNonTerm, _Label, Count) ->
     {TermOrNonTerm, [], Count}.
 
 %% @doc Derive a name for the repetition expansion. If it is a single
@@ -83,31 +88,39 @@ transform_expression(TermOrNonTerm, Count) ->
 %% @end
 
 %% TODO: consider how to pass contextual names down the stack, e.g. labels or rule names
--spec name_expansion(#plus{} | #star{}, non_neg_integer()) -> {atom(), non_neg_integer()}.
-name_expansion(#plus{expr=#anything{}}, Count) ->
+-spec name_expansion(#plus{} | #star{}, atom(), non_neg_integer()) -> {atom(), non_neg_integer()}.
+%% '.' have always the same expansion, optimize them out
+name_expansion(#plus{expr=#anything{}}, _Label, Count) ->
     {anything_plus, Count};
-name_expansion(#star{expr=#anything{}}, Count) ->
+name_expansion(#star{expr=#anything{}}, _Label, Count) ->
     {anything_star, Count};
-name_expansion(M, Count) when ?IS_REPETITION(M), is_record(?PRIMARY_EXPR(M), nonterminal)->
+
+%% Expansions of the same nonterminal will have the same name
+name_expansion(M, _Label, Count) when ?IS_REPETITION(M), is_record(?PRIMARY_EXPR(M), nonterminal)->
     #nonterminal{name=N} = ?PRIMARY_EXPR(M),
     IdStr = unicode:characters_to_binary([atom_to_binary(N, utf8), $_, modifier_name(M)]),
     {binary_to_atom(IdStr, utf8), Count};
-name_expansion(#plus{expr=E}, Count) when is_record(E, regexp);
-                                          is_record(E, string);
-                                          is_record(E, charclass) ->
-    IdStr = unicode:characters_to_binary([atom_to_list(element(1, E)), $_,
-                                          <<"plus">>, $_,
+
+%% If a label immediately wraps this repetition, use its name.
+name_expansion(M, Label, Count) when Label /= undefined ->
+    IdStr = unicode:characters_to_binary([atom_to_binary(Label, utf8), $_,
+                                          modifier_name(M), $_,
                                           integer_to_list(Count)]),
     {binary_to_atom(IdStr, utf8), Count+1};
-name_expansion(#star{expr=E}, Count) when is_record(E, regexp);
-                                          is_record(E, string);
-                                          is_record(E, charclass) ->
-    IdStr = unicode:characters_to_binary([atom_to_list(element(1, E)), $_,
-                                          <<"star">>, $_,
+
+%% When literal strings, regexps or charclasses are repeated, use the
+%% name of the syntactic element for the repetition.
+name_expansion(M, _Label, Count) when ?IS_LITERAL(?PRIMARY_EXPR(M)) ->
+    E = ?PRIMARY_EXPR(M),
+    IdStr = unicode:characters_to_binary([atom_to_list(element(1, E)),
+                                          $_, modifier_name(M), $_,
                                           integer_to_list(Count)]),
     {binary_to_atom(IdStr, utf8), Count+1};
-name_expansion(M, Count) when ?IS_REPETITION(M) ->
-    IdStr = unicode:characters_to_binary([modifier_name(M), integer_to_list(Count)]),
+
+%% Anything else (sequence, choice), just generate a name based on the
+%% repetition operator.
+name_expansion(M, _Label, Count) when ?IS_REPETITION(M) ->
+    IdStr = unicode:characters_to_binary([modifier_name(M), $_, integer_to_list(Count)]),
     {binary_to_atom(IdStr, utf8), Count+1}.
 
 

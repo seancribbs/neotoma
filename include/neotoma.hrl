@@ -169,5 +169,10 @@
         ?IS_MODIFIER(Record) orelse
         is_record(Record, label)).
 
+-define(IS_LITERAL(Record),
+        is_record(Record, string) orelse
+        is_record(Record, regexp) orelse
+        is_record(Record, charclass)).
+
 -define(PRIMARY_EXPR(Record), element(2, Record)).
 -define(SET_EXPR(Record, Value), setelement(2, Record, Value)).
