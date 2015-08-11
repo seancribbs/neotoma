@@ -1,30 +1,32 @@
 %% @doc Implements code-generation using syntax_tools.
 -module(neotoma_generate).
 -include("neotoma.hrl").
+-include_lib("merl/include/merl.hrl").
+
 -compile(export_all).
 -import(erl_syntax, [
                      abstract/1,
-                     add_ann/2,
-                     application/2,
-                     application/3,
+                     %% add_ann/2,
+                     %% application/2,
+                     %% application/3,
                      atom/1,
                      %% attribute/1,
                      attribute/2,
-                     binary/1,
-                     binary_field/2,
+                     %% binary/1,
+                     %% binary_field/2,
                      block_expr/1,
                      block_expr_body/1,
-                     case_expr/2,
+                     %% case_expr/2,
                      clause/3,
                      cons/2,
                      form_list/1,
-                     fun_expr/1,
+                     %% fun_expr/1,
                      function/2,
-                     list/2,
-                     match_expr/2,
+                     %% list/2,
+                     %% match_expr/2,
                      tuple/1,
                      type/1,
-                     underscore/0,
+                     %% underscore/0,
                      variable/1
                     ]).
 -import(erl_recomment, [recomment_forms/2]).
@@ -67,10 +69,7 @@ generate(#declaration{name=Name, expr=E}, InputName, Success, Fail) ->
     %% TODO: add type-specs (via add_ann?)
     %% TODO: add -file annotations?
     ExprCode = generate(E, InputName, Success, Fail),
-    function(atom(Name),
-             [clause([InputName],
-                     none,
-                     [ExprCode])]);
+    function(abstract(Name), [?Q("(_@InputName) -> _@ExprCode")]);
 
 generate(#choice{alts=[Alt]}, InputName, Success, Fail0) ->
     %% When we have only one alternate left, we should generate its
@@ -116,7 +115,7 @@ generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
     NewInputName = variable(new_name("Input")),
     Fail = fun(IV, _Reason) ->
                    %% TODO: Deal with the failure reason!
-                   [application(AltName, [IV])]
+                   ?Q("_@AltName(_@IV)")
            end,
     FirstAlt = generate(A, InputName, Success, Fail),
 
@@ -131,16 +130,10 @@ generate(#choice{alts=[A|As]}=C, InputName, Success, Fail0) ->
 
     %% Now set up the expression to call the next alternate on
     %% failure.
-    block_expr([
-                %% NOTE: Added annotation here so it can be
-                %% potentially unrolled later
-                add_ann(choice_fun,
-                        match_expr(AltName,
-                                   fun_expr([clause([NewInputName],
-                                                    none,
-                                                    FunContents)]))),
-                FirstAlt
-               ]);
+    ?Q(["begin ",
+        "    _@AltName = fun(_@NewInputName) -> _@FunContents end,",
+        "    _@FirstAlt ",
+        "end"]);%% ,
 
 generate(#sequence{exprs=[E|Es]}=S, InputName, Success0, Fail) ->
     %% We want to generate a structure that recursively tries each
@@ -179,36 +172,31 @@ generate(#sequence{exprs=[]}, InputName, Success, _Fail) ->
         Exprs -> block_expr(Exprs)
     end;
 
-generate(#primary{expr=E, label=undefined, modifier=undefined}, InputName, Success, Fail) ->
-    %% Where there is no label or modifier (or we've already applied
-    %% them), just generate the nested expression.
-    generate(E, InputName, Success, Fail);
-
-generate(#primary{label=L, modifier=undefined}=P, InputName, Success0, Fail) ->
+generate(#label{expr=E, label=L}, InputName, Success0, Fail) ->
     %% When a label is defined and there's no modifier (or we've
     %% already applied it), we wrap the capture in a tuple with the
     %% label.
     Success = fun(Capture, Rest) ->
                       Success0(tuple([atom(L), Capture]), Rest)
               end,
-    generate(P#primary{label=undefined}, InputName, Success, Fail);
+    generate(E, InputName, Success, Fail);
 
-generate(#primary{modifier=optional}=P, InputName, Success, _Fail0) ->
+generate(#optional{expr=E}, InputName, Success, _Fail0) ->
     %% If the expression is optional, failure is also success!
     Fail = fun(InputVar, _Reason) ->
                    Success(abstract([]), InputVar)
            end,
-    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+    generate(E, InputName, Success, Fail);
 
-generate(#primary{modifier=assert}=P, InputName, Success0, Fail) ->
+generate(#assert{expr=E}, InputName, Success0, Fail) ->
     %% Zero-width positive lookahead. Failed match still fails, but a
     %% successful match does not advance the input.
     Success = fun(_Capture, _Rest) ->
                       Success0(abstract([]), InputName)
               end,
-    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+    generate(E, InputName, Success, Fail);
 
-generate(#primary{modifier=deny}=P, InputName, Success0, Fail0) ->
+generate(#deny{expr=E}, InputName, Success0, Fail0) ->
     %% Zero-width negative lookahead. Successful match fails, failed
     %% match succeeds but consumes nothing.
     Success = fun(_Capture, _Rest) ->
@@ -218,30 +206,32 @@ generate(#primary{modifier=deny}=P, InputName, Success0, Fail0) ->
     Fail = fun(InputVar, _Reason) ->
                    Success0(abstract([]), InputVar)
            end,
-    generate(P#primary{modifier=undefined}, InputName, Success, Fail);
+    generate(E, InputName, Success, Fail);
 
 
-generate(#nonterminal{name=NT}, InputName, Success, Fail) ->
+generate(#nonterminal{name=NT0}, InputName, Success, Fail) ->
     %% Template:
     %%
     %% case {{NT}}(???) of
     %%   {fail, Reason0} -> {{Fail}};
     %%   {ok, Result0, Rest0} -> {{Success(Result0, Rest0)}}
     %% end
+    NT = abstract(NT0),
     ResultName = variable(new_name("Result")),
     RestName = variable(new_name("Input")),
     ReasonName = variable(new_name("Reason")),
-    case_expr(application(atom(NT), [InputName]),
-              [clause([tuple([atom("fail"), ReasonName])], none, Fail(InputName, ReasonName)),
-               clause([tuple([atom("ok"), ResultName, RestName])], none, Success(ResultName, RestName))]);
+    FailBranch = Fail(InputName, ReasonName),
+    SuccessBranch = Success(ResultName, RestName),
+    ?Q(["case _@NT(_@InputName) of ",
+        "  {fail, _@ReasonName} -> _@FailBranch; ",
+        "  {ok, _@ResultName, _@RestName} -> _@SuccessBranch "
+        "end"]);
 
 generate(#charclass{charclass=C, index=I}, InputName, Success, Fail) ->
     %% TODO: For now, treating character class as a regexp. In the
     %% future, this can be exploded into a more efficient case
     %% statement.
-    %% BUG: the charclass has the brackets already stripped out! We
-    %% should reinsert them.
-    generate(#regexp{regexp=C, index=I}, InputName, Success, Fail);
+    generate(#regexp{regexp= <<$[,C/binary,$]>>, index=I}, InputName, Success, Fail);
 
 generate(#regexp{regexp=R}, InputName, Success, Fail) ->
     %% Template:
@@ -256,11 +246,14 @@ generate(#regexp{regexp=R}, InputName, Success, Fail) ->
     MatchName = variable(new_name("Match")),
     LengthName = variable(new_name("Length")),
     RestName = variable(new_name("Input")),
-    case_expr(application(atom("re"), atom("run"), [InputName, Regexp]),
-              [clause([tuple([atom("match"), list([tuple([abstract(0), LengthName])], underscore())])], none,
-                      [match_expr(tuple([MatchName, RestName]), application(atom("erlang"), atom("split_binary"), [InputName, LengthName]))
-                       | Success(MatchName, RestName)]),
-               clause([underscore()], none, Fail(InputName, error_reason({regexp, R})))]);
+    SuccessBranch = Success(MatchName, RestName),
+    FailBranch = Fail(InputName, error_reason({regexp, R})),
+    ?Q(["case re:run(_@InputName, _@Regexp) of ",
+        "    {Match, [{0, _@LengthName}|_]} -> ",
+        "        {_@MatchName, _@RestName} = erlang:split_binary(_@InputName, _@LengthName),",
+        "        _@SuccessBranch; ",
+        "    _ -> _@FailBranch ",
+        "end"]);
 
 generate(#string{string=S}, InputName, Success, Fail) ->
     %% Template:
@@ -271,13 +264,13 @@ generate(#string{string=S}, InputName, Success, Fail) ->
     %% end
     Literal = abstract(S),
     RestName = variable(new_name("Input")),
-    case_expr(InputName,
-              [clause([binary([binary_field(Literal, [atom("binary")]),
-                               binary_field(RestName, [atom("binary")])])],
-                      none,
-                      Success(Literal, RestName)),
-               clause([underscore()], none,
-                      Fail(InputName, error_reason({string, S})))]);
+    SuccessBranch = Success(Literal, RestName),
+    FailBranch = Fail(InputName, error_reason({string, S})),
+    ?Q(["case _@InputName of ",
+        "    <<_@Literal/binary, _@RestName/binary>> -> _@SuccessBranch; ",
+        "    _ -> _@FailBranch ",
+        "end"]);
+    %% case_expr(InputName,
 
 generate(#epsilon{}, InputName, Success, _Fail) ->
     %% Passes through to Success, because epsilon always succeeds.
@@ -302,14 +295,12 @@ generate(#anything{}, InputName, Success, Fail) ->
     %% end
     CharName = variable(new_name("Char")),
     RestName = variable(new_name("Input")),
-    case_expr(InputName,
-              [clause([abstract(<<>>)], none, Fail(InputName, error_reason(anything))),
-               clause([binary([
-                              binary_field(CharName, [atom("utf8")]),
-                              binary_field(RestName, [atom("binary")])
-                             ])],
-                      none, Success(CharName, RestName))
-               ]).
+    FailBranch = Fail(InputName, error_reason(anything)),
+    SuccessBranch = Success(CharName, RestName),
+    ?Q(["case _@InputName of ",
+        "  <<>> -> _@FailBranch; ",
+        "  <<_@CharName/utf8, _@RestName/binary>> -> _@SuccessBranch ",
+        "end"]).
 
 
 %% @doc Parsing error reasons

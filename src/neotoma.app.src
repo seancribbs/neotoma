@@ -2,6 +2,6 @@
  [
   {description, "PEG/Packrat toolkit and parser-generator."},
   {vsn, git},
-  {applications, [kernel, stdlib]}
+  {applications, [kernel, stdlib, syntax_tools, merl]}
  ]
 }.

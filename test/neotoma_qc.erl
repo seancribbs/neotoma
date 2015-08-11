@@ -39,6 +39,33 @@ prop_pp() ->
                           is_record(G1, grammar) andalso tree_equal(G, G1))
             end).
 
+prop_string() ->
+    ?FORALL(S, ?MODULE:string(),
+            begin
+                Var = erl_syntax:variable("Input"),
+                Bindings = erl_eval:new_bindings(),
+                Str = S#string.string,
+                Gen = neotoma_generate:generate(S, Var, success(), failure()),
+                Exprs = erl_syntax:revert(erl_syntax:match_expr(erl_syntax:variable("Fun"), erl_syntax:fun_expr([erl_syntax:clause([Var],none, [Gen])]))),
+                ?WHENFAIL(begin
+                              io:format("String: ~s~nGen: ~p~nExprs: ~p~n", [Str, Gen, Exprs])
+                          end,
+                          begin
+                              {value, Fun, _Bindings1} = erl_eval:expr(Exprs, Bindings),
+                              equals(Fun(Str), {ok, Str, <<>>})
+                          end)
+            end).
+
+success() ->
+    fun(C, R) ->
+            erl_syntax:tuple([erl_syntax:atom(ok), C, R])
+    end.
+
+failure() ->
+    fun(I, R) ->
+            erl_syntax:tuple([erl_syntax:atom(fail), I, erl_syntax:abstract(R)])
+    end.
+
 %% Do the same as the peephole optimizer and remove choice and
 %% sequence with single sub-expressions.
 tree_equal(#choice{alts=[A]}, B) ->
