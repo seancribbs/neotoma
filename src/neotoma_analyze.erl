@@ -41,7 +41,7 @@ file(Filename) ->
 -spec analyze(#grammar{}) -> {ok, #grammar{}} | {error, [{error, semantic_error()} |
                                                          {warning, semantic_warning()}]}.
 analyze(#grammar{declarations=D, code=Code}=G) ->
-    {NewCode, Errors} = case check_code_block(Code, []) of
+    {NewCode, Errors} = case check_top_code(Code, []) of
                             ok -> {Code, []};
                             #code{}=Code1 ->
                                 {Code1, []};
@@ -192,6 +192,27 @@ check_code_block(#code{code=Contents, index={{line, L},{column,C}}}=Code, Errors
             end
     end.
 
+check_top_code(undefined, _) -> ok;
+check_top_code(#code{code=Contents, index={{line,L},{column,C}}}=Code, Errors) ->
+    Comments = erl_comment_scan:string(Contents),
+    case erl_scan:string(Contents, {L,C}) of
+        {error, Info, EndLocation} ->
+            [{error, {Info, EndLocation}}|Errors];
+        {ok, Tokens, {_EL, _EC}} ->
+            %% We add the dot token so that it makes a complete
+            %% expression list.
+            case parse_forms(Tokens) of
+                {ok, ExprList} ->
+                    %% Find which arguments are used so they can be
+                    %% applied to the generated function.
+                    Vars = used_transform_variables(Tokens),
+                    %% Now we annotate the code block with the captured info
+                    Code#code{parsed=ExprList, comments=Comments, used_args=Vars};
+                {error, Reason} ->
+                    [{error, Reason}|Errors]
+            end
+    end.
+
 used_transform_variables(Tokens) ->
     ordsets:to_list(lists:foldl(fun used_transform_variables/2,
                                 ordsets:new(), Tokens)).
@@ -199,3 +220,23 @@ used_transform_variables(Tokens) ->
 used_transform_variables({var, _, 'Node'}, Acc) -> ordsets:add_element('Node', Acc);
 used_transform_variables({var, _, 'Idx'}, Acc) -> ordsets:add_element('Idx', Acc);
 used_transform_variables(_, Acc) -> Acc.
+
+parse_forms(Tokens) ->
+    parse_forms(Tokens, [], []).
+
+parse_forms([], [], Forms) ->
+    {ok, lists:reverse(Forms)};
+parse_forms([], Current, _Forms) ->
+    %% Since this is an incomplete form (no 'dot' token), we want
+    %% erl_parse's syntax error here.
+    erl_parse:parse_form(lists:reverse(Current));
+parse_forms([{dot,_}=Dot|Rest], Current, Forms) ->
+    case erl_parse:parse_form(lists:reverse([Dot|Current])) of
+        {ok, Form} ->
+            parse_forms(Rest, [], [Form|Forms]);
+        {error, _}=ParseError ->
+            ParseError
+    end;
+parse_forms([Tok|Rest], Current, Forms) ->
+    parse_forms(Rest, [Tok|Current], Forms).
+
