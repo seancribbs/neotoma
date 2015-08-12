@@ -217,10 +217,10 @@ rule_code() ->
           ]).
 
 code_content() ->
-    oneof([<<" ok ">>,
-           <<" Node ">>,
-           <<" Idx ">>,
-           <<" {Node, Idx} ">>
+    oneof([" ok ",
+           " Node ",
+           " Idx ",
+           " {Node, Idx} "
           ]).
 
 expr() ->
