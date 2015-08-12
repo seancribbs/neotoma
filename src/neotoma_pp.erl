@@ -11,6 +11,8 @@ print(#declaration{name=N, expr=E, code=C}) ->
 
 print(undefined) -> []; %% for empty code blocks
 print(#code{identity=true}) -> " ~";
+print(#code{code=B}=C) when is_binary(B) ->
+    print(C#code{code=unicode:characters_to_list(B)});
 print(#code{code=C}) ->
     case lists:member($\n, C) of
         true ->
