@@ -1,27 +1,44 @@
 .PHONY: deps eqc-compile test compile clean dialyzer bootstrap escript
-REBAR ?= $(shell which rebar3)
+REBAR3_URL=https://s3.amazonaws.com/rebar3/rebar3
+
+# If there is a rebar in the current directory, use it
+ifeq ($(wildcard rebar3),rebar3)
+REBAR3 = $(CURDIR)/rebar3
+endif
+
+# Fallback to rebar on PATH
+REBAR3 ?= $(shell which rebar3)
+
+# And finally, prep to download rebar if all else fails
+ifeq ($(REBAR3),)
+REBAR3 = $(CURDIR)/rebar3
+endif
 
 all: compile
 
-compile:
-	@${REBAR} compile
+$(REBAR3):
+	curl -Lo rebar3 $(REBAR3_URL) || wget $(REBAR3_URL)
+	chmod a+x rebar3
 
-test:
-	@${REBAR} eunit
+compile: $(REBAR3)
+	@${REBAR3} compile
 
-clean:
-	@${REBAR} clean
+test: $(REBAR3)
+	@${REBAR3} eunit
 
-dialyzer:
-	@${REBAR} dialyzer
+clean: $(REBAR3)
+	@${REBAR3} clean
+
+dialyzer: $(REBAR3)
+	@${REBAR3} dialyzer
 
 bootstrap: compile
 	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
-	@${REBAR} compile
+	@${REBAR3} compile
 
-escript:
-	@${REBAR} escriptize
+escript: $(REBAR3)
+	@${REBAR3} escriptize
 
-eqc-compile:
-	-mkdir ebin
-	erl -make
+eqc-compile: $(REBAR3)
+	@${REBAR3} as quickcheck_ci compile
+

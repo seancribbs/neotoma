@@ -1,1 +1,3 @@
 {build, "make eqc-compile"}.
+{test_path, "_build/quickcheck_ci/lib/neotoma/ebin"}.
+{deps, "_build/quickcheck_ci/lib/merl/ebin"}.
