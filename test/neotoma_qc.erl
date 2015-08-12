@@ -25,7 +25,7 @@ prop_peephole_equiv() ->
 prop_pp() ->
     ?FORALL(G, grammar(),
             begin
-                Printed = iolist_to_binary(neotoma_pp:print(G)),
+                Printed = unicode:characters_to_binary(neotoma_pp:print(G)),
                 G1 = neotoma_parse2:parse(Printed),
                 ?WHENFAIL(begin
                               io:format("PP:~n~s~n"
@@ -103,8 +103,28 @@ tree_equal(#choice{alts=As1},
            #choice{alts=As2}) ->
     tree_equal(As1, As2);
 
-tree_equal(#primary{label=L, modifier=M, expr=E1},
-           #primary{label=L, modifier=M, expr=E2}) ->
+tree_equal(#label{label=L, expr=E1},
+           #label{label=L, expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#optional{expr=E1},
+           #optional{expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#assert{expr=E1},
+           #assert{expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#deny{expr=E1},
+           #deny{expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#plus{expr=E1},
+           #plus{expr=E2}) ->
+    tree_equal(E1, E2);
+
+tree_equal(#star{expr=E1},
+           #star{expr=E2}) ->
     tree_equal(E1, E2);
 
 tree_equal(#nonterminal{name=N},
@@ -199,10 +219,7 @@ primary(Size) ->
          if M == undefined ->
                  Expr;
             true ->
-                 #primary{expr = Expr,
-                          label = undefined,
-                          modifier = M,
-                          index = I}
+                 {M, Expr, I}
          end).
 
 primary_expr(Size) ->
@@ -232,8 +249,8 @@ epsilon() ->
 
 modifier() ->
     elements([undefined,
-              one_or_more,
-              zero_or_more,
+              plus,
+              star,
               optional,
               assert,
               deny]).

@@ -257,20 +257,24 @@ generate(#regexp{regexp=R}, InputName, Success, Fail) ->
 
 generate(#string{string=S}, InputName, Success, Fail) ->
     %% Template:
-    %%
+    %% String = {{S}},
     %% case Input0 of
     %%    <<{{S}}/binary, Rest0/binary>> -> {{Success(S, 'Rest0')}};
     %%    _ -> {{Fail}}
     %% end
     Literal = abstract(S),
+    Size = merl:term(byte_size(S)),
+    StringName = variable(new_name("String")),
     RestName = variable(new_name("Input")),
     SuccessBranch = Success(Literal, RestName),
     FailBranch = Fail(InputName, error_reason({string, S})),
-    ?Q(["case _@InputName of ",
-        "    <<_@Literal/binary, _@RestName/binary>> -> _@SuccessBranch; ",
+    ?Q(["begin ",
+        "_@StringName = _@Literal, ",
+        "case _@InputName of ",
+        "    <<_@StringName:_@Size/binary, _@RestName/binary>> -> _@SuccessBranch; ",
         "    _ -> _@FailBranch ",
+        "end ",
         "end"]);
-    %% case_expr(InputName,
 
 generate(#epsilon{}, InputName, Success, _Fail) ->
     %% Passes through to Success, because epsilon always succeeds.
@@ -280,7 +284,7 @@ generate(#epsilon{}, InputName, Success, _Fail) ->
     %% However, epsilon will always be on the end of repetitions or as
     %% the result of an optional, so returning or consing onto [] is
     %% always ok.
-    Success(abstract([]), InputName);
+    Success(?Q("[]"), InputName);
 
 generate(#anything{}, InputName, Success, Fail) ->
     %% TODO: accept non-utf8 characters based on grammar settings.
