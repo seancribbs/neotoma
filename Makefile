@@ -40,5 +40,5 @@ escript: $(REBAR3)
 	@${REBAR3} escriptize
 
 eqc-compile: $(REBAR3)
-	@${REBAR3} as quickcheck_ci compile
+	@TERM=dumb ${REBAR3} as quickcheck_ci compile
 
