@@ -46,13 +46,30 @@ prop_string() ->
                 Bindings = erl_eval:new_bindings(),
                 Str = S#string.string,
                 Gen = neotoma_generate:generate(S, Var, success(), failure()),
-                Exprs = erl_syntax:revert(erl_syntax:match_expr(erl_syntax:variable("Fun"), erl_syntax:fun_expr([erl_syntax:clause([Var],none, [Gen])]))),
+                Exprs = make_parse_fun(Var, Gen),
                 ?WHENFAIL(begin
                               io:format("String: ~s~nGen: ~p~nExprs: ~p~n", [Str, Gen, Exprs])
                           end,
                           begin
                               {value, Fun, _Bindings1} = erl_eval:expr(Exprs, Bindings),
                               equals(Fun(Str), {ok, Str, <<>>})
+                          end)
+            end).
+
+prop_anything() ->
+    ?FORALL(S, ?LET(B, non_empty(binary()), unicode:characters_to_binary(B, latin1, utf8)),
+            begin
+                Var = erl_syntax:variable("Input"),
+                Bindings = erl_eval:new_bindings(),
+                Gen = neotoma_generate:generate(#anything{}, Var, success(), failure()),
+                Exprs = make_parse_fun(Var, Gen),
+                ?WHENFAIL(begin
+                              io:format("Input: ~s~nGen: ~p~nExprs: ~p~n", [S, Gen, Exprs])
+                          end,
+                          begin
+                              <<Char/utf8, Rest/binary>> = S,
+                              {value, Fun, _Bindings1} = erl_eval:expr(Exprs, Bindings),
+                              equals(Fun(S), {ok, <<Char/utf8>>, Rest})
                           end)
             end).
 
@@ -65,6 +82,14 @@ failure() ->
     fun(I, R) ->
             erl_syntax:tuple([erl_syntax:atom(fail), I, erl_syntax:abstract(R)])
     end.
+
+make_parse_fun(Var, Gen) ->
+    erl_syntax:revert(
+      erl_syntax:match_expr(
+        erl_syntax:variable("Fun"),
+        erl_syntax:fun_expr([erl_syntax:clause([Var],none, [Gen])])
+       )
+     ).
 
 %% Do the same as the peephole optimizer and remove choice and
 %% sequence with single sub-expressions.
@@ -192,10 +217,10 @@ rule_code() ->
           ]).
 
 code_content() ->
-    oneof([" ok ",
-           " Node ",
-           " Idx ",
-           " {Node, Idx} "
+    oneof([<<" ok ">>,
+           <<" Node ">>,
+           <<" Idx ">>,
+           <<" {Node, Idx} ">>
           ]).
 
 expr() ->
@@ -207,19 +232,23 @@ expr(Size) ->
            sequence(Size)]).
 
 sequence(Size) ->
-    #sequence{exprs = non_empty(list(primary(Size div 2))),
+    #sequence{exprs = ?SUCHTHAT(L, list(primary(Size div 2)), length(L) > 1),
               index = index()}.
 
 choice(Size) ->
-    #choice{alts=non_empty(list(oneof([sequence(Size div 2), primary(Size div 2)]))),
+    #choice{alts=?SUCHTHAT(L, list(oneof([sequence(Size div 2), primary(Size div 2)])), length(L) > 1),
             index = index()}.
 
 primary(Size) ->
-    ?LET({M,Expr,I}, {modifier(), primary_expr(Size), index()},
-         if M == undefined ->
+    ?LET({M,Expr,Label,I}, {modifier(), primary_expr(Size), label(), index()},
+         if M == undefined, Label == undefined ->
                  Expr;
+            M == undefined ->
+                 #label{expr=Expr, label=Label, index=I};
+            Label == undefined ->
+                 {M, Expr, I};
             true ->
-                 {M, Expr, I}
+                 #label{expr={M, Expr, I}, label=Label, index=I}
          end).
 
 primary_expr(Size) ->
@@ -246,6 +275,9 @@ anything() ->
 
 epsilon() ->
     #epsilon{index = index()}.
+
+label() ->
+    elements([undefined, a, b, c, d, e, f]).
 
 modifier() ->
     elements([undefined,

@@ -61,7 +61,8 @@ print(#regexp{regexp=R}) ->
     [ $#, escape_chars(R, $#), $# ].
 
 
-maybe_paren(Record) when is_record(Record, sequence);
+maybe_paren(Record) when ?IS_MODIFIER(Record) orelse
+                         is_record(Record, sequence) orelse
                          is_record(Record, choice) ->
     [ $(, print(Record), $) ];
 maybe_paren(Other) ->

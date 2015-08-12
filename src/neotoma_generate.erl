@@ -269,11 +269,11 @@ generate(#string{string=S}, InputName, Success, Fail) ->
     SuccessBranch = Success(Literal, RestName),
     FailBranch = Fail(InputName, error_reason({string, S})),
     ?Q(["begin ",
-        "_@StringName = _@Literal, ",
-        "case _@InputName of ",
-        "    <<_@StringName:_@Size/binary, _@RestName/binary>> -> _@SuccessBranch; ",
-        "    _ -> _@FailBranch ",
-        "end ",
+        "    _@StringName = _@Literal, ",
+        "    case _@InputName of ",
+        "        <<_@StringName:_@Size/binary, _@RestName/binary>> -> _@SuccessBranch; ",
+        "        _ -> _@FailBranch ",
+        "    end ",
         "end"]);
 
 generate(#epsilon{}, InputName, Success, _Fail) ->
@@ -300,7 +300,7 @@ generate(#anything{}, InputName, Success, Fail) ->
     CharName = variable(new_name("Char")),
     RestName = variable(new_name("Input")),
     FailBranch = Fail(InputName, error_reason(anything)),
-    SuccessBranch = Success(CharName, RestName),
+    SuccessBranch = Success(?Q("<<_@CharName/utf8>>"), RestName),
     ?Q(["case _@InputName of ",
         "  <<>> -> _@FailBranch; ",
         "  <<_@CharName/utf8, _@RestName/binary>> -> _@SuccessBranch ",
