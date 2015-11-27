@@ -16,6 +16,23 @@
 
 -include("neotoma.hrl").
 
+-define(SPECIAL_CHARS,
+        [{$b, $\b}, {$d, $\d}, {$e, $\e},
+         {$f, $\f}, {$n, $\n}, {$r, $\r},
+         {$s, $\s}, {$t, $\t}, {$v, $\v}]).
+
+unescape(<<>>) -> <<>>;
+unescape(<<$\\, C, T/binary>>)
+  when C == $b; C == $d; C == $e; C == $f;
+       C == $n; C == $r; C == $s; C == $t;
+       C == $v ->
+    UC = proplists:get_value(C, ?SPECIAL_CHARS),
+    <<UC, (unescape(T))/binary>>;
+unescape(<<$\\, C/utf8, T/binary>>) ->
+    <<C/utf8, (unescape(T))/binary>>;
+unescape(<<C/utf8, T/binary>>) ->
+    <<C/utf8, (unescape(T))/binary>>.
+
 -spec file(file:name()) -> any().
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
 
@@ -65,7 +82,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'parsing_expression'(input(), index()) -> parse_result().
 'parsing_expression'(Input, Index) ->
-  p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'primary'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'parsing_expression', fun(I,D) -> (p_choose([fun 'choice'/2, fun 'sequence'/2, fun 'labeled_primary'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'choice'(input(), index()) -> parse_result().
 'choice'(Input, Index) ->
@@ -176,15 +193,16 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'regexp_string'(input(), index()) -> parse_result().
 'regexp_string'(Input, Index) ->
-  p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), p_label('string', p_one_or_more(p_seq([p_not(p_string(<<"#">>)), p_choose([p_string(<<"\\#">>), p_anything()])]))), p_string(<<"#">>)]))(I,D) end, fun(Node, Idx) ->
-  #regexp{regexp = unicode:characters_to_binary(proplists:get_value(string, Node)),
-          index = Idx}
+  p(Input, Index, 'regexp_string', fun(I,D) -> (p_seq([p_string(<<"#">>), fun 'quoted_string'/2]))(I,D) end, fun(Node, Idx) ->
+  [_, #string{string = Regexp}] = Node,
+  #regexp{regexp = Regexp, index = Idx}
  end).
 
 -spec 'quoted_string'(input(), index()) -> parse_result().
 'quoted_string'(Input, Index) ->
   p(Input, Index, 'quoted_string', fun(I,D) -> (p_choose([fun 'single_quoted_string'/2, fun 'double_quoted_string'/2]))(I,D) end, fun(Node, Idx) ->
-  #string{string = unicode:characters_to_binary(proplists:get_value(string, Node)),
+  String = proplists:get_value(string, Node),
+  #string{string = unescape(unicode:characters_to_binary(String)),
           index = Idx}
  end).
 
@@ -198,9 +216,10 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'character_class'(input(), index()) -> parse_result().
 'character_class'(Input, Index) ->
-  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, Idx) ->
+  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_string(<<"\\">>), p_anything()]), p_anything()])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, Idx) ->
+  CharClass = proplists:get_value(characters, Node),
   #charclass{
-     charclass = unicode:characters_to_binary(proplists:get_value(characters, Node)),
+     charclass = unescape(unicode:characters_to_binary(CharClass)),
      index = Idx
   }
  end).

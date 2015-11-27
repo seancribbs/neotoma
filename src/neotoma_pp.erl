@@ -22,10 +22,10 @@ print(#code{code=C}) ->
     end;
 
 print(#sequence{exprs=[E0|Es]}) ->
-    [ print(E0), [ [" ", print(E)] || E <- Es ] ];
+    [ maybe_paren(E0), [ [" ", maybe_paren(E)] || E <- Es ] ];
 
 print(#choice{alts=[A0|As]}) ->
-    [ print(A0), [ [" / ", print(A) ] || A <- As] ];
+    [ maybe_paren(A0), [ [" / ", maybe_paren(A) ] || A <- As] ];
 
 print(#label{expr=E, label=L}) ->
     [ atom_to_binary(L, utf8), $:, maybe_paren(E) ];
@@ -50,7 +50,7 @@ print(#epsilon{}) ->
     "<epsilon>";
 
 print(#charclass{charclass=C}) ->
-    [ $[, C, $] ];
+    [ $[, escape_chars(escape_chars(C, $]), $[), $] ];
 
 print(#string{string=S}) ->
     Str = unicode:characters_to_list(S),
@@ -60,10 +60,10 @@ print(#string{string=S}) ->
     [Quote, Escaped, Quote];
 
 print(#regexp{regexp=R}) ->
-    [ $#, escape_chars(R, $#), $# ].
+    [ $#, print(#string{string=R}) ].
 
 
-maybe_paren(Record) when ?IS_MODIFIER(Record) orelse
+maybe_paren(Record) when ?IS_PRIMARY(Record) orelse
                          is_record(Record, sequence) orelse
                          is_record(Record, choice) ->
     [ $(, print(Record), $) ];
@@ -81,9 +81,9 @@ escape_chars(Bin, E) when is_binary(Bin) ->
 escape_chars(Str, E) when is_list(Str) ->
     [ escape(C, E) || C <- Str ].
 
+escape($\\, _E) ->
+    [$\\, $\\];
 escape(C, C) ->
     [$\\, C];
 escape(C, _E) ->
     C.
-
-

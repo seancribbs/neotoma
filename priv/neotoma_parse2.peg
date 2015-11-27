@@ -31,7 +31,7 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
                 index = Idx }
 %};
 
-parsing_expression <- choice / sequence / primary ~;
+parsing_expression <- choice / sequence / labeled_primary ~;
 
 choice <- head:alternative tail:(space '/' space alternative)+
 %{
@@ -121,15 +121,16 @@ nonterminal <- alpha_char alphanumeric_char*
 
 terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
 
-regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
+regexp_string <- '#' quoted_string
 %{
-  #regexp{regexp = unicode:characters_to_binary(proplists:get_value(string, Node)),
-          index = Idx}
+  [_, #string{string = Regexp}] = Node,
+  #regexp{regexp = Regexp, index = Idx}
 %};
 
 quoted_string <- single_quoted_string / double_quoted_string
 %{
-  #string{string = unicode:characters_to_binary(proplists:get_value(string, Node)),
+  String = proplists:get_value(string, Node),
+  #string{string = unescape(unicode:characters_to_binary(String)),
           index = Idx}
 %};
 
@@ -137,10 +138,11 @@ double_quoted_string <- '"' string:(!'"' ("\\\\" / '\\"' / .))* '"' ~;
 
 single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 
-character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
+character_class <- '[' characters:(!']' ('\\\\' . / '\\' . / . ))+ ']'
 %{
+  CharClass = proplists:get_value(characters, Node),
   #charclass{
-     charclass = unicode:characters_to_binary(proplists:get_value(characters, Node)),
+     charclass = unescape(unicode:characters_to_binary(CharClass)),
      index = Idx
   }
 %};
@@ -177,4 +179,21 @@ code_block <- ( '%{' code:('\\%' / '$%' / !'%}' .)+ '%}' ) /
 
 %{
 -include("neotoma.hrl").
+
+-define(SPECIAL_CHARS,
+        [{$b, $\b}, {$d, $\d}, {$e, $\e},
+         {$f, $\f}, {$n, $\n}, {$r, $\r},
+         {$s, $\s}, {$t, $\t}, {$v, $\v}]).
+
+unescape(<<>>) -> <<>>;
+unescape(<<$\\, C, T/binary>>)
+  when C == $b; C == $d; C == $e; C == $f;
+       C == $n; C == $r; C == $s; C == $t;
+       C == $v ->
+    UC = proplists:get_value(C, ?SPECIAL_CHARS),
+    <<UC, (unescape(T))/binary>>;
+unescape(<<$\\, C/utf8, T/binary>>) ->
+    <<C/utf8, (unescape(T))/binary>>;
+unescape(<<C/utf8, T/binary>>) ->
+    <<C/utf8, (unescape(T))/binary>>.
 %}

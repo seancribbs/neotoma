@@ -23,6 +23,8 @@ prop_peephole_equiv() ->
             end).
 
 prop_pp() ->
+    %% A valid grammar should be reconstructible (re-parsed) from its
+    %% pretty-printed form.
     ?FORALL(G, grammar(),
             begin
                 Printed = unicode:characters_to_binary(neotoma_pp:print(G)),
@@ -40,6 +42,8 @@ prop_pp() ->
             end).
 
 prop_string() ->
+    %% Generated code for recognizing a string should recognize that
+    %% string.
     ?FORALL(S, ?MODULE:string(),
             begin
                 Var = erl_syntax:variable("Input"),
@@ -57,6 +61,8 @@ prop_string() ->
             end).
 
 prop_anything() ->
+    %% Generated code for recognizing a single character should
+    %% recognize and consume the first character.
     ?FORALL(S, ?LET(B, non_empty(binary()), unicode:characters_to_binary(B, latin1, utf8)),
             begin
                 Var = erl_syntax:variable("Input"),
