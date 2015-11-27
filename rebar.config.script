@@ -17,4 +17,21 @@ NewDeps = case erlang:system_info(otp_release) of
                   OldDeps
           end,
 
-lists:keystore(deps, 1, CONFIG, {deps, NewDeps}).
+OldErlConfig = case lists:keyfind(erl_opts, 1, CONFIG) of
+                   false ->
+                       [];
+                   {erl_opts, Opts} ->
+                       Opts
+               end,
+
+ErlConfig = case erlang:system_info(otp_release) of
+                [One, Eight|_] when (One > $1 andalso One =< $9) orelse
+                                    (One == $1 andalso Eight >= $8) ->
+                    [{d, erl_anno_location}, {d, merl_syntax_tools}|OldErlConfig];
+                _ ->
+                    OldErlConfig
+            end,
+
+lists:keystore(erl_opts, 1,
+               lists:keystore(deps, 1, CONFIG, {deps, NewDeps}),
+               {erl_opts, ErlConfig}).

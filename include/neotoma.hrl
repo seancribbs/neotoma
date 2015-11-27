@@ -1,3 +1,9 @@
+-ifdef(erl_anno_location).
+-type location() :: erl_anno:location().
+-else.
+-type location() :: erl_scan:location().
+-endif.
+
 -define(FMT(F,A), lists:flatten(io_lib:format(F,A))).
 
 -type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
@@ -148,7 +154,7 @@
 -type unused_rule() :: {unused_rule, {atom(), index()}}.
 -type no_reduction() :: {no_reduction, {atom(), [ index() ]}}.
 -type duplicate_rule() :: {duplicate_rule, atom(), OrigIndex::index(), Duplicates::[index()]}.
--type code_scan_error() :: {erl_scan:error_info(), erl_scan:location()}.
+-type code_scan_error() :: {erl_scan:error_info(), location()}.
 -type code_parse_error() :: erl_parse:error_info().
 -type semantic_error() :: no_reduction() | code_scan_error() | code_parse_error() | duplicate_rule().
 -type semantic_warning() :: unused_rule().

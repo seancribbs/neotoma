@@ -1,7 +1,12 @@
 %% @doc Implements code-generation using syntax_tools.
 -module(neotoma_generate).
 -include("neotoma.hrl").
+
+-ifdef(merl_syntax_tools).
+-include_lib("syntax_tools/include/merl.hrl").
+-else.
 -include_lib("merl/include/merl.hrl").
+-endif.
 
 -compile(export_all).
 -import(erl_syntax, [
