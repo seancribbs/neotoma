@@ -216,7 +216,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'character_class'(input(), index()) -> parse_result().
 'character_class'(Input, Index) ->
-  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_string(<<"\\">>), p_anything()]), p_anything()])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, Idx) ->
+  p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_string(<<"\\\\">>), p_seq([p_string(<<"\\">>), p_anything()]), p_anything()])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, Idx) ->
   CharClass = proplists:get_value(characters, Node),
   #charclass{
      charclass = unescape(unicode:characters_to_binary(CharClass)),

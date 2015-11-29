@@ -138,7 +138,7 @@ double_quoted_string <- '"' string:(!'"' ("\\\\" / '\\"' / .))* '"' ~;
 
 single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
 
-character_class <- '[' characters:(!']' ('\\\\' . / '\\' . / . ))+ ']'
+character_class <- '[' characters:(!']' ('\\\\' / '\\' . / . ))+ ']'
 %{
   CharClass = proplists:get_value(characters, Node),
   #charclass{
