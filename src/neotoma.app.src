@@ -2,6 +2,7 @@
  [
   {description, "PEG/Packrat toolkit and parser-generator."},
   {vsn, "1.7.3"},
+  {registered, []},
   {applications, [kernel, stdlib]},
   {contributors, ["Sean Cribbs"]},
   {licenses, ["MIT"]},
