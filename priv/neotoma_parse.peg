@@ -156,7 +156,7 @@ regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
 	%  \ -> \\
 	%  " -> \"
    re:replace(proplists:get_value(string, Node), "\"|\\\\", "\\\\&", [{return, binary}, global]),
-   "\">>)"]
+   "\"/utf8>>)"]
 `;
 
 quoted_string <- single_quoted_string / double_quoted_string
@@ -176,7 +176,7 @@ character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
    escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
-   "]\">>)"]
+   "]\"/utf8>>)"]
 `;
 
 anything_symbol <- '.' ` used_combinator(p_anything), <<"p_anything()">> `;

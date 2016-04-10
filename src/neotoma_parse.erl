@@ -306,7 +306,7 @@ end
 	%  \ -> \\
 	%  " -> \"
    re:replace(proplists:get_value(string, Node), "\"|\\\\", "\\\\&", [{return, binary}, global]),
-   "\">>)"]
+   "\"/utf8>>)"]
  end).
 
 -spec 'quoted_string'(input(), index()) -> parse_result().
@@ -332,7 +332,7 @@ end
   used_combinator(p_charclass),
   ["p_charclass(<<\"[",
    escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
-   "]\">>)"]
+   "]\"/utf8>>)"]
  end).
 
 -spec 'anything_symbol'(input(), index()) -> parse_result().
