@@ -16,6 +16,7 @@
 -define(p_label,true).
 -define(p_scan,true).
 -define(p_string,true).
+-define(p_case_insensitive,true).
 -define(p_anything,true).
 -define(p_charclass,true).
 -define(p_regexp,true).
@@ -25,6 +26,6 @@
 -export([p/5]).
 -export([setup_memo/0, release_memo/0]).
 
--export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_anything/0, p_charclass/1, p_regexp/1, line/1, column/1]).
+-export([p_eof/0, p_optional/1, p_not/1, p_assert/1, p_seq/1, p_choose/1, p_zero_or_more/1, p_one_or_more/1, p_label/2, p_string/1, p_case_insensitive/1, p_anything/0, p_charclass/1, p_regexp/1, line/1, column/1]).
 
 -include("priv/peg_includes.hrl").

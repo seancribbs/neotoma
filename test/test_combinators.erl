@@ -72,6 +72,12 @@ string_test_() ->
      ?_assertEqual({fail,{expected, {string, <<"abc">>}, ?STARTINDEX}}, (neotoma_peg:p_string(<<"abc">>))(<<"defabc">>,?STARTINDEX))
     ].
 
+case_insensitive_test_() ->
+    [
+      ?_assertEqual({<<"abc">>, <<"def">>, {{line,1}, {column, 4}}}, (neotoma_peg:p_case_insensitive(<<"abc">>))(<<"aBCdef">>,?STARTINDEX)),
+      ?_assertEqual({fail,{expected, {string, <<"abc">>}, ?STARTINDEX}}, (neotoma_peg:p_case_insensitive(<<"abc">>))(<<"defabc">>,?STARTINDEX))
+    ].
+
 anything_test_() ->
     [
      ?_assertEqual({<<"a">>,<<"bcde">>,{{line,1},{column,2}}}, (neotoma_peg:p_anything())(<<"abcde">>,?STARTINDEX)),

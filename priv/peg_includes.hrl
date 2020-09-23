@@ -192,6 +192,22 @@ p_string(S) ->
     end.
 -endif.
 
+-ifdef(p_case_insensitive).
+-spec p_case_insensitive(binary()) -> parse_fun().
+p_case_insensitive(S) ->
+    Length = erlang:byte_size(S),
+    SLower = string:lowercase(S),
+    fun(Input, Index) ->
+      try
+          <<Sc:Length/binary, Rest/binary>> = Input,
+          SLower = string:lowercase(Sc),
+          {SLower, Rest, p_advance_index(S, Index)}
+      catch
+          error:{badmatch,_} -> {fail, {expected, {string, S}, Index}}
+      end
+    end.
+-endif.
+
 -ifdef(p_anything).
 -spec p_anything() -> parse_fun().
 p_anything() ->

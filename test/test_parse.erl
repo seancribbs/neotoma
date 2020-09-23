@@ -17,3 +17,18 @@ parser_test() ->
         _:_  -> ?assert(false)
     end.
 
+case_insensitive_test() ->
+    % so we don't have to copy test.peg to .eunit
+    Data = "rule <- \"caSe\"i;",
+    file:write_file("test_parser.peg", io_lib:fwrite("~s\n", [Data])),
+    neotoma:file("test_parser.peg"),
+    compile:file("test_parser.erl", []),
+    try 
+        TestString =  "caSE",
+        Result = test_parser:parse(TestString),
+        ?assertEqual(4, length(Result)),
+        StringResult = lists:flatten(io_lib:format("~ts", [Result])),
+        ?assertEqual(TestString, StringResult)
+    catch
+        _:_  -> ?assert(false)
+    end.
