@@ -295,7 +295,7 @@ end
 
 -spec 'terminal'(input(), index()) -> parse_result().
 'terminal'(Input, Index) ->
-  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'regexp_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'terminal', fun(I,D) -> (p_choose([fun 'regexp_string'/2, fun 'case_insensitive_string'/2, fun 'quoted_string'/2, fun 'character_class'/2, fun 'anything_symbol'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'regexp_string'(input(), index()) -> parse_result().
 'regexp_string'(Input, Index) ->
@@ -325,6 +325,16 @@ end
 -spec 'single_quoted_string'(input(), index()) -> parse_result().
 'single_quoted_string'(Input, Index) ->
   p(Input, Index, 'single_quoted_string', fun(I,D) -> (p_seq([p_string(<<"\'">>), p_label('string', p_zero_or_more(p_seq([p_not(p_string(<<"\'">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\'">>), p_anything()])]))), p_string(<<"\'">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
+
+-spec 'case_insensitive_string'(input(), index()) -> parse_result().
+'case_insensitive_string'(Input, Index) ->
+  p(Input, Index, 'case_insensitive_string', fun(I,D) -> (p_seq([p_label('target', p_choose([fun 'double_quoted_string'/2, fun 'single_quoted_string'/2])), p_string(<<"i">>)]))(I,D) end, fun(Node, _Idx) ->
+  used_combinator(p_case_insensitive),
+  Str = string:lowercase(proplists:get_value(string, proplists:get_value(target, Node))),
+  lists:flatten(["p_case_insensitive(<<\"", 
+    escape_string(unicode:characters_to_list(Str)),
+    "\">>)"])
+ end).
 
 -spec 'character_class'(input(), index()) -> parse_result().
 'character_class'(Input, Index) ->
@@ -558,6 +568,22 @@ p_string(S) ->
       try
           <<S:Length/binary, Rest/binary>> = Input,
           {S, Rest, p_advance_index(S, Index)}
+      catch
+          error:{badmatch,_} -> {fail, {expected, {string, S}, Index}}
+      end
+    end.
+-endif.
+
+-ifdef(p_case_insensitive).
+-spec p_case_insensitive(binary()) -> parse_fun().
+p_case_insensitive(S) ->
+    Length = erlang:byte_size(S),
+    SLower = string:lowercase(S),
+    fun(Input, Index) ->
+      try
+          <<Sc:Length/binary, Rest/binary>> = Input,
+          SLower = string:lowercase(Sc),
+          {SLower, Rest, p_advance_index(S, Index)}
       catch
           error:{badmatch,_} -> {fail, {expected, {string, S}, Index}}
       end

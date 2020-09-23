@@ -146,7 +146,7 @@ nonterminal <- alpha_char alphanumeric_char*
   {nonterminal, Symbol}
 `;
 
-terminal <- regexp_string / quoted_string / character_class / anything_symbol ~;
+terminal <- regexp_string / case_insensitive_string / quoted_string / character_class / anything_symbol ~;
 
 regexp_string <- '#' string:(!'#' ('\\#' / .))+ '#'
 `
@@ -170,6 +170,15 @@ quoted_string <- single_quoted_string / double_quoted_string
 double_quoted_string <- '"' string:(!'"' ("\\\\" / '\\"' / .))* '"' ~;
 
 single_quoted_string <- "'" string:(!"'" ("\\\\" / "\\'" / .))* "'" ~;
+
+case_insensitive_string <- target:(double_quoted_string / single_quoted_string) 'i' 
+`
+  used_combinator(p_case_insensitive),
+  Str = string:lowercase(proplists:get_value(string, proplists:get_value(target, Node))),
+  lists:flatten(["p_case_insensitive(<<\"", 
+    escape_string(unicode:characters_to_list(Str)),
+    "\">>)"])
+`;
 
 character_class <- '[' characters:(!']' ('\\\\' . / !'\\\\' .))+ ']'
 `

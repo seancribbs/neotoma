@@ -5,7 +5,7 @@
 
 -define(ALL_COMBINATORS, [p_eof, p_optional, p_not, p_assert, p_seq,
         p_choose, p_zero_or_more, p_one_or_more, p_label, p_scan,
-        p_string, p_anything, p_charclass, p_regexp, line, column]).
+        p_string, p_case_insensitive, p_anything, p_charclass, p_regexp, line, column]).
 
 -type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()} |
                   {neotoma_priv_dir, file:filename()}.
