@@ -1,3 +1,4 @@
+test_parser.*
 ebin/*.beam
 ebin/neotoma.app
 extra/*.beam
