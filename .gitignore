@@ -10,3 +10,4 @@ neotoma.plt
 /_build/
 /doc/
 /rebar.lock
+test_parser.*

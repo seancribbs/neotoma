@@ -3,27 +3,27 @@
 all: compile
 
 compile:
-	@./rebar compile
+	@rebar3 compile
 
 test:
-	@./rebar eunit
+	@rebar3 eunit
 
 clean:
-	@./rebar clean
+	@rebar3 clean
 
 neotoma.plt:
-	@dialyzer --build_plt --apps erts kernel stdlib compiler crypto hipe \
+	@rebar3 dialyzer -- --build_plt --apps erts kernel stdlib compiler crypto hipe \
 		syntax_tools --output_plt neotoma.plt
 
 dialyzer: compile neotoma.plt
-	@dialyzer --plt neotoma.plt ebin
+	@rebar3 dialyzer -- --plt neotoma.plt ebin
 
 xref: compile
-	@./rebar xref skip_deps=true
+	@rebar3 xref skip_deps=true
 
 bootstrap: compile
 	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
-	@./rebar compile
+	@rebar3 compile
 
 escript:
-	@./rebar escriptize
+	@rebar3 escriptize
