@@ -330,8 +330,9 @@ end
 'character_class'(Input, Index) ->
   p(Input, Index, 'character_class', fun(I,D) -> (p_seq([p_string(<<"[">>), p_label('characters', p_one_or_more(p_seq([p_not(p_string(<<"]">>)), p_choose([p_seq([p_string(<<"\\\\">>), p_anything()]), p_seq([p_not(p_string(<<"\\\\">>)), p_anything()])])]))), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
   used_combinator(p_charclass),
+  Data = re:replace(proplists:get_value(characters, Node), "\\s", "", [{return, binary}, global]),
   ["p_charclass(<<\"[",
-   escape_string(unicode:characters_to_list(proplists:get_value(characters, Node))),
+   re:replace(Data, "\"|\\\\", "\\\\&", [{return, binary}, global]),
    "]\">>)"]
  end).
 
@@ -357,7 +358,7 @@ end
 
 -spec 'white'(input(), index()) -> parse_result().
 'white'(Input, Index) ->
-  p(Input, Index, 'white', fun(I,D) -> (p_charclass(<<"[\s\t\n\r]">>))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'white', fun(I,D) -> (p_charclass(<<"[\\s\\t\\n\\r]">>))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'code_block'(input(), index()) -> parse_result().
 'code_block'(Input, Index) ->
