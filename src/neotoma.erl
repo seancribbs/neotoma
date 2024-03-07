@@ -15,10 +15,7 @@
 main([]) ->
     io:format("Usage: neotoma filename [-module output_module] [-output output_dir] [-transform_module transform_module]\n");
 main([Filename | Args]) ->
-    %% code:priv_dir is unreliable when called in escript context, but
-    %% escript:script_name does what we want.
-    PrivDir = filename:join([filename:dirname(escript:script_name()), "priv"]),
-    file(Filename, [{neotoma_priv_dir, PrivDir} | parse_options(Args)]).
+    file(Filename, parse_options(Args)).
 
 %% @doc Generates a parser from the specified file.
 %% @equiv file(Filename, [])
@@ -49,8 +46,23 @@ file(InputGrammar, Options) ->
     EntryFuns = generate_entry_functions(Root),
     TransformFun = create_transform(TransformModule, OutputDir, GenTransform),
     PrivDir = proplists:get_value(neotoma_priv_dir, Options, code:priv_dir(neotoma)),
-    {ok, PegIncludes} = file:read_file(filename:join([PrivDir, "peg_includes.hrl"])),
+    {ok, PegIncludes} = peg_includes(PrivDir),
     file:write_file(OutputFilename, [ModuleAttrs, "\n", Code, "\n", EntryFuns, "\n", Rules, "\n", TransformFun, "\n", PegIncludes]).
+
+%% Determine the parser header content. Read from the code private
+%% path if possible. Otherwise try to extract from the escript
+%% archive.
+-spec peg_includes(filelib:filename()) -> {ok, binary()}.
+peg_includes(PrivDir) ->
+    case filelib:is_dir(PrivDir) of
+        true ->
+            file:read_file(filename:join([PrivDir, "peg_includes.hrl"]));
+        false ->
+            {ok, [_, _, _, {archive, ArchiveBin}]} = escript:extract(filename:absname(escript:script_name()), []),
+            zip:foldl(fun("priv/peg_includes.hrl", _, GetBin, _Acc) -> GetBin();
+                         (_, _, _, Acc) -> Acc
+                      end, [], {"", ArchiveBin})
+    end.
 
 -spec validate_params(file:filename(),atom(),atom(),file:filename()) -> 'ok'.
 validate_params(InputGrammar, _, _, OutputFile) when InputGrammar =:= OutputFile ->
