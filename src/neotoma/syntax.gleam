@@ -4,6 +4,23 @@ import gleam/erlang/atom.{type Atom}
 /// Equivalent to erl_syntax:syntaxTree() type
 pub type SyntaxTree
 
+// attribute/2
+@external(erlang, "erl_syntax", "attribute")
+pub fn attribute(name: SyntaxTree, args: List(SyntaxTree)) -> SyntaxTree
+
+// arity_qualifier/2
+@external(erlang, "erl_syntax", "arity_qualifier")
+pub fn arity_qualifier(body: SyntaxTree, arity: SyntaxTree) -> SyntaxTree
+
+// application/2
+@external(erlang, "erl_syntax", "application")
+pub fn local_application(operator: SyntaxTree, arguments: List(SyntaxTree)) -> SyntaxTree
+
+// list/1 ([...])
+// TODO: create list_cons/2 for ([H, ... | T]) constructions
+@external(erlang, "erl_syntax", "list")
+pub fn list(items: List(SyntaxTree)) -> SyntaxTree
+
 // form_list/1
 @external(erlang, "erl_syntax", "form_list")
 pub fn form_list(forms: List(SyntaxTree)) -> SyntaxTree
