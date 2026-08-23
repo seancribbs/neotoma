@@ -3,6 +3,21 @@ import gleam/list
 import gleam/string
 import neotoma/grammar
 
+// "trie"
+//
+// "<" / "<=" / "<==" / "<<=" / "<<<"
+// <
+//   =
+//    =
+//      FatLeftArrow
+//   LessThanEqual
+//   <
+//
+// LT
+//
+// case Input of
+//   <<"">>
+
 pub fn expand_charclasses(g: grammar.Grammar) -> grammar.Grammar {
   g.rules
   |> list.map(expand_charclasses_def)
