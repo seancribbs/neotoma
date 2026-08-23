@@ -1,0 +1,67 @@
+---
+version: 2.0.2
+title: sequence with two items
+file: ./test/neotoma/passes/generate_abstract_test.gleam
+test_name: generate_abstract_two_primary_sequence_test
+---
+[
+  Case(
+    Variable("Input"),
+    [
+      CaseClause(
+        BinaryPattern([
+          BinaryStringField("neotoma"),
+          BinaryVariable(
+            "Remainder2",
+            [Bytes],
+          ),
+        ]),
+        [
+          Case(
+            Variable("Remainder2"),
+            [
+              CaseClause(
+                BinaryPattern([
+                  BinaryStringField("rocks"),
+                  BinaryVariable(
+                    "Remainder3",
+                    [Bytes],
+                  ),
+                ]),
+                [
+                  Tuple([
+                    Atom("ok"),
+                    Tuple([
+                      Binary([
+                        BinaryStringField("rocks"),
+                      ]),
+                      Variable("Remainder3"),
+                    ]),
+                  ]),
+                ],
+              ),
+              CaseClause(
+                Ignore,
+                [
+                  Tuple([
+                    Atom("error"),
+                    Atom("no_match"),
+                  ]),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      CaseClause(
+        Ignore,
+        [
+          Tuple([
+            Atom("error"),
+            Atom("no_match"),
+          ]),
+        ],
+      ),
+    ],
+  ),
+]

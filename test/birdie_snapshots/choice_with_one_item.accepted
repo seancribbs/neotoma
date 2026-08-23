@@ -1,0 +1,42 @@
+---
+version: 2.0.2
+title: choice with one item
+file: ./test/neotoma/passes/generate_abstract_test.gleam
+test_name: generate_abstract_simple_choice_test
+---
+[
+  Case(
+    Variable("Input"),
+    [
+      CaseClause(
+        BinaryPattern([
+          BinaryStringField("neotoma"),
+          BinaryVariable(
+            "Remainder2",
+            [Bytes],
+          ),
+        ]),
+        [
+          Tuple([
+            Atom("ok"),
+            Tuple([
+              Binary([
+                BinaryStringField("neotoma"),
+              ]),
+              Variable("Remainder2"),
+            ]),
+          ]),
+        ],
+      ),
+      CaseClause(
+        Ignore,
+        [
+          Tuple([
+            Atom("error"),
+            Atom("no_match"),
+          ]),
+        ],
+      ),
+    ],
+  ),
+]
