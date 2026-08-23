@@ -9,6 +9,50 @@ pub type SuccessCont =
 pub type FailCont =
   fn() -> List(a.Expr)
 
+pub fn generate_abstract_module(grammar: g.Grammar) -> List(a.Form) {
+  list.append(
+    [
+      a.Module(grammar.name),
+      a.Export([#("string", 1)]),
+      generate_string_entrypoint(grammar),
+    ],
+    list.map(grammar.rules, generate_rule),
+  )
+}
+
+pub fn generate_string_entrypoint(grammar: g.Grammar) -> a.Form {
+  let assert [g.Definition(name:, ..), ..] = grammar.rules
+  a.Function(
+    "string",
+    a.FunctionClause([a.VariablePattern("Input")], [
+      a.Apply(a.LocalFunction(name), [a.Variable("Input")]),
+    ]),
+  )
+}
+
+pub fn generate_rule(definition: g.Definition) -> a.Form {
+  a.Function(
+    definition.name,
+    a.FunctionClause(
+      [a.VariablePattern("Input")],
+      generate_expression(
+        definition.expr,
+        ["Input"],
+        default_success,
+        default_failure,
+      ),
+    ),
+  )
+}
+
+fn default_success(value, remainder) {
+  [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
+}
+
+fn default_failure() {
+  [a.Tuple([a.Atom("error"), a.Atom("no_match")])]
+}
+
 pub fn generate_expression(
   expr: g.Expression,
   input_stack: List(String),
@@ -78,7 +122,12 @@ pub fn generate_sequence(
           let assert a.ListExpr(values) = seq_value
           success(a.ListExpr([value, ..values]), seq_remainder)
         }
-        generate_sequence(rest, [remainder, ..input_stack], seq_success, failure)
+        generate_sequence(
+          rest,
+          [remainder, ..input_stack],
+          seq_success,
+          failure,
+        )
       }
       generate_expression(first, input_stack, expr_success, failure)
     }

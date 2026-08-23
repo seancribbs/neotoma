@@ -1,8 +1,9 @@
-import neotoma/syntax
-import neotoma/passes/generate_wrapper
-import neotoma/passes/functionize_rules
 import gleam/io
-import neotoma/grammar.{Grammar, Position, Definition, Span, Terminal}
+import neotoma/grammar.{Definition, Grammar, Position, Span, Terminal, Primary,Atomic}
+import neotoma/passes/concrete_erlang
+import neotoma/passes/expand_charclasses
+import neotoma/passes/generate_abstract
+import neotoma/syntax
 
 // functionize_rules
 //   Converts abstract rules to functions - continuation passing style?
@@ -20,19 +21,19 @@ import neotoma/grammar.{Grammar, Position, Definition, Span, Terminal}
 //   - Output: whole erlang module, as a syntax tree
 
 pub fn main() -> Nil {
-  // let _ =
-  //   Grammar([
-  //     Definition(
-  //       name: "g",
-  //       expr: Terminal(
-  //         kind: grammar.Anything,
-  //         span: Span(start: Position(0, 0, 0), end: Position(15, 0, 15)),
-  //       ),
-  //     ),
-  //   ])
-  //   |> functionize_rules.functionize_rules
-  //   |> generate_wrapper.generate_wrapper
-  //   |> syntax.format
-  //   |> io.println
-  todo
+  let _ =
+    Grammar(name: "g", rules: [
+      Definition(
+        name: "g",
+        expr: Primary(Atomic(Terminal(
+          kind: grammar.Anything,
+          span: Span(start: Position(0, 0, 0), end: Position(15, 0, 15)),
+        ))),
+      ),
+    ])
+    |> expand_charclasses.expand_charclasses
+    |> generate_abstract.generate_abstract_module
+    |> concrete_erlang.lower
+    |> syntax.format
+    |> io.println
 }

@@ -19,9 +19,7 @@ import neotoma/grammar
 //   <<"">>
 
 pub fn expand_charclasses(g: grammar.Grammar) -> grammar.Grammar {
-  g.rules
-  |> list.map(expand_charclasses_def)
-  |> grammar.Grammar()
+  grammar.Grammar(..g, rules: list.map(g.rules, expand_charclasses_def))
 }
 
 fn expand_charclasses_def(

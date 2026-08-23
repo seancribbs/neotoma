@@ -16,6 +16,10 @@ pub fn arity_qualifier(body: SyntaxTree, arity: SyntaxTree) -> SyntaxTree
 @external(erlang, "erl_syntax", "application")
 pub fn local_application(operator: SyntaxTree, arguments: List(SyntaxTree)) -> SyntaxTree
 
+// application/3
+@external(erlang, "erl_syntax", "application")
+pub fn remote_application(module: SyntaxTree, function: SyntaxTree, arguments: List(SyntaxTree)) -> SyntaxTree
+
 // list/1 ([...])
 // TODO: create list_cons/2 for ([H, ... | T]) constructions
 @external(erlang, "erl_syntax", "list")
@@ -62,8 +66,12 @@ pub fn clause(
   body: List(SyntaxTree),
 ) -> SyntaxTree
 
+pub fn atom(a: String) -> SyntaxTree {
+  do_atom(atom.create(a))
+}
+
 @external(erlang, "erl_syntax", "atom")
-pub fn atom(a: Atom) -> SyntaxTree
+fn do_atom(a: Atom) -> SyntaxTree
 
 @external(erlang, "erl_syntax", "abstract")
 pub fn abstract(value: a) -> SyntaxTree

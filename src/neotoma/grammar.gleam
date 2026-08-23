@@ -28,7 +28,7 @@ pub type CharacterClassEntry {
 
 /// Grammar contains all rules of the language
 pub type Grammar {
-  Grammar(rules: List(Definition))
+  Grammar(name: String, rules: List(Definition))
 }
 
 /// Definitions define the way that nonterminals are produced
