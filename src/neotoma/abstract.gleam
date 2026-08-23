@@ -15,6 +15,7 @@ pub type Expr {
   Atom(String)
   Variable(String)
   Tuple(List(Expr))
+  ListExpr(List(Expr))
   Binary(List(BinaryField))
   Case(subject: Expr, clauses: List(CaseClause))
   Apply(function: FunctionRef, arguments: List(Expr))

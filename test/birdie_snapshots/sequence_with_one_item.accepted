@@ -20,8 +20,10 @@ test_name: generate_abstract_simple_sequence_test
           Tuple([
             Atom("ok"),
             Tuple([
-              Binary([
-                BinaryStringField("neotoma"),
+              ListExpr([
+                Binary([
+                  BinaryStringField("neotoma"),
+                ]),
               ]),
               Variable("Remainder2"),
             ]),

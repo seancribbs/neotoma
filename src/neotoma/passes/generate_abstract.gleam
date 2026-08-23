@@ -54,7 +54,17 @@ pub fn generate_sequence(
 ) -> List(a.Expr) {
   case sequence {
     [] -> failure()
-    [item] -> generate_expression(item, input_stack, success, failure)
+    [item] -> {
+      let success = fn(value, remainder) {
+        // {ok, {[a, b, c, d], remainder}}
+        // [a, b, c, d]
+        // [b, c, d]
+        // [c, d] <-- [_, d], remainder5
+        // [d]
+        success(a.ListExpr([value]), remainder)
+      }
+      generate_expression(item, input_stack, success, failure)
+    }
     [first, ..rest] -> {
       // case first() of
       //   {ok, the_thing} ->
@@ -63,10 +73,14 @@ pub fn generate_sequence(
       //   {error, _} = Err ->
       //      Err
       // end
-      let success = fn(_value, remainder) {
-        generate_sequence(rest, [remainder, ..input_stack], success, failure)
+      let expr_success = fn(value, remainder) {
+        let seq_success = fn(seq_value, seq_remainder) {
+          let assert a.ListExpr(values) = seq_value
+          success(a.ListExpr([value, ..values]), seq_remainder)
+        }
+        generate_sequence(rest, [remainder, ..input_stack], seq_success, failure)
       }
-      generate_expression(first, input_stack, success, failure)
+      generate_expression(first, input_stack, expr_success, failure)
     }
   }
 }

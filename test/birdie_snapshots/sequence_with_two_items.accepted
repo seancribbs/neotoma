@@ -32,8 +32,13 @@ test_name: generate_abstract_two_primary_sequence_test
                   Tuple([
                     Atom("ok"),
                     Tuple([
-                      Binary([
-                        BinaryStringField("rocks"),
+                      ListExpr([
+                        Binary([
+                          BinaryStringField("neotoma"),
+                        ]),
+                        Binary([
+                          BinaryStringField("rocks"),
+                        ]),
                       ]),
                       Variable("Remainder3"),
                     ]),
