@@ -148,15 +148,49 @@ fn generate_primary(
 fn generate_atomic(
   atomic: g.Atomic,
   input_stack: List(String),
-  success: fn(a.Expr, String) -> List(a.Expr),
-  failure: fn() -> List(a.Expr),
+  success: SuccessCont,
+  failure: FailCont,
 ) -> List(a.Expr) {
   let assert [input, ..] = input_stack
   let remainder = fresh_variable("Remainder", input_stack)
   let input_stack = [remainder, ..input_stack]
 
   case atomic {
-    g.Terminal(kind: g.Anything, span: _) -> {
+    g.Nonterminal(name:) -> {
+      let result = fresh_variable("Result", input_stack)
+      // case Name(Input) of
+      //   {ok, {Result, Remainder}} ->
+      //      %% success(Result, Remainder)
+      //      {ok, {Result, Remainder}};
+      //   {error, _Error} ->
+      //      %% failure()
+      //      {error, no_match}
+      // end
+      [
+        a.Case(
+          subject: a.Apply(function: a.LocalFunction(name), arguments: [
+            a.Variable(input),
+          ]),
+          clauses: [
+            a.CaseClause(
+              a.TuplePattern([
+                a.AtomPattern("ok"),
+                a.TuplePattern([
+                  a.VariablePattern(result),
+                  a.VariablePattern(remainder),
+                ]),
+              ]),
+              success(a.Variable(result), remainder),
+            ),
+            a.CaseClause(
+              a.TuplePattern([a.AtomPattern("error"), a.Ignore]),
+              failure(),
+            ),
+          ],
+        ),
+      ]
+    }
+    g.Terminal(kind: g.Anything) -> {
       let char = fresh_variable("Char", input_stack)
       [
         // case Input of
@@ -182,7 +216,7 @@ fn generate_atomic(
         ]),
       ]
     }
-    g.Terminal(kind: g.String(str:), span: _) -> {
+    g.Terminal(kind: g.String(str:)) -> {
       // case Input of
       //    <<"str", Remainder/bytes>> ->
       //       %% success(..., remainder)
@@ -204,7 +238,7 @@ fn generate_atomic(
         ]),
       ]
     }
-    g.Terminal(kind: g.CharacterClass(chars: _), span: _) ->
+    g.Terminal(kind: g.CharacterClass(chars: _)) ->
       panic as "expand_charclasses pass was skipped"
   }
 }

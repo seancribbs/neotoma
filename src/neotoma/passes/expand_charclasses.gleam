@@ -43,12 +43,9 @@ fn expand_charclasses_expr(expr: grammar.Expression) -> grammar.Expression {
 
 fn expand_charclasses_prim(prim: grammar.Primary) -> grammar.Expression {
   case prim {
-    grammar.Atomic(grammar.Terminal(
-      kind: grammar.CharacterClass(entries),
-      span:,
-    )) -> {
+    grammar.Atomic(grammar.Terminal(kind: grammar.CharacterClass(entries))) -> {
       entries
-      |> list.flat_map(expand_entry(_, span))
+      |> list.flat_map(expand_entry)
       |> grammar.Choice
     }
     _ -> grammar.Primary(prim)
@@ -57,12 +54,11 @@ fn expand_charclasses_prim(prim: grammar.Primary) -> grammar.Expression {
 
 fn expand_entry(
   entry: grammar.CharacterClassEntry,
-  span: grammar.Span,
 ) -> List(grammar.Expression) {
   case entry {
     grammar.SingleCharacter(char:) -> [
       grammar.Primary(
-        grammar.Atomic(grammar.Terminal(kind: grammar.String(char), span:)),
+        grammar.Atomic(grammar.Terminal(kind: grammar.String(char))),
       ),
     ]
     grammar.CharacterRange(start:, end:) -> {
@@ -74,10 +70,11 @@ fn expand_entry(
       let assert Ok(cp) = string.utf_codepoint(cp)
       [
         grammar.Primary(
-          grammar.Atomic(grammar.Terminal(
-            kind: grammar.String(string.from_utf_codepoints([cp])),
-            span:,
-          )),
+          grammar.Atomic(
+            grammar.Terminal(
+              kind: grammar.String(string.from_utf_codepoints([cp])),
+            ),
+          ),
         ),
         ..acc
       ]

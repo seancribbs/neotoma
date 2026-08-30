@@ -50,5 +50,6 @@ pub type Primary {
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression
 pub type Atomic {
-  Terminal(kind: TerminalKind, span: Span)
+  Nonterminal(name: String)
+  Terminal(kind: TerminalKind)
 }

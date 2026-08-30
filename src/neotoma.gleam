@@ -1,5 +1,5 @@
 import gleam/io
-import neotoma/grammar.{Definition, Grammar, Position, Span, Terminal, Primary,Atomic}
+import neotoma/grammar as g
 import neotoma/passes/concrete_erlang
 import neotoma/passes/expand_charclasses
 import neotoma/passes/generate_abstract
@@ -22,13 +22,18 @@ import neotoma/syntax
 
 pub fn main() -> Nil {
   let _ =
-    Grammar(name: "g", rules: [
-      Definition(
-        name: "g",
-        expr: Primary(Atomic(Terminal(
-          kind: grammar.Anything,
-          span: Span(start: Position(0, 0, 0), end: Position(15, 0, 15)),
-        ))),
+    g.Grammar(name: "generate_abstract_nonterminal_test", rules: [
+      g.Definition(
+        name: "start",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Terminal(g.String("(")))),
+          g.Primary(g.Atomic(g.Nonterminal("inner"))),
+          g.Primary(g.Atomic(g.Terminal(g.String(")")))),
+        ]),
+      ),
+      g.Definition(
+        name: "inner",
+        expr: g.Primary(g.Atomic(g.Terminal(g.Anything))),
       ),
     ])
     |> expand_charclasses.expand_charclasses
