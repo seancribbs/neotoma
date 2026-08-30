@@ -47,6 +47,7 @@ pub type Expression {
 pub type Primary {
   Atomic(Atomic)
   Assert(Expression) // zero-width positive lookahead
+  Deny(Expression) // zero-width negative lookahead
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression

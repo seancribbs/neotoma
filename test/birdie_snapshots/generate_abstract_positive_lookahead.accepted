@@ -33,9 +33,7 @@ test_name: generate_abstract_assert_lookahead_test
                     Atom("ok"),
                     Tuple([
                       ListExpr([
-                        Binary([
-                          BinaryStringField("neo"),
-                        ]),
+                        Binary([]),
                         Binary([
                           BinaryStringField("neotoma"),
                         ]),
@@ -65,8 +63,7 @@ test_name: generate_abstract_assert_lookahead_test
                             Tuple([
                               ListExpr([
                                 Binary([
-                                  BinaryStringField("neo"),
-                                ]),
+                                  ]),
                                 Binary([
                                   BinaryStringField("neon"),
                                 ]),

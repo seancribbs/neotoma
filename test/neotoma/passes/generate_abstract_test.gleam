@@ -28,14 +28,7 @@ pub fn generate_abstract_simple_sequence_test() {
   //   ]),
   // ]
 
-  gen.generate_sequence(
-    seq,
-    ["Input"],
-    fn(value, remainder) {
-      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
-    },
-    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
-  )
+  gen.generate_sequence(seq, ["Input"], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "sequence with one item")
 }
@@ -81,14 +74,7 @@ pub fn generate_abstract_two_primary_sequence_test() {
   //   ]),
   // ]
 
-  gen.generate_sequence(
-    seq,
-    ["Input"],
-    fn(value, remainder) {
-      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
-    },
-    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
-  )
+  gen.generate_sequence(seq, ["Input"], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "sequence with two items")
 }
@@ -120,14 +106,7 @@ pub fn generate_abstract_simple_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(
-    choices,
-    ["Input"],
-    fn(value, remainder) {
-      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
-    },
-    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
-  )
+  gen.generate_choice(choices, ["Input"], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with one item")
 }
@@ -159,14 +138,7 @@ pub fn generate_abstract_two_item_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(
-    choices,
-    ["Input"],
-    fn(value, remainder) {
-      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
-    },
-    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
-  )
+  gen.generate_choice(choices, ["Input"], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with two items")
 }
@@ -203,14 +175,28 @@ pub fn generate_abstract_assert_lookahead_test() {
       ]),
     ])
 
-  gen.generate_expression(
-    expr,
-    ["Input"],
-    fn(value, remainder) {
-      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
-    },
-    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
-  )
+  gen.generate_expression(expr, ["Input"], default_success, default_failure)
   |> pprint.format
-  |> birdie.snap(title: "generate abstract lookahead")
+  |> birdie.snap(title: "generate abstract positive lookahead")
+}
+
+pub fn generate_abstract_deny_lookahead_test() {
+  let expr =
+    // (!crlf .)
+    g.Sequence([
+      g.Primary(g.Deny(g.Primary(g.Atomic(g.Nonterminal("crlf"))))),
+      g.Primary(g.Atomic(g.Terminal(g.Anything))),
+    ])
+
+  gen.generate_expression(expr, ["Input"], default_success, default_failure)
+  |> pprint.format
+  |> birdie.snap(title: "generate abstract negative lookahead")
+}
+
+fn default_success(value, remainder) {
+  [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
+}
+
+fn default_failure() {
+  [a.Tuple([a.Atom("error"), a.Atom("no_match")])]
 }
