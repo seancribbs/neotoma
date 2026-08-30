@@ -1,5 +1,5 @@
-import gleam/erlang/charlist
 import gleam/erlang/atom.{type Atom}
+import gleam/erlang/charlist
 
 /// Equivalent to erl_syntax:syntaxTree() type
 pub type SyntaxTree
@@ -14,11 +14,18 @@ pub fn arity_qualifier(body: SyntaxTree, arity: SyntaxTree) -> SyntaxTree
 
 // application/2
 @external(erlang, "erl_syntax", "application")
-pub fn local_application(operator: SyntaxTree, arguments: List(SyntaxTree)) -> SyntaxTree
+pub fn local_application(
+  operator: SyntaxTree,
+  arguments: List(SyntaxTree),
+) -> SyntaxTree
 
 // application/3
 @external(erlang, "erl_syntax", "application")
-pub fn remote_application(module: SyntaxTree, function: SyntaxTree, arguments: List(SyntaxTree)) -> SyntaxTree
+pub fn remote_application(
+  module: SyntaxTree,
+  function: SyntaxTree,
+  arguments: List(SyntaxTree),
+) -> SyntaxTree
 
 // list/1 ([...])
 // TODO: create list_cons/2 for ([H, ... | T]) constructions
@@ -47,7 +54,10 @@ pub fn variable(name: String) -> SyntaxTree {
 fn do_variable(chars: charlist.Charlist) -> SyntaxTree
 
 @external(erlang, "erl_syntax", "binary_field")
-pub fn binary_field_with_types(body: SyntaxTree, types: List(SyntaxTree)) -> SyntaxTree
+pub fn binary_field_with_types(
+  body: SyntaxTree,
+  types: List(SyntaxTree),
+) -> SyntaxTree
 
 pub fn string(string: String) -> SyntaxTree {
   do_string(charlist.from_string(string))

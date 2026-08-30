@@ -16,9 +16,12 @@ pub type Span {
 /// to be specified at grammar definition time or invocation
 /// of the parse, the latter being much more complicated.
 pub type TerminalKind {
-  Anything // "." operator
-  String(str: String) // Literal string
-  CharacterClass(chars: List(CharacterClassEntry)) // character class as in regular expressions, e.g. [A-Z0-9_]
+  Anything
+  // "." operator
+  String(str: String)
+  // Literal string
+  CharacterClass(chars: List(CharacterClassEntry))
+  // character class as in regular expressions, e.g. [A-Z0-9_]
 }
 
 pub type CharacterClassEntry {
@@ -46,8 +49,10 @@ pub type Expression {
 /// Primary is a sub-expression with optional operators on it (Kleene, lookahead)
 pub type Primary {
   Atomic(Atomic)
-  Assert(Expression) // zero-width positive lookahead
-  Deny(Expression) // zero-width negative lookahead
+  Assert(Expression)
+  // zero-width positive lookahead
+  Deny(Expression)
+  // zero-width negative lookahead
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression

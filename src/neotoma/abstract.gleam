@@ -2,7 +2,6 @@
 ///
 /// Language constructs that we don't use in the code-generation
 /// are explicitly omitted.
-
 /// Top-level syntactic construct. Each module is a list of forms.
 pub type Form {
   Module(name: String)
@@ -34,7 +33,7 @@ pub type FunctionClause {
   FunctionClause(
     arguments: List(Pattern),
     // guard: List(GuardExpr),
-    body: List(Expr)
+    body: List(Expr),
   )
 }
 
@@ -43,7 +42,7 @@ pub type CaseClause {
   CaseClause(
     pattern: Pattern,
     // guard: List(GuardExpr),
-    body: List(Expr)
+    body: List(Expr),
   )
 }
 
@@ -66,5 +65,6 @@ pub type BinaryField {
 
 pub type BinaryFieldType {
   Utf8
-  Bytes // bytes
+  Bytes
+  // bytes
 }

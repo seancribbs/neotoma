@@ -153,12 +153,8 @@ fn generate_primary(
     g.Deny(expr) -> {
       // When the expression fails, restore the input to the original position and continue
       let assert [input, ..] = input_stack
-      let new_failure: FailCont = fn() {
-        success(a.Binary([]), input)
-      }
-      let new_success: SuccessCont = fn(_result, _remainder) {
-        failure()
-      }
+      let new_failure: FailCont = fn() { success(a.Binary([]), input) }
+      let new_success: SuccessCont = fn(_result, _remainder) { failure() }
       generate_expression(expr, input_stack, new_success, new_failure)
     }
   }
