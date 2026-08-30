@@ -12,7 +12,7 @@ test_name: generate_abstract_simple_sequence_test
         BinaryPattern([
           BinaryStringField("neotoma"),
           BinaryVariable(
-            "Remainder2",
+            "_Remainder2",
             [Bytes],
           ),
         ]),
@@ -25,7 +25,7 @@ test_name: generate_abstract_simple_sequence_test
                   BinaryStringField("neotoma"),
                 ]),
               ]),
-              Variable("Remainder2"),
+              Variable("_Remainder2"),
             ]),
           ]),
         ],

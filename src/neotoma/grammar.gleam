@@ -46,6 +46,7 @@ pub type Expression {
 /// Primary is a sub-expression with optional operators on it (Kleene, lookahead)
 pub type Primary {
   Atomic(Atomic)
+  Assert(Expression) // zero-width positive lookahead
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression

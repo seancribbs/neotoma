@@ -12,19 +12,19 @@ test_name: generate_abstract_two_primary_sequence_test
         BinaryPattern([
           BinaryStringField("neotoma"),
           BinaryVariable(
-            "Remainder2",
+            "_Remainder2",
             [Bytes],
           ),
         ]),
         [
           Case(
-            Variable("Remainder2"),
+            Variable("_Remainder2"),
             [
               CaseClause(
                 BinaryPattern([
                   BinaryStringField("rocks"),
                   BinaryVariable(
-                    "Remainder3",
+                    "_Remainder3",
                     [Bytes],
                   ),
                 ]),
@@ -40,7 +40,7 @@ test_name: generate_abstract_two_primary_sequence_test
                           BinaryStringField("rocks"),
                         ]),
                       ]),
-                      Variable("Remainder3"),
+                      Variable("_Remainder3"),
                     ]),
                   ]),
                 ],

@@ -142,6 +142,14 @@ fn generate_primary(
 ) -> List(a.Expr) {
   case p {
     g.Atomic(a) -> generate_atomic(a, input_stack, success, failure)
+    g.Assert(expr) -> {
+      // When the expression succeeds, restore the input to the original position
+      let assert [input, ..] = input_stack
+      let success: SuccessCont = fn(result, _remainder) {
+        success(result, input)
+      }
+      generate_expression(expr, input_stack, success, failure)
+    }
   }
 }
 
@@ -152,12 +160,12 @@ fn generate_atomic(
   failure: FailCont,
 ) -> List(a.Expr) {
   let assert [input, ..] = input_stack
-  let remainder = fresh_variable("Remainder", input_stack)
+  let remainder = fresh_variable("_Remainder", input_stack)
   let input_stack = [remainder, ..input_stack]
 
   case atomic {
     g.Nonterminal(name:) -> {
-      let result = fresh_variable("Result", input_stack)
+      let result = fresh_variable("_Result", input_stack)
       // case Name(Input) of
       //   {ok, {Result, Remainder}} ->
       //      %% success(Result, Remainder)
@@ -191,7 +199,7 @@ fn generate_atomic(
       ]
     }
     g.Terminal(kind: g.Anything) -> {
-      let char = fresh_variable("Char", input_stack)
+      let char = fresh_variable("_Char", input_stack)
       [
         // case Input of
         //    <<Char/utf8, Remainder/bytes>> ->

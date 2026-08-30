@@ -12,7 +12,7 @@ test_name: generate_abstract_two_item_choice_test
         BinaryPattern([
           BinaryStringField("neotoma"),
           BinaryVariable(
-            "Remainder2",
+            "_Remainder2",
             [Bytes],
           ),
         ]),
@@ -23,7 +23,7 @@ test_name: generate_abstract_two_item_choice_test
               Binary([
                 BinaryStringField("neotoma"),
               ]),
-              Variable("Remainder2"),
+              Variable("_Remainder2"),
             ]),
           ]),
         ],
@@ -38,7 +38,7 @@ test_name: generate_abstract_two_item_choice_test
                 BinaryPattern([
                   BinaryStringField("rocks"),
                   BinaryVariable(
-                    "Remainder2",
+                    "_Remainder2",
                     [Bytes],
                   ),
                 ]),
@@ -49,7 +49,7 @@ test_name: generate_abstract_two_item_choice_test
                       Binary([
                         BinaryStringField("rocks"),
                       ]),
-                      Variable("Remainder2"),
+                      Variable("_Remainder2"),
                     ]),
                   ]),
                 ],

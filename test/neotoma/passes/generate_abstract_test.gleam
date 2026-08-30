@@ -191,3 +191,26 @@ pub fn generate_abstract_nonterminal_test() {
   |> pprint.format
   |> birdie.snap(title: "generate abstract nonterminal")
 }
+
+pub fn generate_abstract_assert_lookahead_test() {
+  // (&"neo" ( "neotoma" / "neon" ) ) / ....
+  let expr =
+    g.Sequence([
+      g.Primary(g.Assert(g.Primary(g.Atomic(g.Terminal(g.String("neo")))))),
+      g.Choice([
+        g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+        g.Primary(g.Atomic(g.Terminal(g.String("neon")))),
+      ]),
+    ])
+
+  gen.generate_expression(
+    expr,
+    ["Input"],
+    fn(value, remainder) {
+      [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
+    },
+    fn() { [a.Tuple([a.Atom("error"), a.Atom("no_match")])] },
+  )
+  |> pprint.format
+  |> birdie.snap(title: "generate abstract lookahead")
+}

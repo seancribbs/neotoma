@@ -31,7 +31,7 @@ test_name: generate_abstract_nonterminal_test
               BinaryPattern([
                 BinaryStringField("("),
                 BinaryVariable(
-                  "Remainder2",
+                  "_Remainder2",
                   [Bytes],
                 ),
               ]),
@@ -40,7 +40,7 @@ test_name: generate_abstract_nonterminal_test
                   Apply(
                     LocalFunction("inner"),
                     [
-                      Variable("Remainder2"),
+                      Variable("_Remainder2"),
                     ],
                   ),
                   [
@@ -48,19 +48,19 @@ test_name: generate_abstract_nonterminal_test
                       TuplePattern([
                         AtomPattern("ok"),
                         TuplePattern([
-                          VariablePattern("Result4"),
-                          VariablePattern("Remainder3"),
+                          VariablePattern("_Result4"),
+                          VariablePattern("_Remainder3"),
                         ]),
                       ]),
                       [
                         Case(
-                          Variable("Remainder3"),
+                          Variable("_Remainder3"),
                           [
                             CaseClause(
                               BinaryPattern([
                                 BinaryStringField(")"),
                                 BinaryVariable(
-                                  "Remainder4",
+                                  "_Remainder4",
                                   [
                                     Bytes,
                                   ],
@@ -74,12 +74,12 @@ test_name: generate_abstract_nonterminal_test
                                       Binary([
                                         BinaryStringField("("),
                                       ]),
-                                      Variable("Result4"),
+                                      Variable("_Result4"),
                                       Binary([
                                         BinaryStringField(")"),
                                       ]),
                                     ]),
-                                    Variable("Remainder4"),
+                                    Variable("_Remainder4"),
                                   ]),
                                 ]),
                               ],
@@ -138,11 +138,11 @@ test_name: generate_abstract_nonterminal_test
             CaseClause(
               BinaryPattern([
                 BinaryVariable(
-                  "Char3",
+                  "_Char3",
                   [Utf8],
                 ),
                 BinaryVariable(
-                  "Remainder2",
+                  "_Remainder2",
                   [Bytes],
                 ),
               ]),
@@ -152,11 +152,11 @@ test_name: generate_abstract_nonterminal_test
                   Tuple([
                     Binary([
                       BinaryVariable(
-                        "Char3",
+                        "_Char3",
                         [Utf8],
                       ),
                     ]),
-                    Variable("Remainder2"),
+                    Variable("_Remainder2"),
                   ]),
                 ]),
               ],
