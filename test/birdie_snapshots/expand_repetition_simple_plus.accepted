@@ -1,0 +1,23 @@
+---
+version: 2.0.2
+title: expand_repetition_simple_plus
+---
+Grammar(
+  "expand_repetition_simple_plus",
+  [
+    Definition(
+      "root",
+      Primary(Atomic(Nonterminal("neotoma_plus"))),
+    ),
+    Definition(
+      "neotoma_plus",
+      Choice([
+        Sequence([
+          Primary(Atomic(Terminal(String("neotoma")))),
+          Primary(Atomic(Nonterminal("neotoma_plus"))),
+        ]),
+        Primary(Atomic(Terminal(String("neotoma")))),
+      ]),
+    ),
+  ],
+)

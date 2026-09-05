@@ -1,0 +1,26 @@
+---
+version: 2.0.2
+title: expand_repetition_charclass_star
+---
+Grammar(
+  "expand_repetition_charclass_star",
+  [
+    Definition(
+      "root",
+      Primary(Atomic(Nonterminal("a_to_z@_star"))),
+    ),
+    Definition(
+      "a_to_z@_star",
+      Choice([
+        Sequence([
+          Primary(Atomic(Terminal(CharacterClass([
+            CharacterRange("a", "z"),
+            SingleCharacter("@"),
+          ])))),
+          Primary(Atomic(Nonterminal("a_to_z@_star"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+  ],
+)

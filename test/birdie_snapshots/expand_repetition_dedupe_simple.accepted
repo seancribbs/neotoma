@@ -1,0 +1,37 @@
+---
+version: 2.0.2
+title: expand_repetition_dedupe_simple
+---
+Grammar(
+  "expand_repetition_dedupe_simple",
+  [
+    Definition(
+      "root",
+      Sequence([
+        Primary(Atomic(Nonterminal("whitespace_star"))),
+        Primary(Atomic(Terminal(String("neotoma")))),
+        Primary(Atomic(Nonterminal("whitespace_star"))),
+      ]),
+    ),
+    Definition(
+      "whitespace",
+      Choice([
+        Primary(Atomic(Terminal(String(" ")))),
+        Primary(Atomic(Terminal(String("	")))),
+        Primary(Atomic(Terminal(String("")))),
+        Primary(Atomic(Terminal(String("
+")))),
+      ]),
+    ),
+    Definition(
+      "whitespace_star",
+      Choice([
+        Sequence([
+          Primary(Atomic(Nonterminal("whitespace"))),
+          Primary(Atomic(Nonterminal("whitespace_star"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+  ],
+)

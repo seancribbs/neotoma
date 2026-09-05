@@ -1,0 +1,30 @@
+---
+version: 2.0.2
+title: expand_repetition_dedupe_complex
+---
+Grammar(
+  "expand_repetition_dedupe_complex",
+  [
+    Definition(
+      "root",
+      Sequence([
+        Primary(Atomic(Nonterminal("seq_a_dot_star"))),
+        Primary(Atomic(Terminal(String("neotoma")))),
+        Primary(Atomic(Nonterminal("seq_a_dot_star"))),
+      ]),
+    ),
+    Definition(
+      "seq_a_dot_star",
+      Choice([
+        Sequence([
+          Sequence([
+            Primary(Atomic(Terminal(String("a")))),
+            Primary(Atomic(Terminal(Anything))),
+          ]),
+          Primary(Atomic(Nonterminal("seq_a_dot_star"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+  ],
+)

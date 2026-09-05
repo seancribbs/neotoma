@@ -1,0 +1,26 @@
+---
+version: 2.0.2
+title: expand_repetition_simple_star
+---
+Grammar(
+  "expand_repetition_simple_star",
+  [
+    Definition(
+      "root",
+      Primary(Atomic(Nonterminal("choice_a_b_star"))),
+    ),
+    Definition(
+      "choice_a_b_star",
+      Choice([
+        Sequence([
+          Choice([
+            Primary(Atomic(Terminal(String("a")))),
+            Primary(Atomic(Terminal(String("b")))),
+          ]),
+          Primary(Atomic(Nonterminal("choice_a_b_star"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+  ],
+)

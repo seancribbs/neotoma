@@ -1,7 +1,7 @@
 import gleam/int
 import gleam/list
 import neotoma/abstract as a
-import neotoma/grammar as g
+import neotoma/ir/g_rec as g
 
 pub type SuccessCont =
   fn(a.Expr, String) -> List(a.Expr)
@@ -260,6 +260,9 @@ fn generate_atomic(
     }
     g.Terminal(kind: g.CharacterClass(chars: _)) ->
       panic as "expand_charclasses pass was skipped"
+    g.Epsilon -> {
+      success(a.ListExpr([]), input)
+    }
   }
 }
 
