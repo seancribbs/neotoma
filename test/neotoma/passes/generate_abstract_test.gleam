@@ -193,6 +193,18 @@ pub fn generate_abstract_deny_lookahead_test() {
   |> birdie.snap(title: "generate abstract negative lookahead")
 }
 
+pub fn generate_abstract_optional_test() {
+  let expr =
+    g.Sequence([
+      g.Primary(g.Optional(g.Primary(g.Atomic(g.Nonterminal("whitespace"))))),
+      g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+    ])
+
+  gen.generate_expression(expr, ["Input"], default_success, default_failure)
+  |> pprint.format
+  |> birdie.snap(title: "generate abstract optional")
+}
+
 fn default_success(value, remainder) {
   [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
 }

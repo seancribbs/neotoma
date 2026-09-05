@@ -46,7 +46,8 @@ pub type Expression {
   Choice(List(Expression))
 }
 
-/// Primary is a sub-expression with optional operators on it (Kleene, lookahead)
+/// Primary is a sub-expression with optional operators on it (Kleene,
+/// lookahead)
 pub type Primary {
   // Undecorated
   Atomic(Atomic)
@@ -54,6 +55,8 @@ pub type Primary {
   Assert(Expression)
   // zero-width negative lookahead
   Deny(Expression)
+  // optional sub-expression, if it fails, it is skipped
+  Optional(Expression)
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression

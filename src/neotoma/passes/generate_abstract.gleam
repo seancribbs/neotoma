@@ -157,6 +157,11 @@ fn generate_primary(
       let new_success: SuccessCont = fn(_result, _remainder) { failure() }
       generate_expression(expr, input_stack, new_success, new_failure)
     }
+    g.Optional(expr) -> {
+      let assert [input, ..] = input_stack
+      let failure: FailCont = fn() { success(a.Atom("undefined"), input) }
+      generate_expression(expr, input_stack, success, failure)
+    }
   }
 }
 
