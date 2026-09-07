@@ -1,6 +1,6 @@
 import birdie
-import neotoma/abstract as a
-import neotoma/ir/g_rec as g
+import neotoma/ir/mini_erl as a
+import neotoma/ir/norep as g
 import neotoma/passes/generate_abstract as gen
 import pprint
 

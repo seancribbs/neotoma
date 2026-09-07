@@ -1,13 +1,5 @@
-/// g <- "neotoma"
-/// Position within the input stream
-pub type Position {
-  Position(offset: Int, line: Int, column: Int)
-}
-
-/// Spans cover ranges of positions within the input
-pub type Span {
-  Span(start: Position, end: Position)
-}
+//// Intermediate representation of the grammar with Kleene operators (repetition) removed.
+//// At this step, all repetition has been rewritten using right-recursive rules.
 
 /// The kinds of all concrete syntax elements.
 ///
@@ -57,14 +49,11 @@ pub type Primary {
   Deny(Expression)
   // optional sub-expression, if it fails, it is skipped
   Optional(Expression)
-  // zero-or-more repetition (*)
-  ZeroOrMore(Expression)
-  // one-or-more repetition (+)
-  OneOrMore(Expression)
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression
 pub type Atomic {
   Nonterminal(name: String)
   Terminal(kind: TerminalKind)
+  Epsilon
 }

@@ -1,6 +1,6 @@
 import neotoma/passes/expand_repetition
 import gleam/io
-import neotoma/grammar as g
+import neotoma/ir/grammar as g
 import neotoma/passes/concrete_erlang
 // import neotoma/passes/expand_charclasses
 import neotoma/passes/generate_abstract
@@ -22,6 +22,8 @@ pub fn main() -> Nil {
     ])
     // |> expand_charclasses.expand_charclasses
     |> expand_repetition.expand_repetition
+    // rewrite_simple_lr
+    // prohibit_indirect_lr
     |> generate_abstract.generate_abstract_module
     |> concrete_erlang.lower
     |> syntax.format

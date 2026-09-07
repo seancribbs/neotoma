@@ -1,5 +1,5 @@
-/// Limited abstract syntax for Erlang code-generation.
-///
+//// IR for limited abstract syntax for Erlang code-generation.
+
 /// Language constructs that we don't use in the code-generation
 /// are explicitly omitted.
 /// Top-level syntactic construct. Each module is a list of forms.

@@ -1,4 +1,4 @@
-import neotoma/grammar as g
+import neotoma/ir/grammar as g
 import neotoma/passes/expand_charclasses
 
 pub fn expand_charclasses_single_chars_test() {

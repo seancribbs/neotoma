@@ -7,17 +7,17 @@ import gleam/list
 import gleam/pair
 import gleam/string
 import gleam/string_tree
-import neotoma/grammar as g
-import neotoma/ir/g_rec
+import neotoma/ir/grammar as g
+import neotoma/ir/norep
 
-pub fn expand_repetition(input: g.Grammar) -> g_rec.Grammar {
+pub fn expand_repetition(input: g.Grammar) -> norep.Grammar {
   input.rules
   |> list.flat_map(expand_repetition_declaration)
   |> prune_duplicates()
-  |> g_rec.Grammar(name: input.name, rules: _)
+  |> norep.Grammar(name: input.name, rules: _)
 }
 
-fn prune_duplicates(defs: List(g_rec.Definition)) -> List(g_rec.Definition) {
+fn prune_duplicates(defs: List(norep.Definition)) -> List(norep.Definition) {
   let assert [top, ..] = defs
   let pruned =
     list.fold(defs, dict.new(), fn(acc, def) {
@@ -40,24 +40,24 @@ fn prune_duplicates(defs: List(g_rec.Definition)) -> List(g_rec.Definition) {
 
 fn expand_repetition_declaration(
   definition: g.Definition,
-) -> List(g_rec.Definition) {
+) -> List(norep.Definition) {
   let #(expr, expansions) = expand_repetition_expr(definition.expr)
-  [g_rec.Definition(name: definition.name, expr:), ..expansions]
+  [norep.Definition(name: definition.name, expr:), ..expansions]
 }
 
 fn expand_repetition_expr(
   expr: g.Expression,
-) -> #(g_rec.Expression, List(g_rec.Definition)) {
+) -> #(norep.Expression, List(norep.Definition)) {
   case expr {
     g.Primary(primary) ->
-      expand_repetition_primary(primary) |> pair.map_first(g_rec.Primary)
+      expand_repetition_primary(primary) |> pair.map_first(norep.Primary)
     g.Sequence(exprs) -> {
       let #(expansions, exprs) =
         list.map_fold(exprs, [], fn(expansions, expr) {
           let #(expr, expansions2) = expand_repetition_expr(expr)
           #(list.append(expansions2, expansions), expr)
         })
-      #(g_rec.Sequence(exprs), expansions)
+      #(norep.Sequence(exprs), expansions)
     }
     g.Choice(exprs) -> {
       let #(expansions, exprs) =
@@ -65,80 +65,80 @@ fn expand_repetition_expr(
           let #(expr, expansions2) = expand_repetition_expr(expr)
           #(list.append(expansions2, expansions), expr)
         })
-      #(g_rec.Choice(exprs), expansions)
+      #(norep.Choice(exprs), expansions)
     }
   }
 }
 
 fn expand_repetition_primary(
   primary: g.Primary,
-) -> #(g_rec.Primary, List(g_rec.Definition)) {
+) -> #(norep.Primary, List(norep.Definition)) {
   case primary {
-    g.Atomic(atomic) -> #(g_rec.Atomic(translate_atomic(atomic)), [])
+    g.Atomic(atomic) -> #(norep.Atomic(translate_atomic(atomic)), [])
     g.Assert(expr) -> {
       let #(expr, expansions) = expand_repetition_expr(expr)
-      #(g_rec.Assert(expr), expansions)
+      #(norep.Assert(expr), expansions)
     }
     g.Deny(expr) -> {
       let #(expr, expansions) = expand_repetition_expr(expr)
-      #(g_rec.Deny(expr), expansions)
+      #(norep.Deny(expr), expansions)
     }
     g.Optional(expr) -> {
       let #(expr, expansions) = expand_repetition_expr(expr)
-      #(g_rec.Optional(expr), expansions)
+      #(norep.Optional(expr), expansions)
     }
     g.ZeroOrMore(expr) -> {
       let name = generate_rule_name(expr, "star")
       let #(expr, expansions) = expand_repetition_expr(expr)
       let star =
-        g_rec.Definition(
+        norep.Definition(
           name:,
-          expr: g_rec.Choice([
+          expr: norep.Choice([
             // TODO: Attach inline code that produces the cons-list
-            g_rec.Sequence([
+            norep.Sequence([
               expr,
-              g_rec.Primary(g_rec.Atomic(g_rec.Nonterminal(name))),
+              norep.Primary(norep.Atomic(norep.Nonterminal(name))),
             ]),
-            g_rec.Primary(g_rec.Atomic(g_rec.Epsilon)),
+            norep.Primary(norep.Atomic(norep.Epsilon)),
           ]),
         )
-      #(g_rec.Atomic(g_rec.Nonterminal(name)), [star, ..expansions])
+      #(norep.Atomic(norep.Nonterminal(name)), [star, ..expansions])
     }
     g.OneOrMore(expr) -> {
       let name = generate_rule_name(expr, "plus")
       let #(expr, expansions) = expand_repetition_expr(expr)
       let plus =
-        g_rec.Definition(
+        norep.Definition(
           name:,
-          expr: g_rec.Choice([
+          expr: norep.Choice([
             // TODO: Attach inline code that produces the cons-list
-            g_rec.Sequence([
+            norep.Sequence([
               expr,
-              g_rec.Primary(g_rec.Atomic(g_rec.Nonterminal(name))),
+              norep.Primary(norep.Atomic(norep.Nonterminal(name))),
             ]),
             expr,
           ]),
         )
-      #(g_rec.Atomic(g_rec.Nonterminal(name)), [plus, ..expansions])
+      #(norep.Atomic(norep.Nonterminal(name)), [plus, ..expansions])
     }
   }
 }
 
-fn translate_atomic(atomic: g.Atomic) -> g_rec.Atomic {
+fn translate_atomic(atomic: g.Atomic) -> norep.Atomic {
   case atomic {
-    g.Nonterminal(name:) -> g_rec.Nonterminal(name:)
-    g.Terminal(kind: g.Anything) -> g_rec.Terminal(g_rec.Anything)
-    g.Terminal(kind: g.String(str:)) -> g_rec.Terminal(g_rec.String(str:))
+    g.Nonterminal(name:) -> norep.Nonterminal(name:)
+    g.Terminal(kind: g.Anything) -> norep.Terminal(norep.Anything)
+    g.Terminal(kind: g.String(str:)) -> norep.Terminal(norep.String(str:))
     g.Terminal(kind: g.CharacterClass(chars:)) ->
       chars
       |> list.map(fn(c) {
         case c {
-          g.SingleCharacter(char:) -> g_rec.SingleCharacter(char:)
-          g.CharacterRange(start:, end:) -> g_rec.CharacterRange(start:, end:)
+          g.SingleCharacter(char:) -> norep.SingleCharacter(char:)
+          g.CharacterRange(start:, end:) -> norep.CharacterRange(start:, end:)
         }
       })
-      |> g_rec.CharacterClass
-      |> g_rec.Terminal
+      |> norep.CharacterClass
+      |> norep.Terminal
   }
 }
 

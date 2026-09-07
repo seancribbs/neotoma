@@ -1,5 +1,5 @@
 import gleam/list
-import neotoma/abstract as a
+import neotoma/ir/mini_erl as a
 import neotoma/syntax
 
 pub fn lower(forms: List(a.Form)) -> syntax.SyntaxTree {

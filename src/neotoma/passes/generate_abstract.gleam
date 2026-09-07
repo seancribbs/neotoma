@@ -1,7 +1,7 @@
 import gleam/int
 import gleam/list
-import neotoma/abstract as a
-import neotoma/ir/g_rec as g
+import neotoma/ir/mini_erl as a
+import neotoma/ir/norep as g
 
 pub type SuccessCont =
   fn(a.Expr, String) -> List(a.Expr)

@@ -7,17 +7,14 @@ Grammar(
   [
     Definition(
       "root",
-      Primary(Atomic(Nonterminal("choice_a_b_star"))),
+      Primary(Atomic(Nonterminal("neotoma_star"))),
     ),
     Definition(
-      "choice_a_b_star",
+      "neotoma_star",
       Choice([
         Sequence([
-          Choice([
-            Primary(Atomic(Terminal(String("a")))),
-            Primary(Atomic(Terminal(String("b")))),
-          ]),
-          Primary(Atomic(Nonterminal("choice_a_b_star"))),
+          Primary(Atomic(Terminal(String("neotoma")))),
+          Primary(Atomic(Nonterminal("neotoma_star"))),
         ]),
         Primary(Atomic(Epsilon)),
       ]),

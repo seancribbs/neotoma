@@ -1,7 +1,7 @@
 import gleam/int
 import gleam/list
 import gleam/string
-import neotoma/grammar
+import neotoma/ir/grammar
 
 // "trie"
 //

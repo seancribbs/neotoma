@@ -1,5 +1,5 @@
 import birdie
-import neotoma/grammar as g
+import neotoma/ir/grammar as g
 import neotoma/passes/expand_repetition
 import pprint
 
@@ -63,7 +63,7 @@ pub fn expand_repetition_sequence_star_test() {
 }
 
 pub fn expand_repetition_choice_star_test() {
-  let name = "expand_repetition_simple_star"
+  let name = "expand_repetition_choice_star"
   let input =
     g.Grammar(name:, rules: [
       g.Definition(

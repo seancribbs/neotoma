@@ -1,4 +1,4 @@
-import neotoma/abstract as a
+import neotoma/ir/mini_erl as a
 
 pub fn abstract_form_example_test() {
   let success_branch =
