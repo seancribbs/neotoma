@@ -1,0 +1,30 @@
+---
+version: 2.0.2
+title: rewrite_simple_ir_indirect_lr
+---
+Grammar(
+  "rewrite_simple_ir_indirect_lr",
+  [
+    Definition(
+      "x",
+      Primary(Atomic(Nonterminal("expr"))),
+    ),
+    Definition(
+      "expr",
+      Choice([
+        Sequence([
+          Primary(Atomic(Nonterminal("x"))),
+          Primary(Atomic(Terminal(String("-")))),
+          Primary(Atomic(Nonterminal("number"))),
+        ]),
+        Primary(Atomic(Nonterminal("number"))),
+      ]),
+    ),
+    Definition(
+      "number",
+      Primary(Atomic(Terminal(CharacterClass([
+        CharacterRange("0", "9"),
+      ])))),
+    ),
+  ],
+)

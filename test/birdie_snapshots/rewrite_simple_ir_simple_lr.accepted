@@ -1,0 +1,38 @@
+---
+version: 2.0.2
+title: rewrite_simple_ir_simple_lr
+---
+Grammar(
+  "rewrite_simple_ir_simple_lr",
+  [
+    Definition(
+      "expression",
+      Choice([
+        Sequence([
+          Primary(Atomic(Nonterminal("number"))),
+          Primary(Atomic(Nonterminal("expression_tail"))),
+        ]),
+      ]),
+    ),
+    Definition(
+      "expression_tail",
+      Choice([
+        Sequence([
+          Primary(Atomic(Terminal(String("+")))),
+          Primary(Atomic(Nonterminal("number"))),
+        ]),
+        Sequence([
+          Primary(Atomic(Terminal(String("-")))),
+          Primary(Atomic(Nonterminal("number"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+    Definition(
+      "number",
+      Primary(Atomic(Terminal(CharacterClass([
+        CharacterRange("0", "9"),
+      ])))),
+    ),
+  ],
+)
