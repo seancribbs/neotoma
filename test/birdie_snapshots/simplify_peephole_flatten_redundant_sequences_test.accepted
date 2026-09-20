@@ -1,0 +1,15 @@
+---
+version: 2.0.2
+title: simplify_peephole_flatten_redundant_sequences_test
+file: ./test/neotoma/passes/simplify_test.gleam
+test_name: simplify_peephole_flatten_redundant_sequences_test
+---
+Grammar(
+  "simplify_peephole_flatten_redundant_sequences_test",
+  [
+    Definition(
+      "top",
+      Primary(Atomic(Terminal(String("neotoma")))),
+    ),
+  ],
+)
