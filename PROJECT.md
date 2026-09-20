@@ -33,7 +33,7 @@
 
 # Bugs from WIP code
 
-- [ ] From episode 7: Recursion elimination does not call the tail in the tail
+- [X] From episode 7: Recursion elimination does not call the tail in the tail
   rule, meaning we only "recurse" at most once.
 - [ ] Code generation for deep case expressions (many choices) results in non-unique variable names and warnings like `Warning: variable '_Remainder2' is already bound. If you mean to ignore this value, use '_' or a different underscore-prefixed name`
 

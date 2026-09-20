@@ -47,14 +47,17 @@ fn extract_lr(
   choices: List(g.Expression),
   name: String,
 ) -> #(List(g.Expression), List(g.Expression)) {
+  let tail_name = name <> "_tail"
+  let tail_call = g.Primary(g.Atomic(g.Nonterminal(tail_name)))
   let expected = g.Primary(g.Atomic(g.Nonterminal(name)))
   use acc, choice <- list.fold_right(choices, #([], []))
   let #(lrs, non_lrs) = acc
   case choice {
     g.Sequence([lr, ..rest]) if lr == expected -> #(
-      [g.Sequence(rest), ..lrs],
+      [g.Sequence(list.append(rest, [tail_call])), ..lrs],
       non_lrs,
     )
+
     anything -> #(lrs, [anything, ..non_lrs])
   }
 }

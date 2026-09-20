@@ -20,10 +20,12 @@ Grammar(
         Sequence([
           Primary(Atomic(Terminal(String("+")))),
           Primary(Atomic(Nonterminal("number"))),
+          Primary(Atomic(Nonterminal("expression_tail"))),
         ]),
         Sequence([
           Primary(Atomic(Terminal(String("-")))),
           Primary(Atomic(Nonterminal("number"))),
+          Primary(Atomic(Nonterminal("expression_tail"))),
         ]),
         Primary(Atomic(Epsilon)),
       ]),
