@@ -9,8 +9,8 @@
   - [X] Simple expansion to choice
   - [ ] Transformation into internal "switch" (see below)
 - [ ] Left-recursion elimination and/or prohibition
-  - [ ] Simple left recursion (PARTIAL)
-  - [ ] Prohibit indirect left-recursion
+  - [X] Simple left recursion
+  - [X] Prohibit indirect left-recursion
   - [ ] [Grow-LR algorithm](https://web.cs.ucla.edu/~todd/research/pepm08.pdf)
 - [ ] Optimizations
   - [ ] Grammar simplification
