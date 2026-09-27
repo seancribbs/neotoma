@@ -7,7 +7,8 @@ pub fn simplify(g: g.Grammar) -> g.Grammar {
 
 fn simplify_grammar(grammar: g.Grammar) -> g.Grammar {
   grammar
-  |> flatten_grammar() // Peephole optimization 1: flatten redundant sequences and choices
+  |> flatten_grammar()
+  // Peephole optimization 1: flatten redundant sequences and choices
   // collapse()
   // inline()
 }
@@ -24,12 +25,36 @@ fn flatten_expr(expr: g.Expression) -> g.Expression {
   case expr {
     // Eliminate useless sequencing
     g.Sequence([item]) -> flatten_expr(item)
-    g.Sequence(items) -> g.Sequence(list.map(items, flatten_expr))
+    g.Sequence(items) ->
+      items
+      |> list.map(flatten_expr)
+      |> list.flat_map(flatten_sequence) // Flatten sequence-in-sequence
+      |> g.Sequence
     // Eliminate redundant choice
     g.Choice([alt]) -> flatten_expr(alt)
-    g.Choice(alts) -> g.Choice(list.map(alts, flatten_expr))
+    g.Choice(alts) ->
+      alts
+      |> list.map(flatten_expr)
+      |> list.flat_map(flatten_choice) // Flatten choice-in-choice
+      |> g.Choice
 
     g.Primary(prim) -> g.Primary(flatten_primary(prim))
+  }
+}
+
+// Flattens direct nesting of choice-in-choice to single
+fn flatten_choice(expression: g.Expression) -> List(g.Expression) {
+  case expression {
+    g.Choice(choices) -> choices
+    _ -> [expression]
+  }
+}
+
+// Flattens direct nesting of sequence-in-sequence to single sequence
+fn flatten_sequence(expression: g.Expression) -> List(g.Expression) {
+  case expression {
+    g.Sequence(items) -> items
+    _ -> [expression]
   }
 }
 
@@ -41,8 +66,6 @@ fn flatten_primary(prim: g.Primary) -> g.Primary {
     _atomic -> prim
   }
 }
-
-
 
 /// Computes a fixpoint over a function recursively
 fn fixpoint(value: a, xform: fn(a) -> a) -> a {

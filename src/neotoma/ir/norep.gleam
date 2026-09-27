@@ -8,12 +8,12 @@
 /// to be specified at grammar definition time or invocation
 /// of the parse, the latter being much more complicated.
 pub type TerminalKind {
-  Anything
   // "." operator
-  String(str: String)
+  Anything
   // Literal string
-  CharacterClass(chars: List(CharacterClassEntry))
+  String(str: String)
   // character class as in regular expressions, e.g. [A-Z0-9_]
+  CharacterClass(chars: List(CharacterClassEntry))
 }
 
 pub type CharacterClassEntry {

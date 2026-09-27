@@ -111,3 +111,47 @@ pub fn simplify_peephole_flatten_deep_nested_redundant_test() {
   |> pprint.format
   |> birdie.snap(title: "simplify_peephole_flatten_deep_nested_redundant_test")
 }
+
+pub fn simplify_flatten_choice_in_choice_test() {
+  let input =
+    g.Grammar(name: "simplify_flatten_choice_in_choice_test", rules: [
+      g.Definition(
+        name: "top",
+        expr: g.Choice([
+          g.Primary(g.Atomic(g.Terminal(g.Anything))),
+          g.Choice([
+            g.Primary(g.Atomic(g.Terminal(g.Anything))),
+            g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+          ]),
+          g.Primary(g.Atomic(g.Terminal(g.Anything))),
+        ]),
+      ),
+    ])
+
+  input
+  |> simplify.simplify
+  |> pprint.format
+  |> birdie.snap(title: "simplify_flatten_choice_in_choice_test")
+}
+
+pub fn simplify_flatten_sequence_in_sequence_test() {
+  let input =
+    g.Grammar(name: "simplify_flatten_sequence_in_sequence_test", rules: [
+      g.Definition(
+        name: "top",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Terminal(g.Anything))),
+          g.Sequence([
+            g.Primary(g.Atomic(g.Terminal(g.Anything))),
+            g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+          ]),
+          g.Primary(g.Atomic(g.Terminal(g.Anything))),
+        ]),
+      ),
+    ])
+
+  input
+  |> simplify.simplify
+  |> pprint.format
+  |> birdie.snap(title: "simplify_flatten_sequence_in_sequence_test")
+}
