@@ -1,6 +1,8 @@
 //// Intermediate representation of the grammar with Kleene operators (repetition) removed.
 //// At this step, all repetition has been rewritten using right-recursive rules.
 
+import gleam/list
+
 /// The kinds of all concrete syntax elements.
 ///
 /// All terminals are in UTF-8 encoding. If we want to
@@ -56,4 +58,25 @@ pub type Atomic {
   Nonterminal(name: String)
   Terminal(kind: TerminalKind)
   Epsilon
+}
+
+/// Computes the "size" (cost) of a parsing expression
+pub fn size(expr: Expression) -> Int {
+  case expr {
+    Primary(prim) -> size_of_primary(prim)
+    Sequence(items) -> list.fold(items, 1, fn(acc, item) { acc + size(item) })
+    Choice(alts) -> list.fold(alts, 1, fn(acc, item) { acc + size(item) })
+  }
+}
+
+fn size_of_primary(prim: Primary) -> Int {
+  case prim {
+    Atomic(Nonterminal(_)) -> 1
+    // TODO: examine the cost of character classes
+    Atomic(Terminal(_)) -> 1
+    Atomic(Epsilon) -> 0
+    Assert(expr) -> size(expr)
+    Deny(expr) -> size(expr)
+    Optional(expr) -> 1 + size(expr)
+  }
 }

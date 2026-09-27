@@ -1,0 +1,32 @@
+---
+version: 2.0.2
+title: simplify_inlines_small_nonterminal_test
+file: ./test/neotoma/passes/simplify_test.gleam
+test_name: simplify_inlines_small_nonterminal_test
+---
+Grammar(
+  "simplify_inlines_small_nonterminal_test",
+  [
+    Definition(
+      "top",
+      Sequence([
+        Primary(Atomic(Nonterminal("ws_star"))),
+        Primary(Atomic(Terminal(String("neotoma")))),
+        Primary(Atomic(Nonterminal("ws_star"))),
+      ]),
+    ),
+    Definition(
+      "ws_star",
+      Choice([
+        Sequence([
+          Primary(Atomic(Terminal(CharacterClass([
+            SingleCharacter(" "),
+            SingleCharacter("	"),
+          ])))),
+          Primary(Atomic(Nonterminal("ws_star"))),
+        ]),
+        Primary(Atomic(Epsilon)),
+      ]),
+    ),
+  ],
+)

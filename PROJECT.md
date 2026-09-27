@@ -19,7 +19,7 @@
       - [X] Flatten direct nesting of sequences and choices (seq-in-seq or choice-in-choice)
       - [ ] Left-factor choices between direct terminals with shared prefixes into "Switch" operator
     - [X] Eliminate redundant rules generated from Kleene expansion
-    - [ ] Inline simple, non-recursive non-terminals
+    - [X] Inline simple, non-recursive non-terminals
   - [ ] Memoization analysis and virtual inlining
 - [ ] Position tracking
 - [ ] Memoization table

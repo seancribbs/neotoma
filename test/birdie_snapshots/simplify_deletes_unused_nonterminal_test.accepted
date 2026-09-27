@@ -1,0 +1,15 @@
+---
+version: 2.0.2
+title: simplify_deletes_unused_nonterminal_test
+file: ./test/neotoma/passes/simplify_test.gleam
+test_name: simplify_deletes_unused_nonterminal_test
+---
+Grammar(
+  "simplify_deletes_unused_nonterminal_test",
+  [
+    Definition(
+      "top",
+      Primary(Atomic(Terminal(String("neotoma")))),
+    ),
+  ],
+)

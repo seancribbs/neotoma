@@ -155,3 +155,76 @@ pub fn simplify_flatten_sequence_in_sequence_test() {
   |> pprint.format
   |> birdie.snap(title: "simplify_flatten_sequence_in_sequence_test")
 }
+
+pub fn simplify_inlines_small_nonterminal_test() {
+  let input =
+    g.Grammar(name: "simplify_inlines_small_nonterminal_test", rules: [
+      g.Definition(
+        name: "top",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Nonterminal("ws"))),
+          g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+          g.Primary(g.Atomic(g.Nonterminal("ws"))),
+        ]),
+      ),
+      g.Definition(
+        name: "ws",
+        expr: g.Primary(g.Atomic(g.Nonterminal("ws_star"))),
+      ),
+      // We manually expanded repetition here
+      g.Definition(
+        name: "ws_star",
+        expr: g.Choice([
+          g.Sequence([
+            g.Primary(
+              g.Atomic(
+                g.Terminal(
+                  g.CharacterClass([
+                    g.SingleCharacter(" "),
+                    g.SingleCharacter("\t"),
+                  ]),
+                ),
+              ),
+            ),
+            g.Primary(g.Atomic(g.Nonterminal("ws_star"))),
+          ]),
+          g.Primary(g.Atomic(g.Epsilon)),
+        ]),
+      ),
+    ])
+
+  input
+  |> simplify.simplify
+  |> pprint.format
+  |> birdie.snap(title: "simplify_inlines_small_nonterminal_test")
+}
+
+pub fn simplify_deletes_unused_nonterminal_test() {
+  let input =
+    g.Grammar(name: "simplify_deletes_unused_nonterminal_test", rules: [
+      g.Definition(
+        name: "top",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+        ]),
+      ),
+      g.Definition(
+        name: "ws",
+        expr: g.Primary(
+          g.Atomic(
+            g.Terminal(
+              g.CharacterClass([
+                g.SingleCharacter(" "),
+                g.SingleCharacter("\t"),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    ])
+
+  input
+  |> simplify.simplify
+  |> pprint.format
+  |> birdie.snap(title: "simplify_deletes_unused_nonterminal_test")
+}
