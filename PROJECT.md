@@ -20,8 +20,8 @@
       - [ ] Left-factor choices between direct terminals with shared prefixes into "Switch" operator
     - [X] Eliminate redundant rules generated from Kleene expansion
     - [X] Inline simple, non-recursive non-terminals
-  - [ ] Memoization analysis and virtual inlining
-- [ ] Position tracking
+  - [X] Memoization analysis and virtual inlining
+- [X] Position tracking
 - [ ] Memoization table
 - [X] Erlang code generation
 - [ ] Code support
@@ -67,4 +67,6 @@ end
 
 - Dataflow analysis: find which variable bindings in patterns are used in-scope
   and promote them to real variables, replacing unused with simple ignores
-  instead of underscored names. Will help cut down on unused variable warnings.
+  instead of underscored names. Will help cut down on unused variable warnings. 
+  For position advancement in the cases of zero-width lookahead, we can discard
+  the fresh variable and call entirely.

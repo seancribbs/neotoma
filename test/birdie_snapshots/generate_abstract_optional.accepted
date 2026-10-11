@@ -8,7 +8,10 @@ test_name: generate_abstract_optional_test
   Case(
     Apply(
       LocalFunction("whitespace"),
-      [Variable("Input")],
+      [
+        Variable("Input"),
+        Variable("Position"),
+      ],
     ),
     [
       CaseClause(
@@ -17,6 +20,7 @@ test_name: generate_abstract_optional_test
           TuplePattern([
             VariablePattern("_Result3"),
             VariablePattern("_Remainder2"),
+            VariablePattern("_Position2"),
           ]),
         ]),
         [
@@ -32,6 +36,18 @@ test_name: generate_abstract_optional_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position3"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryStringField("neotoma"),
+                        ]),
+                        Variable("_Position2"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -42,6 +58,7 @@ test_name: generate_abstract_optional_test
                         ]),
                       ]),
                       Variable("_Remainder3"),
+                      Variable("_Position3"),
                     ]),
                   ]),
                 ],
@@ -77,6 +94,18 @@ test_name: generate_abstract_optional_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position3"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryStringField("neotoma"),
+                        ]),
+                        Variable("Position"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -87,6 +116,7 @@ test_name: generate_abstract_optional_test
                         ]),
                       ]),
                       Variable("_Remainder3"),
+                      Variable("_Position3"),
                     ]),
                   ]),
                 ],

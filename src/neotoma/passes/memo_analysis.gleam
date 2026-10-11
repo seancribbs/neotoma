@@ -70,7 +70,7 @@ fn cost_of(
         True -> Infinite
         False -> {
           case find_definition(vnts, name) {
-            Ok(def) -> cost_of(vnts, [def.name, ..ns], def.expr)
+            Ok(def) -> add_cost(Discrete(1), cost_of(vnts, [def.name, ..ns], def.expr))
             Error(_) -> Discrete(1)
           }
         }

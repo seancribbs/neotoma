@@ -12,12 +12,21 @@ pub type Form {
 /// Expressions evaluate to values
 pub type Expr {
   Atom(String)
+  Integer(Int)
   Variable(String)
   Tuple(List(Expr))
   ListExpr(List(Expr))
   Binary(List(BinaryField))
   Case(subject: Expr, clauses: List(CaseClause))
   Apply(function: FunctionRef, arguments: List(Expr))
+  MapConstructor(List(#(Expr, Expr)))
+  MapUpdate(target: Expr, fields: List(#(Expr, Expr)))
+  Infix(left: Expr, op: InfixOp, right: Expr)
+  Match(left: Pattern, right: Expr)
+}
+
+pub type InfixOp {
+  Plus
 }
 
 /// How to name a function when applying, either a locally named function
@@ -54,6 +63,7 @@ pub type Pattern {
   TuplePattern(List(Pattern))
   VariablePattern(String)
   BinaryPattern(List(BinaryField))
+  MapPattern(List(#(Pattern, Pattern)))
   Ignore
 }
 

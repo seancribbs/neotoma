@@ -1,3 +1,6 @@
+import birdie
+import neotoma/syntax
+import neotoma/passes/concrete_erlang
 import neotoma/ir/mini_erl as a
 
 pub fn abstract_form_example_test() {
@@ -30,5 +33,9 @@ pub fn abstract_form_example_test() {
     // Function("string", ...)
     fun,
   ]
-  echo module
+
+  module
+  |> concrete_erlang.lower()
+  |> syntax.format()
+  |> birdie.snap("abstract_form_example_test")
 }

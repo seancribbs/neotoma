@@ -28,7 +28,12 @@ pub fn generate_abstract_simple_sequence_test() {
   //   ]),
   // ]
 
-  gen.generate_sequence(seq, ["Input"], default_success, default_failure)
+  gen.generate_sequence(
+    seq,
+    [#("Input", "Position")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "sequence with one item")
 }
@@ -74,7 +79,12 @@ pub fn generate_abstract_two_primary_sequence_test() {
   //   ]),
   // ]
 
-  gen.generate_sequence(seq, ["Input"], default_success, default_failure)
+  gen.generate_sequence(
+    seq,
+    [#("Input", "Position")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "sequence with two items")
 }
@@ -106,7 +116,7 @@ pub fn generate_abstract_simple_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, ["Input"], default_success, default_failure)
+  gen.generate_choice(choices, [#("Input", "Position")], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with one item")
 }
@@ -138,7 +148,7 @@ pub fn generate_abstract_two_item_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, ["Input"], default_success, default_failure)
+  gen.generate_choice(choices, [#("Input", "Position")], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with two items")
 }
@@ -175,7 +185,12 @@ pub fn generate_abstract_assert_lookahead_test() {
       ]),
     ])
 
-  gen.generate_expression(expr, ["Input"], default_success, default_failure)
+  gen.generate_expression(
+    expr,
+    [#("Input", "Position")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "generate abstract positive lookahead")
 }
@@ -188,7 +203,12 @@ pub fn generate_abstract_deny_lookahead_test() {
       g.Primary(g.Atomic(g.Terminal(g.Anything))),
     ])
 
-  gen.generate_expression(expr, ["Input"], default_success, default_failure)
+  gen.generate_expression(
+    expr,
+    [#("Input", "Position")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "generate abstract negative lookahead")
 }
@@ -200,13 +220,23 @@ pub fn generate_abstract_optional_test() {
       g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
     ])
 
-  gen.generate_expression(expr, ["Input"], default_success, default_failure)
+  gen.generate_expression(
+    expr,
+    [#("Input", "Position")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "generate abstract optional")
 }
 
-fn default_success(value, remainder) {
-  [a.Tuple([a.Atom("ok"), a.Tuple([value, a.Variable(remainder)])])]
+fn default_success(value, remainder, position) {
+  [
+    a.Tuple([
+      a.Atom("ok"),
+      a.Tuple([value, a.Variable(remainder), a.Variable(position)]),
+    ]),
+  ]
 }
 
 fn default_failure() {

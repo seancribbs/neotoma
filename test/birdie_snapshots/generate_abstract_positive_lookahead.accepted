@@ -1,6 +1,6 @@
 ---
 version: 2.0.2
-title: generate abstract lookahead
+title: generate abstract positive lookahead
 file: ./test/neotoma/passes/generate_abstract_test.gleam
 test_name: generate_abstract_assert_lookahead_test
 ---
@@ -17,6 +17,18 @@ test_name: generate_abstract_assert_lookahead_test
           ),
         ]),
         [
+          Match(
+            VariablePattern("_Position2"),
+            Apply(
+              LocalFunction("advance_position___"),
+              [
+                Binary([
+                  BinaryStringField("neo"),
+                ]),
+                Variable("Position"),
+              ],
+            ),
+          ),
           Case(
             Variable("Input"),
             [
@@ -29,6 +41,18 @@ test_name: generate_abstract_assert_lookahead_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position3"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryStringField("neotoma"),
+                        ]),
+                        Variable("Position"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -39,6 +63,7 @@ test_name: generate_abstract_assert_lookahead_test
                         ]),
                       ]),
                       Variable("_Remainder3"),
+                      Variable("_Position3"),
                     ]),
                   ]),
                 ],
@@ -58,6 +83,18 @@ test_name: generate_abstract_assert_lookahead_test
                           ),
                         ]),
                         [
+                          Match(
+                            VariablePattern("_Position3"),
+                            Apply(
+                              LocalFunction("advance_position___"),
+                              [
+                                Binary([
+                                  BinaryStringField("neon"),
+                                ]),
+                                Variable("Position"),
+                              ],
+                            ),
+                          ),
                           Tuple([
                             Atom("ok"),
                             Tuple([
@@ -69,6 +106,7 @@ test_name: generate_abstract_assert_lookahead_test
                                 ]),
                               ]),
                               Variable("_Remainder3"),
+                              Variable("_Position3"),
                             ]),
                           ]),
                         ],

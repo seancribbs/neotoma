@@ -1,0 +1,12 @@
+---
+version: 2.0.2
+title: abstract_form_example_test
+file: ./test/neotoma/ir/mini_erl_test.gleam
+test_name: abstract_form_example_test
+---
+g(Input) ->
+    case Input of
+        <<"neotoma", Rest/bytes>> ->
+            {ok, {<<"neotoma">>, Rest}};
+        _ -> {error, no_match}
+    end.

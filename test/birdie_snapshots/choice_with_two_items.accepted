@@ -17,6 +17,18 @@ test_name: generate_abstract_two_item_choice_test
           ),
         ]),
         [
+          Match(
+            VariablePattern("_Position2"),
+            Apply(
+              LocalFunction("advance_position___"),
+              [
+                Binary([
+                  BinaryStringField("neotoma"),
+                ]),
+                Variable("Position"),
+              ],
+            ),
+          ),
           Tuple([
             Atom("ok"),
             Tuple([
@@ -24,6 +36,7 @@ test_name: generate_abstract_two_item_choice_test
                 BinaryStringField("neotoma"),
               ]),
               Variable("_Remainder2"),
+              Variable("_Position2"),
             ]),
           ]),
         ],
@@ -43,6 +56,18 @@ test_name: generate_abstract_two_item_choice_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position2"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryStringField("rocks"),
+                        ]),
+                        Variable("Position"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -50,6 +75,7 @@ test_name: generate_abstract_two_item_choice_test
                         BinaryStringField("rocks"),
                       ]),
                       Variable("_Remainder2"),
+                      Variable("_Position2"),
                     ]),
                   ]),
                 ],

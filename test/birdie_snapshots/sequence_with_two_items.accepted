@@ -17,6 +17,18 @@ test_name: generate_abstract_two_primary_sequence_test
           ),
         ]),
         [
+          Match(
+            VariablePattern("_Position2"),
+            Apply(
+              LocalFunction("advance_position___"),
+              [
+                Binary([
+                  BinaryStringField("neotoma"),
+                ]),
+                Variable("Position"),
+              ],
+            ),
+          ),
           Case(
             Variable("_Remainder2"),
             [
@@ -29,6 +41,18 @@ test_name: generate_abstract_two_primary_sequence_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position3"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryStringField("rocks"),
+                        ]),
+                        Variable("_Position2"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -41,6 +65,7 @@ test_name: generate_abstract_two_primary_sequence_test
                         ]),
                       ]),
                       Variable("_Remainder3"),
+                      Variable("_Position3"),
                     ]),
                   ]),
                 ],

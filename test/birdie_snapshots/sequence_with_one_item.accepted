@@ -17,6 +17,18 @@ test_name: generate_abstract_simple_sequence_test
           ),
         ]),
         [
+          Match(
+            VariablePattern("_Position2"),
+            Apply(
+              LocalFunction("advance_position___"),
+              [
+                Binary([
+                  BinaryStringField("neotoma"),
+                ]),
+                Variable("Position"),
+              ],
+            ),
+          ),
           Tuple([
             Atom("ok"),
             Tuple([
@@ -26,6 +38,7 @@ test_name: generate_abstract_simple_sequence_test
                 ]),
               ]),
               Variable("_Remainder2"),
+              Variable("_Position2"),
             ]),
           ]),
         ],

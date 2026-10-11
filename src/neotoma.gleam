@@ -24,16 +24,12 @@ pub fn main() -> Nil {
             g.Primary(g.Atomic(g.Nonterminal("number"))),
           ]),
           g.Sequence([
-            g.Primary(g.Atomic(g.Nonterminal("subexpression"))),
+            g.Primary(g.Atomic(g.Nonterminal("expression"))),
             g.Primary(g.Atomic(g.Terminal(g.String("-")))),
             g.Primary(g.Atomic(g.Nonterminal("number"))),
           ]),
           g.Primary(g.Atomic(g.Nonterminal("number"))),
         ]),
-      ),
-      g.Definition(
-        name: "subexpression",
-        expr: g.Primary(g.Atomic(g.Nonterminal("expression")))
       ),
       g.Definition(
         name: "number",

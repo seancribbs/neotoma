@@ -94,3 +94,24 @@ pub fn underscore() -> SyntaxTree
 
 @external(erlang, "neotoma_ffi", "format")
 pub fn format(tree: SyntaxTree) -> String
+
+@external(erlang, "erl_syntax", "map_expr")
+pub fn map_construct(fields: List(SyntaxTree)) -> SyntaxTree
+
+@external(erlang, "erl_syntax", "map_expr")
+pub fn map_update(map: SyntaxTree, fields: List(SyntaxTree)) -> SyntaxTree
+
+@external(erlang, "erl_syntax", "map_field_assoc")
+pub fn map_field_assign(key: SyntaxTree, value: SyntaxTree) -> SyntaxTree
+
+@external(erlang, "erl_syntax", "map_field_exact")
+pub fn map_field_match(key: SyntaxTree, value: SyntaxTree) -> SyntaxTree
+
+@external(erlang, "erl_syntax", "match_expr")
+pub fn match_expr(pattern: SyntaxTree, body: SyntaxTree) -> SyntaxTree
+
+@external(erlang, "erl_syntax", "infix_expr")
+pub fn infix_expr(left: SyntaxTree, op: SyntaxTree, right: SyntaxTree) -> SyntaxTree
+
+@external(erlang, "neotoma_ffi", "plus")
+pub fn plus_operator() -> SyntaxTree

@@ -14,7 +14,201 @@ test_name: generate_abstract_nonterminal_test
       [
         Apply(
           LocalFunction("start"),
-          [Variable("Input")],
+          [
+            Variable("Input"),
+            MapConstructor([
+              #(
+                Atom("offset"),
+                Integer(0),
+              ),
+              #(
+                Atom("line"),
+                Integer(1),
+              ),
+              #(
+                Atom("column"),
+                Integer(1),
+              ),
+            ]),
+          ],
+        ),
+      ],
+    ),
+  ),
+  Function(
+    "advance_position___",
+    FunctionClause(
+      [
+        VariablePattern("Bin"),
+        VariablePattern("Position"),
+      ],
+      [
+        Match(
+          MapPattern([
+            #(
+              AtomPattern("offset"),
+              VariablePattern("Offset"),
+            ),
+            #(
+              AtomPattern("line"),
+              VariablePattern("Line"),
+            ),
+            #(
+              AtomPattern("column"),
+              VariablePattern("Column"),
+            ),
+          ]),
+          Variable("Position"),
+        ),
+        Case(
+          Variable("Bin"),
+          [
+            CaseClause(
+              BinaryPattern([]),
+              [Variable("Position")],
+            ),
+            CaseClause(
+              BinaryPattern([
+                BinaryStringField("
+"),
+                BinaryVariable(
+                  "Rest",
+                  [Bytes],
+                ),
+              ]),
+              [
+                Apply(
+                  LocalFunction("advance_position___"),
+                  [
+                    Variable("Rest"),
+                    MapConstructor([
+                      #(
+                        Atom("offset"),
+                        Infix(
+                          Variable("Offset"),
+                          Plus,
+                          Integer(2),
+                        ),
+                      ),
+                      #(
+                        Atom("line"),
+                        Infix(
+                          Variable("Line"),
+                          Plus,
+                          Integer(1),
+                        ),
+                      ),
+                      #(
+                        Atom("column"),
+                        Integer(1),
+                      ),
+                    ]),
+                  ],
+                ),
+              ],
+            ),
+            CaseClause(
+              BinaryPattern([
+                BinaryStringField("
+"),
+                BinaryVariable(
+                  "Rest",
+                  [Bytes],
+                ),
+              ]),
+              [
+                Apply(
+                  LocalFunction("advance_position___"),
+                  [
+                    Variable("Rest"),
+                    MapConstructor([
+                      #(
+                        Atom("offset"),
+                        Infix(
+                          Variable("Offset"),
+                          Plus,
+                          Integer(1),
+                        ),
+                      ),
+                      #(
+                        Atom("line"),
+                        Infix(
+                          Variable("Line"),
+                          Plus,
+                          Integer(1),
+                        ),
+                      ),
+                      #(
+                        Atom("column"),
+                        Integer(1),
+                      ),
+                    ]),
+                  ],
+                ),
+              ],
+            ),
+            CaseClause(
+              BinaryPattern([
+                BinaryVariable(
+                  "Char",
+                  [Utf8],
+                ),
+                BinaryVariable(
+                  "Rest",
+                  [Bytes],
+                ),
+              ]),
+              [
+                Match(
+                  VariablePattern("CharLen"),
+                  Apply(
+                    LocalFunction("byte_size"),
+                    [
+                      Apply(
+                        RemoteFunction(
+                          "unicode",
+                          "characters_to_binary",
+                        ),
+                        [
+                          ListExpr([
+                            Variable("Char"),
+                          ]),
+                          Atom("utf8"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Apply(
+                  LocalFunction("advance_position___"),
+                  [
+                    Variable("Rest"),
+                    MapUpdate(
+                      Variable("Position"),
+                      [
+                        #(
+                          Atom("offset"),
+                          Infix(
+                            Variable("Offset"),
+                            Plus,
+                            Variable("CharLen"),
+                          ),
+                        ),
+                        #(
+                          Atom("column"),
+                          Infix(
+                            Variable("Column"),
+                            Plus,
+                            Integer(1),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     ),
@@ -22,7 +216,10 @@ test_name: generate_abstract_nonterminal_test
   Function(
     "start",
     FunctionClause(
-      [VariablePattern("Input")],
+      [
+        VariablePattern("Input"),
+        VariablePattern("Position"),
+      ],
       [
         Case(
           Variable("Input"),
@@ -36,11 +233,24 @@ test_name: generate_abstract_nonterminal_test
                 ),
               ]),
               [
+                Match(
+                  VariablePattern("_Position2"),
+                  Apply(
+                    LocalFunction("advance_position___"),
+                    [
+                      Binary([
+                        BinaryStringField("("),
+                      ]),
+                      Variable("Position"),
+                    ],
+                  ),
+                ),
                 Case(
                   Apply(
                     LocalFunction("inner"),
                     [
                       Variable("_Remainder2"),
+                      Variable("_Position2"),
                     ],
                   ),
                   [
@@ -50,6 +260,7 @@ test_name: generate_abstract_nonterminal_test
                         TuplePattern([
                           VariablePattern("_Result4"),
                           VariablePattern("_Remainder3"),
+                          VariablePattern("_Position3"),
                         ]),
                       ]),
                       [
@@ -67,6 +278,18 @@ test_name: generate_abstract_nonterminal_test
                                 ),
                               ]),
                               [
+                                Match(
+                                  VariablePattern("_Position4"),
+                                  Apply(
+                                    LocalFunction("advance_position___"),
+                                    [
+                                      Binary([
+                                        BinaryStringField(")"),
+                                      ]),
+                                      Variable("_Position3"),
+                                    ],
+                                  ),
+                                ),
                                 Tuple([
                                   Atom("ok"),
                                   Tuple([
@@ -80,6 +303,7 @@ test_name: generate_abstract_nonterminal_test
                                       ]),
                                     ]),
                                     Variable("_Remainder4"),
+                                    Variable("_Position4"),
                                   ]),
                                 ]),
                               ],
@@ -130,7 +354,10 @@ test_name: generate_abstract_nonterminal_test
   Function(
     "inner",
     FunctionClause(
-      [VariablePattern("Input")],
+      [
+        VariablePattern("Input"),
+        VariablePattern("Position"),
+      ],
       [
         Case(
           Variable("Input"),
@@ -147,6 +374,21 @@ test_name: generate_abstract_nonterminal_test
                 ),
               ]),
               [
+                Match(
+                  VariablePattern("_Position2"),
+                  Apply(
+                    LocalFunction("advance_position___"),
+                    [
+                      Binary([
+                        BinaryVariable(
+                          "_Char3",
+                          [Utf8],
+                        ),
+                      ]),
+                      Variable("Position"),
+                    ],
+                  ),
+                ),
                 Tuple([
                   Atom("ok"),
                   Tuple([
@@ -157,6 +399,7 @@ test_name: generate_abstract_nonterminal_test
                       ),
                     ]),
                     Variable("_Remainder2"),
+                    Variable("_Position2"),
                   ]),
                 ]),
               ],

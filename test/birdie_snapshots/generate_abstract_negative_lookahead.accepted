@@ -8,7 +8,10 @@ test_name: generate_abstract_deny_lookahead_test
   Case(
     Apply(
       LocalFunction("crlf"),
-      [Variable("Input")],
+      [
+        Variable("Input"),
+        Variable("Position"),
+      ],
     ),
     [
       CaseClause(
@@ -17,6 +20,7 @@ test_name: generate_abstract_deny_lookahead_test
           TuplePattern([
             VariablePattern("_Result3"),
             VariablePattern("_Remainder2"),
+            VariablePattern("_Position2"),
           ]),
         ]),
         [
@@ -47,6 +51,21 @@ test_name: generate_abstract_deny_lookahead_test
                   ),
                 ]),
                 [
+                  Match(
+                    VariablePattern("_Position3"),
+                    Apply(
+                      LocalFunction("advance_position___"),
+                      [
+                        Binary([
+                          BinaryVariable(
+                            "_Char4",
+                            [Utf8],
+                          ),
+                        ]),
+                        Variable("Position"),
+                      ],
+                    ),
+                  ),
                   Tuple([
                     Atom("ok"),
                     Tuple([
@@ -60,6 +79,7 @@ test_name: generate_abstract_deny_lookahead_test
                         ]),
                       ]),
                       Variable("_Remainder3"),
+                      Variable("_Position3"),
                     ]),
                   ]),
                 ],
