@@ -11,6 +11,7 @@ test_name: generate_abstract_deny_lookahead_test
       [
         Variable("Input"),
         Variable("Position"),
+        Variable("Memo"),
       ],
     ),
     [
@@ -21,19 +22,26 @@ test_name: generate_abstract_deny_lookahead_test
             VariablePattern("_Result3"),
             VariablePattern("_Remainder2"),
             VariablePattern("_Position2"),
+            VariablePattern("_Memo2"),
           ]),
         ]),
         [
           Tuple([
             Atom("error"),
-            Atom("no_match"),
+            Tuple([
+              Atom("no_match"),
+              Variable("_Memo2"),
+            ]),
           ]),
         ],
       ),
       CaseClause(
         TuplePattern([
           AtomPattern("error"),
-          Ignore,
+          TuplePattern([
+            VariablePattern("_Error2"),
+            VariablePattern("_Memo2"),
+          ]),
         ]),
         [
           Case(
@@ -80,6 +88,7 @@ test_name: generate_abstract_deny_lookahead_test
                       ]),
                       Variable("_Remainder3"),
                       Variable("_Position3"),
+                      Variable("_Memo2"),
                     ]),
                   ]),
                 ],
@@ -89,7 +98,10 @@ test_name: generate_abstract_deny_lookahead_test
                 [
                   Tuple([
                     Atom("error"),
-                    Atom("no_match"),
+                    Tuple([
+                      Atom("no_match"),
+                      Variable("_Memo2"),
+                    ]),
                   ]),
                 ],
               ),

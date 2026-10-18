@@ -1,17 +1,21 @@
+import gleam/set
 import gleam/int
 import gleam/list
 import neotoma/ir/mini_erl as a
 import neotoma/ir/norep as g
 
 pub type SuccessCont =
-  fn(a.Expr, String, String) -> List(a.Expr)
+  fn(a.Expr, String, String, String) -> List(a.Expr)
 
 pub type FailCont =
-  fn() -> List(a.Expr)
+  fn(String) -> List(a.Expr)
 
 const advance_fun_name = "advance_position___"
 
-pub fn generate_abstract_module(grammar: g.Grammar) -> List(a.Form) {
+pub fn generate_abstract_module(
+  grammar: g.Grammar,
+  memos: set.Set(String),
+) -> List(a.Form) {
   list.append(
     [
       a.Module(grammar.name),
@@ -19,7 +23,7 @@ pub fn generate_abstract_module(grammar: g.Grammar) -> List(a.Form) {
       generate_string_entrypoint(grammar),
       generate_advance_position(),
     ],
-    list.map(grammar.rules, generate_rule),
+    list.map(grammar.rules, generate_rule(_, memos)),
   )
 }
 
@@ -35,42 +39,191 @@ pub fn generate_string_entrypoint(grammar: g.Grammar) -> a.Form {
           #(a.Atom("line"), a.Integer(1)),
           #(a.Atom("column"), a.Integer(1)),
         ]),
+        a.MapConstructor([]),
       ]),
     ]),
   )
 }
 
-pub fn generate_rule(definition: g.Definition) -> a.Form {
+pub fn generate_rule(definition: g.Definition, memos: set.Set(String)) -> a.Form {
+  let inner =
+    generate_expression(
+      definition.expr,
+      [#("Input", "Position", "Memo")],
+      default_success,
+      default_failure,
+    )
+  let wrapper = case set.contains(memos, definition.name) {
+    True -> {
+      let nt = a.Atom(definition.name)
+
+      [
+        a.Match(
+          a.MapPattern([#(a.AtomPattern("offset"), a.VariablePattern("Offset"))]),
+          a.Variable("Position"),
+        ),
+        a.Case(a.Variable("Memo"), [
+          // #{ {'temp', Offset} := {ok, {MemoResult, MemoRemainder, MemoPosition}} } ->
+          //    {ok, {MemoResult, MemoRemainder, MemoPosition, Memo}};
+          a.CaseClause(
+            a.MapPattern([
+              #(
+                a.TuplePattern([
+                  a.AtomPattern(definition.name),
+                  a.VariablePattern("Offset"),
+                ]),
+                a.TuplePattern([
+                  a.AtomPattern("ok"),
+                  a.TuplePattern([
+                    a.VariablePattern("MemoResult"),
+                    a.VariablePattern("MemoRemainder"),
+                    a.VariablePattern("MemoPosition"),
+                  ]),
+                ]),
+              ),
+            ]),
+            [
+              a.Tuple([
+                a.Atom("ok"),
+                a.Tuple([
+                  a.Variable("MemoResult"),
+                  a.Variable("MemoRemainder"),
+                  a.Variable("MemoPosition"),
+                  a.Variable("Memo"),
+                ]),
+              ]),
+            ],
+          ),
+          a.CaseClause(
+            a.MapPattern([
+              #(
+                a.TuplePattern([
+                  a.AtomPattern(definition.name),
+                  a.VariablePattern("Offset"),
+                ]),
+                a.TuplePattern([
+                  a.AtomPattern("error"),
+                  a.VariablePattern("MemoError"),
+                ]),
+              ),
+            ]),
+            [
+              a.Tuple([
+                a.Atom("error"),
+                a.Tuple([
+                  a.Variable("MemoError"),
+                  a.Variable("Memo"),
+                ]),
+              ]),
+            ],
+          ),
+          a.CaseClause(a.Ignore, [
+            a.Match(a.VariablePattern("ParseResult"), a.Block(inner)),
+            a.Case(a.Variable("ParseResult"), [
+              a.CaseClause(
+                a.TuplePattern([
+                  a.AtomPattern("ok"),
+                  a.TuplePattern([
+                    a.VariablePattern("ParseValue"),
+                    a.VariablePattern("ParseRemainder"),
+                    a.VariablePattern("ParsePosition"),
+                    a.VariablePattern("ParseMemo"),
+                  ]),
+                ]),
+                [
+                  a.Tuple([
+                    a.Atom("ok"),
+                    a.Tuple([
+                      a.Variable("ParseValue"),
+                      a.Variable("ParseRemainder"),
+                      a.Variable("ParsePosition"),
+                      a.MapUpdate(a.Variable("ParseMemo"), [
+                        #(
+                          a.Tuple([
+                            nt,
+                            a.Variable("Offset"),
+                          ]),
+                          a.Tuple([
+                            a.Atom("ok"),
+                            a.Tuple([
+                              a.Variable("ParseValue"),
+                              a.Variable("ParseRemainder"),
+                              a.Variable("ParsePosition"),
+                            ]),
+                          ]),
+                        ),
+                      ]),
+                    ]),
+                  ]),
+                ],
+              ),
+              a.CaseClause(
+                a.TuplePattern([
+                  a.AtomPattern("error"),
+                  a.TuplePattern([
+                    a.VariablePattern("ParseError"),
+                    a.VariablePattern("ParseMemo"),
+                  ]),
+                ]),
+                [
+                  a.Tuple([
+                    a.Atom("error"),
+                    a.Tuple([
+                      a.Variable("ParseError"),
+                      a.MapUpdate(a.Variable("ParseMemo"), [
+                        #(
+                          a.Tuple([
+                            nt,
+                            a.Variable("Offset"),
+                          ]),
+                          a.Tuple([a.Atom("error"), a.Variable("ParseError")]),
+                        ),
+                      ]),
+                    ]),
+                  ]),
+                ],
+              ),
+            ]),
+          ]),
+        ]),
+      ]
+    }
+    False -> inner
+  }
   a.Function(
     definition.name,
     a.FunctionClause(
-      [a.VariablePattern("Input"), a.VariablePattern("Position")],
-      generate_expression(
-        definition.expr,
-        [#("Input", "Position")],
-        default_success,
-        default_failure,
-      ),
+      [
+        a.VariablePattern("Input"),
+        a.VariablePattern("Position"),
+        a.VariablePattern("Memo"),
+      ],
+      wrapper,
     ),
   )
 }
 
-fn default_success(value, remainder, position) {
+fn default_success(value, remainder, position, memo) {
   [
     a.Tuple([
       a.Atom("ok"),
-      a.Tuple([value, a.Variable(remainder), a.Variable(position)]),
+      a.Tuple([
+        value,
+        a.Variable(remainder),
+        a.Variable(position),
+        a.Variable(memo),
+      ]),
     ]),
   ]
 }
 
-fn default_failure() {
-  [a.Tuple([a.Atom("error"), a.Atom("no_match")])]
+fn default_failure(memo) {
+  [a.Tuple([a.Atom("error"), a.Tuple([a.Atom("no_match"), a.Variable(memo)])])]
 }
 
 pub fn generate_expression(
   expr: g.Expression,
-  input_stack: List(#(String, String)),
+  input_stack: List(#(String, String, String)),
   success: SuccessCont,
   failure: FailCont,
 ) -> List(a.Expr) {
@@ -83,12 +236,13 @@ pub fn generate_expression(
 
 pub fn generate_choice(
   choices: List(g.Expression),
-  input_stack: List(#(String, String)),
+  input_stack: List(#(String, String, String)),
   success: SuccessCont,
   failure: FailCont,
 ) -> List(a.Expr) {
+  let assert [#(input, position, memo), ..] = input_stack
   case choices {
-    [] -> failure()
+    [] -> failure(memo)
     [choice] -> generate_expression(choice, input_stack, success, failure)
     [first, ..rest] -> {
       // case first() of
@@ -97,8 +251,13 @@ pub fn generate_choice(
       //      case ... of
       //      %% ...
       // end
-      let failure = fn() {
-        generate_choice(rest, input_stack, success, failure)
+      let failure: FailCont = fn(new_memo) {
+        generate_choice(
+          rest,
+          [#(input, position, new_memo), ..input_stack],
+          success,
+          failure,
+        )
       }
       generate_expression(first, input_stack, success, failure)
     }
@@ -107,20 +266,21 @@ pub fn generate_choice(
 
 pub fn generate_sequence(
   sequence: List(g.Expression),
-  input_stack: List(#(String, String)),
+  input_stack: List(#(String, String, String)),
   success: SuccessCont,
   failure: FailCont,
 ) -> List(a.Expr) {
+  let assert [#(_, _, memo), ..] = input_stack
   case sequence {
-    [] -> failure()
+    [] -> failure(memo)
     [item] -> {
-      let success : SuccessCont = fn(value, remainder, position) {
+      let success: SuccessCont = fn(value, remainder, position, memo) {
         // {ok, {[a, b, c, d], remainder}}
         // [a, b, c, d]
         // [b, c, d]
         // [c, d] <-- [_, d], remainder5
         // [d]
-        success(a.ListExpr([value]), remainder, position)
+        success(a.ListExpr([value]), remainder, position, memo)
       }
       generate_expression(item, input_stack, success, failure)
     }
@@ -132,14 +292,19 @@ pub fn generate_sequence(
       //   {error, _} = Err ->
       //      Err
       // end
-      let expr_success : SuccessCont = fn(value, remainder, position) {
-        let seq_success = fn(seq_value, seq_remainder, seq_position) {
+      let expr_success: SuccessCont = fn(value, remainder, position, new_memo) {
+        let seq_success = fn(seq_value, seq_remainder, seq_position, seq_memo) {
           let assert a.ListExpr(values) = seq_value
-          success(a.ListExpr([value, ..values]), seq_remainder, seq_position)
+          success(
+            a.ListExpr([value, ..values]),
+            seq_remainder,
+            seq_position,
+            seq_memo,
+          )
         }
         generate_sequence(
           rest,
-          [#(remainder, position), ..input_stack],
+          [#(remainder, position, new_memo), ..input_stack],
           seq_success,
           failure,
         )
@@ -151,30 +316,39 @@ pub fn generate_sequence(
 
 fn generate_primary(
   p: g.Primary,
-  input_stack: List(#(String, String)),
+  input_stack: List(#(String, String, String)),
   success: SuccessCont,
   failure: FailCont,
 ) -> List(a.Expr) {
+  let assert [#(input, position, _memo), ..] = input_stack
   case p {
     g.Atomic(a) -> generate_atomic(a, input_stack, success, failure)
     g.Assert(expr) -> {
       // When the expression succeeds, restore the input to the original position
-      let assert [input, ..] = input_stack
-      let success: SuccessCont = fn(_result, _remainder, _position) {
-        success(a.Binary([]), input.0, input.1)
+      let success: SuccessCont = fn(_result, _remainder, _position, assert_memo) {
+        success(a.Binary([]), input, position, assert_memo)
       }
       generate_expression(expr, input_stack, success, failure)
     }
     g.Deny(expr) -> {
       // When the expression fails, restore the input to the original position and continue
-      let assert [input, ..] = input_stack
-      let new_failure: FailCont = fn() { success(a.Binary([]), input.0, input.1) }
-      let new_success: SuccessCont = fn(_result, _remainder, _position) { failure() }
+      let new_failure: FailCont = fn(deny_memo) {
+        success(a.Binary([]), input, position, deny_memo)
+      }
+      let new_success: SuccessCont = fn(
+        _result,
+        _remainder,
+        _position,
+        deny_memo,
+      ) {
+        failure(deny_memo)
+      }
       generate_expression(expr, input_stack, new_success, new_failure)
     }
     g.Optional(expr) -> {
-      let assert [input, ..] = input_stack
-      let failure: FailCont = fn() { success(a.Atom("undefined"), input.0, input.1) }
+      let failure: FailCont = fn(optional_memo) {
+        success(a.Atom("undefined"), input, position, optional_memo)
+      }
       generate_expression(expr, input_stack, success, failure)
     }
   }
@@ -182,32 +356,35 @@ fn generate_primary(
 
 fn generate_atomic(
   atomic: g.Atomic,
-  input_stack: List(#(String, String)),
+  input_stack: List(#(String, String, String)),
   success: SuccessCont,
   failure: FailCont,
 ) -> List(a.Expr) {
   let assert [input, ..] = input_stack
   let remainder = fresh_variable("_Remainder", input_stack)
   let position = fresh_variable("_Position", input_stack)
-  let input_stack = [#(remainder, position), ..input_stack]
+  let memo = fresh_variable("_Memo", input_stack)
+  let error = fresh_variable("_Error", input_stack)
+  let input_stack = [#(remainder, position, memo), ..input_stack]
 
   case atomic {
     g.Nonterminal(name:) -> {
       let result = fresh_variable("_Result", input_stack)
 
-      // case Name(Input) of
-      //   {ok, {Result, Remainder, Position}} ->
-      //      %% success(Result, Remainder, Position)
-      //      {ok, {Result, Remainder, Position}};
-      //   {error, _Error} ->
+      // case Name(Input, Position, Memo) of
+      //   {ok, {Result, Remainder2, Position2, Memo2}} ->
+      //      %% success(Result, Remainder, Position, Memo)
+      //      {ok, {Result, Remainder2, Position2, Memo2}};
+      //   {error, {Error, Memo2}} ->
       //      %% failure()
-      //      {error, no_match}
+      //      {error, {Error, Memo2}}
       // end
       [
         a.Case(
           subject: a.Apply(function: a.LocalFunction(name), arguments: [
             a.Variable(input.0),
             a.Variable(input.1),
+            a.Variable(input.2),
           ]),
           clauses: [
             a.CaseClause(
@@ -217,13 +394,20 @@ fn generate_atomic(
                   a.VariablePattern(result),
                   a.VariablePattern(remainder),
                   a.VariablePattern(position),
+                  a.VariablePattern(memo),
                 ]),
               ]),
-              success(a.Variable(result), remainder, position),
+              success(a.Variable(result), remainder, position, memo),
             ),
             a.CaseClause(
-              a.TuplePattern([a.AtomPattern("error"), a.Ignore]),
-              failure(),
+              a.TuplePattern([
+                a.AtomPattern("error"),
+                a.TuplePattern([
+                  a.VariablePattern(error),
+                  a.VariablePattern(memo),
+                ]),
+              ]),
+              failure(memo),
             ),
           ],
         ),
@@ -236,10 +420,10 @@ fn generate_atomic(
         //    <<Char/utf8, Remainder/bytes>> ->
         //       %% success(..., remainder, position)
         //       Position1 = advance_position___(<<Char/utf8>>, Position),
-        //       {ok, {<<Char/utf8>>, Remainder, Position1}};
+        //       {ok, {<<Char/utf8>>, Remainder, Position1, Memo}};
         //    <<>> ->
         //       %% failure()
-        //       {error, no_match}
+        //       {error, {no_match, Memo}}
         // end
         a.Case(subject: a.Variable(input.0), clauses: [
           a.CaseClause(
@@ -259,10 +443,11 @@ fn generate_atomic(
                 a.Binary([a.BinaryVariable(name: char, types: [a.Utf8])]),
                 remainder,
                 position,
+                input.2,
               )
             ],
           ),
-          a.CaseClause(a.BinaryPattern([]), failure()),
+          a.CaseClause(a.BinaryPattern([]), failure(input.2)),
         ]),
       ]
     }
@@ -294,17 +479,18 @@ fn generate_atomic(
                 a.Binary([a.BinaryStringField(str)]),
                 remainder,
                 position,
+                input.2,
               )
             ],
           ),
-          a.CaseClause(a.Ignore, failure()),
+          a.CaseClause(a.Ignore, failure(input.2)),
         ]),
       ]
     }
     g.Terminal(kind: g.CharacterClass(chars: _)) ->
       panic as "expand_charclasses pass was skipped"
     g.Epsilon -> {
-      success(a.ListExpr([]), input.0, input.1)
+      success(a.ListExpr([]), input.0, input.1, input.2)
     }
   }
 }

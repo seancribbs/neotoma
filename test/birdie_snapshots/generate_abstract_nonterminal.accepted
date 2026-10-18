@@ -30,6 +30,7 @@ test_name: generate_abstract_nonterminal_test
                 Integer(1),
               ),
             ]),
+            MapConstructor([]),
           ],
         ),
       ],
@@ -219,6 +220,7 @@ test_name: generate_abstract_nonterminal_test
       [
         VariablePattern("Input"),
         VariablePattern("Position"),
+        VariablePattern("Memo"),
       ],
       [
         Case(
@@ -251,6 +253,7 @@ test_name: generate_abstract_nonterminal_test
                     [
                       Variable("_Remainder2"),
                       Variable("_Position2"),
+                      Variable("Memo"),
                     ],
                   ),
                   [
@@ -261,6 +264,7 @@ test_name: generate_abstract_nonterminal_test
                           VariablePattern("_Result4"),
                           VariablePattern("_Remainder3"),
                           VariablePattern("_Position3"),
+                          VariablePattern("_Memo3"),
                         ]),
                       ]),
                       [
@@ -304,6 +308,7 @@ test_name: generate_abstract_nonterminal_test
                                     ]),
                                     Variable("_Remainder4"),
                                     Variable("_Position4"),
+                                    Variable("_Memo3"),
                                   ]),
                                 ]),
                               ],
@@ -313,7 +318,10 @@ test_name: generate_abstract_nonterminal_test
                               [
                                 Tuple([
                                   Atom("error"),
-                                  Atom("no_match"),
+                                  Tuple([
+                                    Atom("no_match"),
+                                    Variable("_Memo3"),
+                                  ]),
                                 ]),
                               ],
                             ),
@@ -324,12 +332,18 @@ test_name: generate_abstract_nonterminal_test
                     CaseClause(
                       TuplePattern([
                         AtomPattern("error"),
-                        Ignore,
+                        TuplePattern([
+                          VariablePattern("_Error3"),
+                          VariablePattern("_Memo3"),
+                        ]),
                       ]),
                       [
                         Tuple([
                           Atom("error"),
-                          Atom("no_match"),
+                          Tuple([
+                            Atom("no_match"),
+                            Variable("_Memo3"),
+                          ]),
                         ]),
                       ],
                     ),
@@ -342,7 +356,10 @@ test_name: generate_abstract_nonterminal_test
               [
                 Tuple([
                   Atom("error"),
-                  Atom("no_match"),
+                  Tuple([
+                    Atom("no_match"),
+                    Variable("Memo"),
+                  ]),
                 ]),
               ],
             ),
@@ -357,6 +374,7 @@ test_name: generate_abstract_nonterminal_test
       [
         VariablePattern("Input"),
         VariablePattern("Position"),
+        VariablePattern("Memo"),
       ],
       [
         Case(
@@ -400,6 +418,7 @@ test_name: generate_abstract_nonterminal_test
                     ]),
                     Variable("_Remainder2"),
                     Variable("_Position2"),
+                    Variable("Memo"),
                   ]),
                 ]),
               ],
@@ -409,7 +428,10 @@ test_name: generate_abstract_nonterminal_test
               [
                 Tuple([
                   Atom("error"),
-                  Atom("no_match"),
+                  Tuple([
+                    Atom("no_match"),
+                    Variable("Memo"),
+                  ]),
                 ]),
               ],
             ),

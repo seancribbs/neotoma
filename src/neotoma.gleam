@@ -1,10 +1,11 @@
-import gleam/list
 import gleam/io
+import gleam/list
 import gleam/string
 import neotoma/ir/grammar as g
 import neotoma/passes/concrete_erlang
 import neotoma/passes/expand_charclasses
 import neotoma/passes/expand_repetition
+import neotoma/passes/memo_analysis
 import neotoma/passes/prohibit_indirect_lr
 import neotoma/passes/rewrite_simple_lr
 
@@ -14,28 +15,18 @@ import neotoma/syntax
 
 pub fn main() -> Nil {
   let phase1 =
-    g.Grammar("rewrite_simple_ir_simple_lr", [
+    g.Grammar(name: "generate_abstract_memoization_test", rules: [
       g.Definition(
-        name: "expression",
-        expr: g.Choice([
-          g.Sequence([
-            g.Primary(g.Atomic(g.Nonterminal("expression"))),
-            g.Primary(g.Atomic(g.Terminal(g.String("+")))),
-            g.Primary(g.Atomic(g.Nonterminal("number"))),
-          ]),
-          g.Sequence([
-            g.Primary(g.Atomic(g.Nonterminal("expression"))),
-            g.Primary(g.Atomic(g.Terminal(g.String("-")))),
-            g.Primary(g.Atomic(g.Nonterminal("number"))),
-          ]),
-          g.Primary(g.Atomic(g.Nonterminal("number"))),
+        name: "start",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Terminal(g.String("(")))),
+          g.Primary(g.OneOrMore(g.Primary(g.Atomic(g.Nonterminal("inner"))))),
+          g.Primary(g.Atomic(g.Terminal(g.String(")")))),
         ]),
       ),
       g.Definition(
-        name: "number",
-        expr: g.Primary(
-          g.Atomic(g.Terminal(g.CharacterClass([g.CharacterRange("0", "9")]))),
-        ),
+        name: "inner",
+        expr: g.Primary(g.Atomic(g.Terminal(g.Anything))),
       ),
     ])
     |> expand_charclasses.expand_charclasses
@@ -46,13 +37,16 @@ pub fn main() -> Nil {
   case phase1 {
     Ok(g) ->
       g
-      |> generate_abstract.generate_abstract_module
+      |> generate_abstract.generate_abstract_module(memo_analysis.memo_analysis(
+        g,
+      ))
       |> concrete_erlang.lower
       |> syntax.format
       |> io.println
 
     Error(prohibit_indirect_lr.CyclesDetected(cycles)) -> {
-      let cycles = list.map(cycles, string.join(_, " -> ")) |> string.join("\n  ")
+      let cycles =
+        list.map(cycles, string.join(_, " -> ")) |> string.join("\n  ")
       io.print_error(
         "Indirect left-recursion detected in grammar:\n  " <> cycles <> "\n",
       )

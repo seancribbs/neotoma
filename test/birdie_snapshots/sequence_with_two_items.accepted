@@ -66,6 +66,7 @@ test_name: generate_abstract_two_primary_sequence_test
                       ]),
                       Variable("_Remainder3"),
                       Variable("_Position3"),
+                      Variable("Memo"),
                     ]),
                   ]),
                 ],
@@ -75,7 +76,10 @@ test_name: generate_abstract_two_primary_sequence_test
                 [
                   Tuple([
                     Atom("error"),
-                    Atom("no_match"),
+                    Tuple([
+                      Atom("no_match"),
+                      Variable("Memo"),
+                    ]),
                   ]),
                 ],
               ),
@@ -88,7 +92,10 @@ test_name: generate_abstract_two_primary_sequence_test
         [
           Tuple([
             Atom("error"),
-            Atom("no_match"),
+            Tuple([
+              Atom("no_match"),
+              Variable("Memo"),
+            ]),
           ]),
         ],
       ),

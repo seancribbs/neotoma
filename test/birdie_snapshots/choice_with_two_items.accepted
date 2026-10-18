@@ -37,6 +37,7 @@ test_name: generate_abstract_two_item_choice_test
               ]),
               Variable("_Remainder2"),
               Variable("_Position2"),
+              Variable("Memo"),
             ]),
           ]),
         ],
@@ -51,13 +52,13 @@ test_name: generate_abstract_two_item_choice_test
                 BinaryPattern([
                   BinaryStringField("rocks"),
                   BinaryVariable(
-                    "_Remainder2",
+                    "_Remainder3",
                     [Bytes],
                   ),
                 ]),
                 [
                   Match(
-                    VariablePattern("_Position2"),
+                    VariablePattern("_Position3"),
                     Apply(
                       LocalFunction("advance_position___"),
                       [
@@ -74,8 +75,9 @@ test_name: generate_abstract_two_item_choice_test
                       Binary([
                         BinaryStringField("rocks"),
                       ]),
-                      Variable("_Remainder2"),
-                      Variable("_Position2"),
+                      Variable("_Remainder3"),
+                      Variable("_Position3"),
+                      Variable("Memo"),
                     ]),
                   ]),
                 ],
@@ -85,7 +87,10 @@ test_name: generate_abstract_two_item_choice_test
                 [
                   Tuple([
                     Atom("error"),
-                    Atom("no_match"),
+                    Tuple([
+                      Atom("no_match"),
+                      Variable("Memo"),
+                    ]),
                   ]),
                 ],
               ),

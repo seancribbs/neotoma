@@ -23,6 +23,7 @@ pub type Expr {
   MapUpdate(target: Expr, fields: List(#(Expr, Expr)))
   Infix(left: Expr, op: InfixOp, right: Expr)
   Match(left: Pattern, right: Expr)
+  Block(List(Expr))
 }
 
 pub type InfixOp {

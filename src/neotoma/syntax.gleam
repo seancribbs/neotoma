@@ -115,3 +115,6 @@ pub fn infix_expr(left: SyntaxTree, op: SyntaxTree, right: SyntaxTree) -> Syntax
 
 @external(erlang, "neotoma_ffi", "plus")
 pub fn plus_operator() -> SyntaxTree
+
+@external(erlang, "erl_syntax", "block_expr")
+pub fn block_expr(exprs: List(SyntaxTree)) -> SyntaxTree

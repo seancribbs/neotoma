@@ -64,6 +64,7 @@ test_name: generate_abstract_assert_lookahead_test
                       ]),
                       Variable("_Remainder3"),
                       Variable("_Position3"),
+                      Variable("Memo"),
                     ]),
                   ]),
                 ],
@@ -78,13 +79,13 @@ test_name: generate_abstract_assert_lookahead_test
                         BinaryPattern([
                           BinaryStringField("neon"),
                           BinaryVariable(
-                            "_Remainder3",
+                            "_Remainder4",
                             [Bytes],
                           ),
                         ]),
                         [
                           Match(
-                            VariablePattern("_Position3"),
+                            VariablePattern("_Position4"),
                             Apply(
                               LocalFunction("advance_position___"),
                               [
@@ -105,8 +106,9 @@ test_name: generate_abstract_assert_lookahead_test
                                   BinaryStringField("neon"),
                                 ]),
                               ]),
-                              Variable("_Remainder3"),
-                              Variable("_Position3"),
+                              Variable("_Remainder4"),
+                              Variable("_Position4"),
+                              Variable("Memo"),
                             ]),
                           ]),
                         ],
@@ -116,7 +118,10 @@ test_name: generate_abstract_assert_lookahead_test
                         [
                           Tuple([
                             Atom("error"),
-                            Atom("no_match"),
+                            Tuple([
+                              Atom("no_match"),
+                              Variable("Memo"),
+                            ]),
                           ]),
                         ],
                       ),
@@ -133,7 +138,10 @@ test_name: generate_abstract_assert_lookahead_test
         [
           Tuple([
             Atom("error"),
-            Atom("no_match"),
+            Tuple([
+              Atom("no_match"),
+              Variable("Memo"),
+            ]),
           ]),
         ],
       ),

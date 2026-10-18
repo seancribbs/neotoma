@@ -1,3 +1,4 @@
+import gleam/set
 import birdie
 import neotoma/ir/mini_erl as a
 import neotoma/ir/norep as g
@@ -30,7 +31,7 @@ pub fn generate_abstract_simple_sequence_test() {
 
   gen.generate_sequence(
     seq,
-    [#("Input", "Position")],
+    [#("Input", "Position", "Memo")],
     default_success,
     default_failure,
   )
@@ -81,7 +82,7 @@ pub fn generate_abstract_two_primary_sequence_test() {
 
   gen.generate_sequence(
     seq,
-    [#("Input", "Position")],
+    [#("Input", "Position", "Memo")],
     default_success,
     default_failure,
   )
@@ -116,7 +117,7 @@ pub fn generate_abstract_simple_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, [#("Input", "Position")], default_success, default_failure)
+  gen.generate_choice(choices, [#("Input", "Position", "Memo")], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with one item")
 }
@@ -148,7 +149,7 @@ pub fn generate_abstract_two_item_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, [#("Input", "Position")], default_success, default_failure)
+  gen.generate_choice(choices, [#("Input", "Position", "Memo")], default_success, default_failure)
   |> pprint.format
   |> birdie.snap(title: "choice with two items")
 }
@@ -169,7 +170,7 @@ pub fn generate_abstract_nonterminal_test() {
         expr: g.Primary(g.Atomic(g.Terminal(g.Anything))),
       ),
     ])
-  gen.generate_abstract_module(g)
+  gen.generate_abstract_module(g, set.new())
   |> pprint.format
   |> birdie.snap(title: "generate abstract nonterminal")
 }
@@ -187,7 +188,7 @@ pub fn generate_abstract_assert_lookahead_test() {
 
   gen.generate_expression(
     expr,
-    [#("Input", "Position")],
+    [#("Input", "Position", "Memo")],
     default_success,
     default_failure,
   )
@@ -205,7 +206,7 @@ pub fn generate_abstract_deny_lookahead_test() {
 
   gen.generate_expression(
     expr,
-    [#("Input", "Position")],
+    [#("Input", "Position", "Memo")],
     default_success,
     default_failure,
   )
@@ -222,7 +223,7 @@ pub fn generate_abstract_optional_test() {
 
   gen.generate_expression(
     expr,
-    [#("Input", "Position")],
+    [#("Input", "Position", "Memo")],
     default_success,
     default_failure,
   )
@@ -230,15 +231,42 @@ pub fn generate_abstract_optional_test() {
   |> birdie.snap(title: "generate abstract optional")
 }
 
-fn default_success(value, remainder, position) {
+pub fn generate_abstract_memoization_test() {
+  let g =
+    g.Grammar(name: "generate_abstract_memoization_test", rules: [
+      g.Definition(
+        name: "start",
+        expr: g.Sequence([
+          g.Primary(g.Atomic(g.Terminal(g.String("(")))),
+          g.Primary(g.Atomic(g.Nonterminal("inner_plus"))),
+          g.Primary(g.Atomic(g.Terminal(g.String(")")))),
+        ]),
+      ),
+      g.Definition(
+        name: "inner_plus",
+        expr: g.Choice([
+          g.Sequence([
+            g.Primary(g.Atomic(g.Terminal(g.Anything))),
+            g.Primary(g.Atomic(g.Nonterminal("inner_plus")))
+          ]),
+          g.Primary(g.Atomic(g.Terminal(g.Anything)))
+        ]),
+      ),
+    ])
+  gen.generate_abstract_module(g, set.from_list(["inner_plus"]))
+  |> pprint.format
+  |> birdie.snap(title: "generate abstract memoization")
+}
+
+fn default_success(value, remainder, position, memo) {
   [
     a.Tuple([
       a.Atom("ok"),
-      a.Tuple([value, a.Variable(remainder), a.Variable(position)]),
+      a.Tuple([value, a.Variable(remainder), a.Variable(position), a.Variable(memo)]),
     ]),
   ]
 }
 
-fn default_failure() {
-  [a.Tuple([a.Atom("error"), a.Atom("no_match")])]
+fn default_failure(memo) {
+  [a.Tuple([a.Atom("error"), a.Tuple([a.Atom("no_match"), a.Variable(memo)])])]
 }

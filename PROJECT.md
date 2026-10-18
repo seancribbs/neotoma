@@ -22,7 +22,9 @@
     - [X] Inline simple, non-recursive non-terminals
   - [X] Memoization analysis and virtual inlining
 - [X] Position tracking
-- [ ] Memoization table
+- [X] Memoization table
+      `#{ {NT, Offset} => {ok, {Result, Remainder, Position}} | {error, no_match} }`
+      `#{ {NT, Offset} => {Result, Position} | {error, no_match} }` (manually advance input by byte-slice the head off)
 - [X] Erlang code generation
 - [ ] Code support
   - [ ] User-defined sub-expression bindings ("labels->variables")

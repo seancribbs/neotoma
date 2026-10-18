@@ -68,8 +68,11 @@ fn lower_expr(expr: a.Expr) -> syntax.SyntaxTree {
           syntax.map_field_assign(lower_expr(key), lower_expr(value))
         }),
       )
-    a.Infix(left:, op:, right:) -> syntax.infix_expr(lower_expr(left), lower_infix_op(op), lower_expr(right))
-    a.Match(left:, right:) -> syntax.match_expr(lower_pattern(left), lower_expr(right))
+    a.Infix(left:, op:, right:) ->
+      syntax.infix_expr(lower_expr(left), lower_infix_op(op), lower_expr(right))
+    a.Match(left:, right:) ->
+      syntax.match_expr(lower_pattern(left), lower_expr(right))
+    a.Block(exprs) -> syntax.block_expr(list.map(exprs, lower_expr))
   }
 }
 
