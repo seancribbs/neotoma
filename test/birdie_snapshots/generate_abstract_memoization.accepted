@@ -12,25 +12,65 @@ test_name: generate_abstract_memoization_test
     FunctionClause(
       [VariablePattern("Input")],
       [
-        Apply(
-          LocalFunction("start"),
+        Case(
+          Apply(
+            LocalFunction("start"),
+            [
+              Variable("Input"),
+              MapConstructor([
+                #(
+                  Atom("offset"),
+                  Integer(0),
+                ),
+                #(
+                  Atom("line"),
+                  Integer(1),
+                ),
+                #(
+                  Atom("column"),
+                  Integer(1),
+                ),
+              ]),
+              MapConstructor([]),
+            ],
+          ),
           [
-            Variable("Input"),
-            MapConstructor([
-              #(
-                Atom("offset"),
-                Integer(0),
-              ),
-              #(
-                Atom("line"),
-                Integer(1),
-              ),
-              #(
-                Atom("column"),
-                Integer(1),
-              ),
-            ]),
-            MapConstructor([]),
+            CaseClause(
+              TuplePattern([
+                AtomPattern("ok"),
+                TuplePattern([
+                  VariablePattern("Result"),
+                  VariablePattern("Remainder"),
+                  VariablePattern("Position"),
+                  Ignore,
+                ]),
+              ]),
+              [
+                Tuple([
+                  Atom("ok"),
+                  Tuple([
+                    Variable("Result"),
+                    Variable("Remainder"),
+                    Variable("Position"),
+                  ]),
+                ]),
+              ],
+            ),
+            CaseClause(
+              TuplePattern([
+                AtomPattern("error"),
+                TuplePattern([
+                  VariablePattern("Error"),
+                  Ignore,
+                ]),
+              ]),
+              [
+                Tuple([
+                  Atom("error"),
+                  Variable("Error"),
+                ]),
+              ],
+            ),
           ],
         ),
       ],

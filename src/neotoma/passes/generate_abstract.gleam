@@ -1,6 +1,6 @@
-import gleam/set
 import gleam/int
 import gleam/list
+import gleam/set
 import neotoma/ir/mini_erl as a
 import neotoma/ir/norep as g
 
@@ -29,23 +29,65 @@ pub fn generate_abstract_module(
 
 pub fn generate_string_entrypoint(grammar: g.Grammar) -> a.Form {
   let assert [g.Definition(name:, ..), ..] = grammar.rules
+  let subject =
+    a.Apply(a.LocalFunction(name), [
+      a.Variable("Input"),
+      a.MapConstructor([
+        #(a.Atom("offset"), a.Integer(0)),
+        #(a.Atom("line"), a.Integer(1)),
+        #(a.Atom("column"), a.Integer(1)),
+      ]),
+      a.MapConstructor([]),
+    ])
   a.Function(
     "string",
     a.FunctionClause([a.VariablePattern("Input")], [
-      a.Apply(a.LocalFunction(name), [
-        a.Variable("Input"),
-        a.MapConstructor([
-          #(a.Atom("offset"), a.Integer(0)),
-          #(a.Atom("line"), a.Integer(1)),
-          #(a.Atom("column"), a.Integer(1)),
-        ]),
-        a.MapConstructor([]),
+      a.Case(subject, [
+        a.CaseClause(
+          a.TuplePattern([
+            a.AtomPattern("ok"),
+            a.TuplePattern([
+              a.VariablePattern("Result"),
+              a.VariablePattern("Remainder"),
+              a.VariablePattern("Position"),
+              a.Ignore,
+            ]),
+          ]),
+          [
+            a.Tuple([
+              a.Atom("ok"),
+              a.Tuple([
+                a.Variable("Result"),
+                a.Variable("Remainder"),
+                a.Variable("Position"),
+              ]),
+            ]),
+          ],
+        ),
+        a.CaseClause(
+          a.TuplePattern([
+            a.AtomPattern("error"),
+            a.TuplePattern([
+              a.VariablePattern("Error"),
+              a.Ignore,
+            ]),
+          ]),
+          [
+            a.Tuple([
+              a.Atom("error"),
+              a.Variable("Error"),
+            ]),
+          ],
+        ),
       ]),
     ]),
   )
 }
 
-pub fn generate_rule(definition: g.Definition, memos: set.Set(String)) -> a.Form {
+pub fn generate_rule(
+  definition: g.Definition,
+  memos: set.Set(String),
+) -> a.Form {
   let inner =
     generate_expression(
       definition.expr,
