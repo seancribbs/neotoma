@@ -12,15 +12,34 @@ Grammar(
     Definition(
       "seq_a_dot_star",
       Choice([
-        Sequence([
-          Sequence([
-            Primary(Atomic(Terminal(String("a")))),
-            Primary(Atomic(Terminal(Anything))),
-          ]),
-          Primary(Atomic(Nonterminal("seq_a_dot_star"))),
-        ]),
-        Primary(Atomic(Epsilon)),
+        Sequence(
+          [
+            Primary(Labeled(
+              Sequence(
+                [
+                  Primary(Atomic(Terminal(String("a")))),
+                  Primary(Atomic(Terminal(Anything))),
+                ],
+                None,
+              ),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("seq_a_dot_star"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [Primary(Atomic(Epsilon))],
+          Some(Generated(ListExpr([]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

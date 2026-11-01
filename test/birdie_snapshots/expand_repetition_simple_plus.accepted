@@ -12,12 +12,35 @@ Grammar(
     Definition(
       "neotoma_plus",
       Choice([
-        Sequence([
-          Primary(Atomic(Terminal(String("neotoma")))),
-          Primary(Atomic(Nonterminal("neotoma_plus"))),
-        ]),
-        Primary(Atomic(Terminal(String("neotoma")))),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(String("neotoma")))),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("neotoma_plus"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(String("neotoma")))),
+              "Item",
+            )),
+          ],
+          Some(Generated(ListExpr([
+            Variable("Item"),
+          ]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

@@ -1,3 +1,4 @@
+import gleam/option
 import neotoma/ir/norep as g
 import neotoma/passes/prohibit_indirect_lr
 
@@ -16,10 +17,10 @@ pub fn prohibit_indirect_lr_simple_test() {
         g.Sequence([
           g.Primary(g.Atomic(g.Nonterminal("a"))),
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Error(prohibit_indirect_lr.CyclesDetected([["a", "b", "a"]]))
     == prohibit_indirect_lr.prohibit_indirect_lr(input)
@@ -41,10 +42,10 @@ pub fn prohibit_indirect_lr_lookahead_test() {
         g.Sequence([
           g.Primary(g.Assert(g.Primary(g.Atomic(g.Nonterminal("a"))))),
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Error(prohibit_indirect_lr.CyclesDetected([["a", "b", "a"]]))
     == prohibit_indirect_lr.prohibit_indirect_lr(input)
@@ -63,10 +64,10 @@ pub fn prohibit_indirect_lr_lookahead_test() {
         g.Sequence([
           g.Primary(g.Deny(g.Primary(g.Atomic(g.Nonterminal("a"))))),
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Error(prohibit_indirect_lr.CyclesDetected([["a", "b", "a"]]))
     == prohibit_indirect_lr.prohibit_indirect_lr(input)
@@ -87,10 +88,10 @@ pub fn prohibit_indirect_lr_optional_test() {
         g.Sequence([
           g.Primary(g.Optional(g.Primary(g.Atomic(g.Nonterminal("a"))))),
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Error(prohibit_indirect_lr.CyclesDetected([["a", "b", "a"]]))
     == prohibit_indirect_lr.prohibit_indirect_lr(input)
@@ -112,10 +113,10 @@ pub fn prohibit_indirect_lr_right_recursion_allowed_test() {
         g.Sequence([
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
           g.Primary(g.Atomic(g.Nonterminal("a"))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Ok(input) == prohibit_indirect_lr.prohibit_indirect_lr(input)
 }
@@ -136,10 +137,10 @@ pub fn prohibit_indirect_lr_multiple_choice_test() {
         g.Sequence([
           g.Primary(g.Atomic(g.Nonterminal("a"))),
           g.Primary(g.Atomic(g.Terminal(g.String(".")))),
-        ]),
+        ], option.None),
       ),
       g.Definition("c", g.Primary(g.Atomic(g.Terminal(g.String("foo"))))),
-    ])
+    ], option.None)
 
   assert Error(prohibit_indirect_lr.CyclesDetected([["a", "b", "a"]]))
     == prohibit_indirect_lr.prohibit_indirect_lr(input)

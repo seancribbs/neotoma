@@ -1,0 +1,58 @@
+---
+version: 2.0.2
+title: process_code_blocks_parses_inline_code_test
+---
+Grammar(
+  "process_code_blocks_parses_inline_code_test",
+  [
+    Definition(
+      "start",
+      Sequence(
+        [
+          Primary(Atomic(Terminal(String("(")))),
+          Primary(Labeled(
+            Primary(Atomic(Nonterminal("inner_plus"))),
+            "Inner",
+          )),
+          Primary(Atomic(Terminal(String(")")))),
+        ],
+        Some(Parsed([
+          Var(1, atom.create("Inner")),
+        ])),
+      ),
+    ),
+    Definition(
+      "inner_plus",
+      Choice([
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(Anything))),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("inner_plus"))),
+              "Tail",
+            )),
+          ],
+          Some(GeneratedCode(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(Anything))),
+              "Item",
+            )),
+          ],
+          Some(GeneratedCode(ListExpr([
+            Variable("Item"),
+          ]))),
+        ),
+      ]),
+    ),
+  ],
+  None,
+)

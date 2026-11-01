@@ -1,8 +1,10 @@
 import gleam/int
 import gleam/list
+import gleam/option
 import gleam/set
+import neotoma/code
 import neotoma/ir/mini_erl as a
-import neotoma/ir/norep as g
+import neotoma/ir/norep_code as g
 
 pub type SuccessCont =
   fn(a.Expr, String, String, String) -> List(a.Expr)
@@ -16,15 +18,17 @@ pub fn generate_abstract_module(
   grammar: g.Grammar,
   memos: set.Set(String),
 ) -> List(a.Form) {
-  list.append(
-    [
-      a.Module(grammar.name),
-      a.Export([#("string", 1)]),
-      generate_string_entrypoint(grammar),
-      generate_advance_position(),
-    ],
-    list.map(grammar.rules, generate_rule(_, memos)),
-  )
+  let module_attrs = [a.Module(grammar.name), a.Export([#("string", 1)])]
+  let user_code = case grammar.top_level_code {
+    option.Some(code.TopLevelCode(syntax_trees)) -> [a.ParsedForm(syntax_trees)]
+    option.None -> []
+  }
+  let funs = [
+    generate_string_entrypoint(grammar),
+    generate_advance_position(),
+  ]
+  let rules = list.map(grammar.rules, generate_rule(_, memos))
+  list.flatten([module_attrs, user_code, funs, rules])
 }
 
 pub fn generate_string_entrypoint(grammar: g.Grammar) -> a.Form {
@@ -271,7 +275,22 @@ pub fn generate_expression(
 ) -> List(a.Expr) {
   case expr {
     g.Primary(p) -> generate_primary(p, input_stack, success, failure)
-    g.Sequence(list) -> generate_sequence(list, input_stack, success, failure)
+    g.Sequence(list, code) -> {
+      let success =
+        code
+        |> option.map(fn(parsed_code) {
+          fn(_values, remainder, position, memo) {
+            case parsed_code {
+              code.Parsed(parsed) ->
+                success(a.ParsedExpr(parsed), remainder, position, memo)
+              code.GeneratedCode(generated) ->
+                success(generated, remainder, position, memo)
+            }
+          }
+        })
+        |> option.unwrap(success)
+      generate_sequence(list, input_stack, success, failure)
+    }
     g.Choice(choices) -> generate_choice(choices, input_stack, success, failure)
   }
 }
@@ -317,7 +336,7 @@ pub fn generate_sequence(
     [] -> failure(memo)
     [item] -> {
       let success: SuccessCont = fn(value, remainder, position, memo) {
-        // {ok, {[a, b, c, d], remainder}}
+        // {ok, {[a, b, c, d], remainder, position, memo}}
         // [a, b, c, d]
         // [b, c, d]
         // [c, d] <-- [_, d], remainder5
@@ -390,6 +409,17 @@ fn generate_primary(
     g.Optional(expr) -> {
       let failure: FailCont = fn(optional_memo) {
         success(a.Atom("undefined"), input, position, optional_memo)
+      }
+      generate_expression(expr, input_stack, success, failure)
+    }
+    g.Labeled(expr, binding) -> {
+      let success: SuccessCont = fn(result, remainder, position, memo) {
+        [
+          a.Block([
+            a.Match(a.VariablePattern(binding), result),
+            ..success(a.Variable(binding), remainder, position, memo)
+          ]),
+        ]
       }
       generate_expression(expr, input_stack, success, failure)
     }

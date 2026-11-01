@@ -12,15 +12,31 @@ Grammar(
     Definition(
       "a_to_z@_star",
       Choice([
-        Sequence([
-          Primary(Atomic(Terminal(CharacterClass([
-            CharacterRange("a", "z"),
-            SingleCharacter("@"),
-          ])))),
-          Primary(Atomic(Nonterminal("a_to_z@_star"))),
-        ]),
-        Primary(Atomic(Epsilon)),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(CharacterClass([
+                CharacterRange("a", "z"),
+                SingleCharacter("@"),
+              ])))),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("a_to_z@_star"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [Primary(Atomic(Epsilon))],
+          Some(Generated(ListExpr([]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

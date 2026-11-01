@@ -1,24 +1,29 @@
+import gleam/option
 import neotoma/ir/grammar as g
 import neotoma/passes/expand_charclasses
 
 pub fn expand_charclasses_single_chars_test() {
   // punct <- [_-]
   let g1 =
-    g.Grammar("punct", [
-      g.Definition(
-        "punct",
-        g.Primary(
-          g.Atomic(
-            g.Terminal(
-              kind: g.CharacterClass([
-                g.SingleCharacter("_"),
-                g.SingleCharacter("-"),
-              ]),
+    g.Grammar(
+      name: "punct",
+      rules: [
+        g.Definition(
+          "punct",
+          g.Primary(
+            g.Atomic(
+              g.Terminal(
+                kind: g.CharacterClass([
+                  g.SingleCharacter("_"),
+                  g.SingleCharacter("-"),
+                ]),
+              ),
             ),
           ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
 
   let g2 = expand_charclasses.expand_charclasses(g1)
   assert g2
@@ -30,7 +35,7 @@ pub fn expand_charclasses_single_chars_test() {
           g.Primary(g.Atomic(g.Terminal(g.String("-")))),
         ]),
       ),
-    ])
+    ], option.None)
 }
 
 pub fn expand_charclasses_single_range_test() {
@@ -45,7 +50,7 @@ pub fn expand_charclasses_single_range_test() {
           ),
         ),
       ),
-    ])
+    ], option.None)
 
   let g2 = expand_charclasses.expand_charclasses(g1)
   assert g2
@@ -57,7 +62,7 @@ pub fn expand_charclasses_single_range_test() {
           g.Primary(g.Atomic(g.Terminal(g.String("a")))),
         ]),
       ),
-    ])
+    ], option.None)
 }
 
 pub fn expand_charclasses_ranges_and_chars_test() {
@@ -78,7 +83,7 @@ pub fn expand_charclasses_ranges_and_chars_test() {
           ),
         ),
       ),
-    ])
+    ], option.None)
 
   let g2 = expand_charclasses.expand_charclasses(g1)
   assert g2
@@ -92,5 +97,5 @@ pub fn expand_charclasses_ranges_and_chars_test() {
           g.Primary(g.Atomic(g.Terminal(g.String("+")))),
         ]),
       ),
-    ])
+    ], option.None)
 }

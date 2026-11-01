@@ -1,5 +1,8 @@
 //// The IR of the input grammar
 
+import gleam/option
+import neotoma/code
+
 /// The kinds of all concrete syntax elements.
 ///
 /// All terminals are in UTF-8 encoding. If we want to
@@ -22,7 +25,11 @@ pub type CharacterClassEntry {
 
 /// Grammar contains all rules of the language
 pub type Grammar {
-  Grammar(name: String, rules: List(Definition))
+  Grammar(
+    name: String,
+    rules: List(Definition),
+    top_level_code: option.Option(String),
+  )
 }
 
 /// Definitions define the way that nonterminals are produced
@@ -32,8 +39,8 @@ pub type Definition {
 
 /// A single parsing expression
 pub type Expression {
-  Primary(Primary)
-  Sequence(List(Expression))
+  Primary(primary: Primary)
+  Sequence(exprs: List(Expression), code: option.Option(code.Code))
   Choice(List(Expression))
 }
 
@@ -52,6 +59,8 @@ pub type Primary {
   ZeroOrMore(Expression)
   // one-or-more repetition (+)
   OneOrMore(Expression)
+  // expression labeled with a binding
+  Labeled(expr: Expression, binding: String)
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression

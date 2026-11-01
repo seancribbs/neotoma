@@ -70,7 +70,8 @@ fn cost_of(
         True -> Infinite
         False -> {
           case find_definition(vnts, name) {
-            Ok(def) -> add_cost(Discrete(1), cost_of(vnts, [def.name, ..ns], def.expr))
+            Ok(def) ->
+              add_cost(Discrete(1), cost_of(vnts, [def.name, ..ns], def.expr))
             Error(_) -> Discrete(1)
           }
         }
@@ -83,8 +84,9 @@ fn cost_of(
     g.Primary(g.Atomic(g.Epsilon)) -> Discrete(0)
     g.Primary(g.Optional(expression))
     | g.Primary(g.Deny(expression))
-    | g.Primary(g.Assert(expression)) -> cost_of(vnts, ns, expression)
-    g.Choice(items) | g.Sequence(items) ->
+    | g.Primary(g.Assert(expression))
+    | g.Primary(g.Labeled(expression, _)) -> cost_of(vnts, ns, expression)
+    g.Choice(items) | g.Sequence(items, _) ->
       list.fold(items, Discrete(1), fn(sum, item) {
         add_cost(sum, cost_of(vnts, ns, item))
       })

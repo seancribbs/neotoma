@@ -4,17 +4,24 @@
 /// See thesis, 4.2.2 Rewriting Iterative Rules
 import gleam/dict
 import gleam/list
+import gleam/option
 import gleam/pair
 import gleam/string
 import gleam/string_tree
+import neotoma/code
 import neotoma/ir/grammar as g
+import neotoma/ir/mini_erl
 import neotoma/ir/norep
 
 pub fn expand_repetition(input: g.Grammar) -> norep.Grammar {
   input.rules
   |> list.flat_map(expand_repetition_declaration)
   |> prune_duplicates()
-  |> norep.Grammar(name: input.name, rules: _)
+  |> norep.Grammar(
+    name: input.name,
+    rules: _,
+    top_level_code: input.top_level_code,
+  )
 }
 
 fn prune_duplicates(defs: List(norep.Definition)) -> List(norep.Definition) {
@@ -49,15 +56,18 @@ fn expand_repetition_expr(
   expr: g.Expression,
 ) -> #(norep.Expression, List(norep.Definition)) {
   case expr {
-    g.Primary(primary) ->
-      expand_repetition_primary(primary) |> pair.map_first(norep.Primary)
-    g.Sequence(exprs) -> {
+    g.Primary(primary:) -> {
+      primary
+      |> expand_repetition_primary
+      |> pair.map_first(norep.Primary)
+    }
+    g.Sequence(exprs, code) -> {
       let #(expansions, exprs) =
         list.map_fold(exprs, [], fn(expansions, expr) {
           let #(expr, expansions2) = expand_repetition_expr(expr)
           #(list.append(expansions2, expansions), expr)
         })
-      #(norep.Sequence(exprs), expansions)
+      #(norep.Sequence(exprs, code), expansions)
     }
     g.Choice(exprs) -> {
       let #(expansions, exprs) =
@@ -94,12 +104,27 @@ fn expand_repetition_primary(
         norep.Definition(
           name:,
           expr: norep.Choice([
-            // TODO: Attach inline code that produces the cons-list
-            norep.Sequence([
-              expr,
-              norep.Primary(norep.Atomic(norep.Nonterminal(name))),
-            ]),
-            norep.Primary(norep.Atomic(norep.Epsilon)),
+            norep.Sequence(
+              [
+                norep.Primary(norep.Labeled(expr, "Head")),
+                norep.Primary(norep.Labeled(
+                  norep.Primary(norep.Atomic(norep.Nonterminal(name))),
+                  "Tail",
+                )),
+              ],
+              option.Some(
+                code.Generated(mini_erl.Cons(
+                  mini_erl.Variable("Head"),
+                  mini_erl.Variable("Tail"),
+                )),
+              ),
+            ),
+            norep.Sequence(
+              [
+                norep.Primary(norep.Atomic(norep.Epsilon)),
+              ],
+              option.Some(code.Generated(mini_erl.ListExpr([]))),
+            ),
           ]),
         )
       #(norep.Atomic(norep.Nonterminal(name)), [star, ..expansions])
@@ -111,15 +136,35 @@ fn expand_repetition_primary(
         norep.Definition(
           name:,
           expr: norep.Choice([
-            // TODO: Attach inline code that produces the cons-list
-            norep.Sequence([
-              expr,
-              norep.Primary(norep.Atomic(norep.Nonterminal(name))),
-            ]),
-            expr,
+            norep.Sequence(
+              [
+                norep.Primary(norep.Labeled(expr, "Head")),
+                norep.Primary(norep.Labeled(
+                  norep.Primary(norep.Atomic(norep.Nonterminal(name))),
+                  "Tail",
+                )),
+              ],
+              option.Some(
+                code.Generated(mini_erl.Cons(
+                  mini_erl.Variable("Head"),
+                  mini_erl.Variable("Tail"),
+                )),
+              ),
+            ),
+            norep.Sequence(
+              [norep.Primary(norep.Labeled(expr, "Item"))],
+              option.Some(
+                code.Generated(mini_erl.ListExpr([mini_erl.Variable("Item")])),
+              ),
+            ),
           ]),
         )
       #(norep.Atomic(norep.Nonterminal(name)), [plus, ..expansions])
+    }
+    g.Labeled(expr:, binding:) -> {
+      expr
+      |> expand_repetition_expr
+      |> pair.map_first(norep.Labeled(_, binding))
     }
   }
 }
@@ -152,7 +197,7 @@ fn generate_rule_name(expr: g.Expression, suffix: String) -> String {
 fn generate_rule_name_expr(expr: g.Expression) -> string_tree.StringTree {
   case expr {
     g.Primary(prim) -> generate_rule_name_primary(prim)
-    g.Sequence(exprs) ->
+    g.Sequence(exprs, _) ->
       exprs
       |> list.map(generate_rule_name_expr)
       |> string_tree.join("_")
@@ -177,6 +222,8 @@ fn generate_rule_name_primary(prim: g.Primary) -> string_tree.StringTree {
       generate_rule_name_expr(expr) |> string_tree.append("_star")
     g.OneOrMore(expr) ->
       generate_rule_name_expr(expr) |> string_tree.append("_plus")
+    g.Labeled(expr, _label) ->
+      generate_rule_name_expr(expr)
   }
 }
 

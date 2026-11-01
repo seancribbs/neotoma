@@ -1,4 +1,5 @@
 import birdie
+import gleam/option
 import neotoma/ir/grammar as g
 import neotoma/passes/expand_repetition
 import pprint
@@ -6,14 +7,18 @@ import pprint
 pub fn expand_repetition_simple_star_test() {
   let name = "expand_repetition_simple_star"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Primary(
-          g.ZeroOrMore(g.Primary(g.Atomic(g.Terminal(g.String("neotoma"))))),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Primary(
+            g.ZeroOrMore(g.Primary(g.Atomic(g.Terminal(g.String("neotoma"))))),
+          ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition
@@ -24,14 +29,18 @@ pub fn expand_repetition_simple_star_test() {
 pub fn expand_repetition_simple_plus_test() {
   let name = "expand_repetition_simple_plus"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Primary(
-          g.OneOrMore(g.Primary(g.Atomic(g.Terminal(g.String("neotoma"))))),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Primary(
+            g.OneOrMore(g.Primary(g.Atomic(g.Terminal(g.String("neotoma"))))),
+          ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition
@@ -42,19 +51,24 @@ pub fn expand_repetition_simple_plus_test() {
 pub fn expand_repetition_sequence_star_test() {
   let name = "expand_repetition_sequence_star"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Primary(
-          g.ZeroOrMore(
-            g.Sequence([
-              g.Primary(g.Atomic(g.Terminal(g.String("a")))),
-              g.Primary(g.Atomic(g.Terminal(g.Anything))),
-            ]),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Primary(
+            g.ZeroOrMore(g.Sequence(
+              [
+                g.Primary(g.Atomic(g.Terminal(g.String("a")))),
+                g.Primary(g.Atomic(g.Terminal(g.Anything))),
+              ],
+              option.None,
+            )),
           ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition
@@ -65,19 +79,23 @@ pub fn expand_repetition_sequence_star_test() {
 pub fn expand_repetition_choice_star_test() {
   let name = "expand_repetition_choice_star"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Primary(
-          g.ZeroOrMore(
-            g.Choice([
-              g.Primary(g.Atomic(g.Terminal(g.String("a")))),
-              g.Primary(g.Atomic(g.Terminal(g.String("b")))),
-            ]),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Primary(
+            g.ZeroOrMore(
+              g.Choice([
+                g.Primary(g.Atomic(g.Terminal(g.String("a")))),
+                g.Primary(g.Atomic(g.Terminal(g.String("b")))),
+              ]),
+            ),
           ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
   input
   |> expand_repetition.expand_repetition
   |> pprint.format
@@ -87,25 +105,29 @@ pub fn expand_repetition_choice_star_test() {
 pub fn expand_repetition_charclass_star_test() {
   let name = "expand_repetition_charclass_star"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Primary(
-          g.ZeroOrMore(
-            g.Primary(
-              g.Atomic(
-                g.Terminal(
-                  g.CharacterClass([
-                    g.CharacterRange("a", "z"),
-                    g.SingleCharacter("@"),
-                  ]),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Primary(
+            g.ZeroOrMore(
+              g.Primary(
+                g.Atomic(
+                  g.Terminal(
+                    g.CharacterClass([
+                      g.CharacterRange("a", "z"),
+                      g.SingleCharacter("@"),
+                    ]),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    ])
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition
@@ -116,29 +138,36 @@ pub fn expand_repetition_charclass_star_test() {
 pub fn expand_repetition_dedupe_simple_test() {
   let name = "expand_repetition_dedupe_simple"
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Sequence([
-          g.Primary(
-            g.ZeroOrMore(g.Primary(g.Atomic(g.Nonterminal("whitespace")))),
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Sequence(
+            [
+              g.Primary(
+                g.ZeroOrMore(g.Primary(g.Atomic(g.Nonterminal("whitespace")))),
+              ),
+              g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+              g.Primary(
+                g.ZeroOrMore(g.Primary(g.Atomic(g.Nonterminal("whitespace")))),
+              ),
+            ],
+            option.None,
           ),
-          g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
-          g.Primary(
-            g.ZeroOrMore(g.Primary(g.Atomic(g.Nonterminal("whitespace")))),
-          ),
-        ]),
-      ),
-      g.Definition(
-        name: "whitespace",
-        expr: g.Choice([
-          g.Primary(g.Atomic(g.Terminal(g.String(" ")))),
-          g.Primary(g.Atomic(g.Terminal(g.String("\t")))),
-          g.Primary(g.Atomic(g.Terminal(g.String("\r")))),
-          g.Primary(g.Atomic(g.Terminal(g.String("\n")))),
-        ]),
-      ),
-    ])
+        ),
+        g.Definition(
+          name: "whitespace",
+          expr: g.Choice([
+            g.Primary(g.Atomic(g.Terminal(g.String(" ")))),
+            g.Primary(g.Atomic(g.Terminal(g.String("\t")))),
+            g.Primary(g.Atomic(g.Terminal(g.String("\r")))),
+            g.Primary(g.Atomic(g.Terminal(g.String("\n")))),
+          ]),
+        ),
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition
@@ -150,24 +179,32 @@ pub fn expand_repetition_dedupe_complex_test() {
   let name = "expand_repetition_dedupe_complex"
   let duped =
     g.Primary(
-      g.ZeroOrMore(
-        g.Sequence([
+      g.ZeroOrMore(g.Sequence(
+        [
           g.Primary(g.Atomic(g.Terminal(g.String("a")))),
           g.Primary(g.Atomic(g.Terminal(g.Anything))),
-        ]),
-      ),
+        ],
+        option.None,
+      )),
     )
   let input =
-    g.Grammar(name:, rules: [
-      g.Definition(
-        name: "root",
-        expr: g.Sequence([
-          duped,
-          g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
-          duped,
-        ]),
-      ),
-    ])
+    g.Grammar(
+      name:,
+      rules: [
+        g.Definition(
+          name: "root",
+          expr: g.Sequence(
+            [
+              duped,
+              g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+              duped,
+            ],
+            option.None,
+          ),
+        ),
+      ],
+      top_level_code: option.None,
+    )
 
   input
   |> expand_repetition.expand_repetition

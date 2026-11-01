@@ -12,15 +12,31 @@ Grammar(
     Definition(
       "choice_a_b_star",
       Choice([
-        Sequence([
-          Choice([
-            Primary(Atomic(Terminal(String("a")))),
-            Primary(Atomic(Terminal(String("b")))),
-          ]),
-          Primary(Atomic(Nonterminal("choice_a_b_star"))),
-        ]),
-        Primary(Atomic(Epsilon)),
+        Sequence(
+          [
+            Primary(Labeled(
+              Choice([
+                Primary(Atomic(Terminal(String("a")))),
+                Primary(Atomic(Terminal(String("b")))),
+              ]),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("choice_a_b_star"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [Primary(Atomic(Epsilon))],
+          Some(Generated(ListExpr([]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

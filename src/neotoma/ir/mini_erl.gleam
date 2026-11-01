@@ -1,3 +1,5 @@
+import neotoma/syntax
+
 //// IR for limited abstract syntax for Erlang code-generation.
 
 /// Language constructs that we don't use in the code-generation
@@ -7,6 +9,7 @@ pub type Form {
   Module(name: String)
   Export(funs: List(#(String, Int)))
   Function(name: String, clause: FunctionClause)
+  ParsedForm(List(syntax.SyntaxTree))
 }
 
 /// Expressions evaluate to values
@@ -24,6 +27,8 @@ pub type Expr {
   Infix(left: Expr, op: InfixOp, right: Expr)
   Match(left: Pattern, right: Expr)
   Block(List(Expr))
+  Cons(Expr, Expr)
+  ParsedExpr(List(syntax.SyntaxTree))
 }
 
 pub type InfixOp {

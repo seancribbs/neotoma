@@ -1,7 +1,8 @@
-import gleam/set
 import birdie
+import gleam/option
+import gleam/set
 import neotoma/ir/mini_erl as a
-import neotoma/ir/norep as g
+import neotoma/ir/norep_code as g
 import neotoma/passes/generate_abstract as gen
 import pprint
 
@@ -117,7 +118,12 @@ pub fn generate_abstract_simple_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, [#("Input", "Position", "Memo")], default_success, default_failure)
+  gen.generate_choice(
+    choices,
+    [#("Input", "Position", "Memo")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "choice with one item")
 }
@@ -149,27 +155,39 @@ pub fn generate_abstract_two_item_choice_test() {
   //   ]),
   // ]
 
-  gen.generate_choice(choices, [#("Input", "Position", "Memo")], default_success, default_failure)
+  gen.generate_choice(
+    choices,
+    [#("Input", "Position", "Memo")],
+    default_success,
+    default_failure,
+  )
   |> pprint.format
   |> birdie.snap(title: "choice with two items")
 }
 
 pub fn generate_abstract_nonterminal_test() {
   let g =
-    g.Grammar(name: "generate_abstract_nonterminal_test", rules: [
-      g.Definition(
-        name: "start",
-        expr: g.Sequence([
-          g.Primary(g.Atomic(g.Terminal(g.String("(")))),
-          g.Primary(g.Atomic(g.Nonterminal("inner"))),
-          g.Primary(g.Atomic(g.Terminal(g.String(")")))),
-        ]),
-      ),
-      g.Definition(
-        name: "inner",
-        expr: g.Primary(g.Atomic(g.Terminal(g.Anything))),
-      ),
-    ])
+    g.Grammar(
+      name: "generate_abstract_nonterminal_test",
+      rules: [
+        g.Definition(
+          name: "start",
+          expr: g.Sequence(
+            [
+              g.Primary(g.Atomic(g.Terminal(g.String("(")))),
+              g.Primary(g.Atomic(g.Nonterminal("inner"))),
+              g.Primary(g.Atomic(g.Terminal(g.String(")")))),
+            ],
+            option.None,
+          ),
+        ),
+        g.Definition(
+          name: "inner",
+          expr: g.Primary(g.Atomic(g.Terminal(g.Anything))),
+        ),
+      ],
+      top_level_code: option.None,
+    )
   gen.generate_abstract_module(g, set.new())
   |> pprint.format
   |> birdie.snap(title: "generate abstract nonterminal")
@@ -178,13 +196,16 @@ pub fn generate_abstract_nonterminal_test() {
 pub fn generate_abstract_assert_lookahead_test() {
   // (&"neo" ( "neotoma" / "neon" ) ) / ....
   let expr =
-    g.Sequence([
-      g.Primary(g.Assert(g.Primary(g.Atomic(g.Terminal(g.String("neo")))))),
-      g.Choice([
-        g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
-        g.Primary(g.Atomic(g.Terminal(g.String("neon")))),
-      ]),
-    ])
+    g.Sequence(
+      [
+        g.Primary(g.Assert(g.Primary(g.Atomic(g.Terminal(g.String("neo")))))),
+        g.Choice([
+          g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+          g.Primary(g.Atomic(g.Terminal(g.String("neon")))),
+        ]),
+      ],
+      option.None,
+    )
 
   gen.generate_expression(
     expr,
@@ -199,10 +220,13 @@ pub fn generate_abstract_assert_lookahead_test() {
 pub fn generate_abstract_deny_lookahead_test() {
   let expr =
     // (!crlf .)
-    g.Sequence([
-      g.Primary(g.Deny(g.Primary(g.Atomic(g.Nonterminal("crlf"))))),
-      g.Primary(g.Atomic(g.Terminal(g.Anything))),
-    ])
+    g.Sequence(
+      [
+        g.Primary(g.Deny(g.Primary(g.Atomic(g.Nonterminal("crlf"))))),
+        g.Primary(g.Atomic(g.Terminal(g.Anything))),
+      ],
+      option.None,
+    )
 
   gen.generate_expression(
     expr,
@@ -216,10 +240,13 @@ pub fn generate_abstract_deny_lookahead_test() {
 
 pub fn generate_abstract_optional_test() {
   let expr =
-    g.Sequence([
-      g.Primary(g.Optional(g.Primary(g.Atomic(g.Nonterminal("whitespace"))))),
-      g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
-    ])
+    g.Sequence(
+      [
+        g.Primary(g.Optional(g.Primary(g.Atomic(g.Nonterminal("whitespace"))))),
+        g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
+      ],
+      option.None,
+    )
 
   gen.generate_expression(
     expr,
@@ -233,26 +260,36 @@ pub fn generate_abstract_optional_test() {
 
 pub fn generate_abstract_memoization_test() {
   let g =
-    g.Grammar(name: "generate_abstract_memoization_test", rules: [
-      g.Definition(
-        name: "start",
-        expr: g.Sequence([
-          g.Primary(g.Atomic(g.Terminal(g.String("(")))),
-          g.Primary(g.Atomic(g.Nonterminal("inner_plus"))),
-          g.Primary(g.Atomic(g.Terminal(g.String(")")))),
-        ]),
-      ),
-      g.Definition(
-        name: "inner_plus",
-        expr: g.Choice([
-          g.Sequence([
+    g.Grammar(
+      name: "generate_abstract_memoization_test",
+      rules: [
+        g.Definition(
+          name: "start",
+          expr: g.Sequence(
+            [
+              g.Primary(g.Atomic(g.Terminal(g.String("(")))),
+              g.Primary(g.Atomic(g.Nonterminal("inner_plus"))),
+              g.Primary(g.Atomic(g.Terminal(g.String(")")))),
+            ],
+            option.None,
+          ),
+        ),
+        g.Definition(
+          name: "inner_plus",
+          expr: g.Choice([
+            g.Sequence(
+              [
+                g.Primary(g.Atomic(g.Terminal(g.Anything))),
+                g.Primary(g.Atomic(g.Nonterminal("inner_plus"))),
+              ],
+              option.None,
+            ),
             g.Primary(g.Atomic(g.Terminal(g.Anything))),
-            g.Primary(g.Atomic(g.Nonterminal("inner_plus")))
           ]),
-          g.Primary(g.Atomic(g.Terminal(g.Anything)))
-        ]),
-      ),
-    ])
+        ),
+      ],
+      top_level_code: option.None,
+    )
   gen.generate_abstract_module(g, set.from_list(["inner_plus"]))
   |> pprint.format
   |> birdie.snap(title: "generate abstract memoization")
@@ -262,7 +299,12 @@ fn default_success(value, remainder, position, memo) {
   [
     a.Tuple([
       a.Atom("ok"),
-      a.Tuple([value, a.Variable(remainder), a.Variable(position), a.Variable(memo)]),
+      a.Tuple([
+        value,
+        a.Variable(remainder),
+        a.Variable(position),
+        a.Variable(memo),
+      ]),
     ]),
   ]
 }

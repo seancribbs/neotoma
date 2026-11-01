@@ -18,6 +18,7 @@ fn lower_form(form: a.Form) -> syntax.SyntaxTree {
       ])
     a.Function(name:, clause:) ->
       syntax.function(syntax.atom(name), [lower_function_clause(clause)])
+    a.ParsedForm(forms) -> syntax.form_list(forms)
   }
 }
 
@@ -35,6 +36,7 @@ fn lower_expr(expr: a.Expr) -> syntax.SyntaxTree {
     a.Integer(int) -> syntax.abstract(int)
     a.Variable(var) -> syntax.variable(var)
     a.Tuple(elements) -> syntax.tuple(list.map(elements, lower_expr))
+    a.ListExpr([]) -> syntax.empty_list()
     a.ListExpr(items) -> syntax.list(list.map(items, lower_expr))
     a.Binary(fields) -> syntax.binary(list.map(fields, lower_binary_field))
     a.Case(subject:, clauses:) ->
@@ -73,6 +75,10 @@ fn lower_expr(expr: a.Expr) -> syntax.SyntaxTree {
     a.Match(left:, right:) ->
       syntax.match_expr(lower_pattern(left), lower_expr(right))
     a.Block(exprs) -> syntax.block_expr(list.map(exprs, lower_expr))
+    a.Cons(head, tail) -> {
+      syntax.list_cons([lower_expr(head)], lower_expr(tail))
+    }
+    a.ParsedExpr(exprs) -> syntax.block_expr(exprs)
   }
 }
 

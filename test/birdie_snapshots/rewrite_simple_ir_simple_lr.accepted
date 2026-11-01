@@ -8,25 +8,43 @@ Grammar(
     Definition(
       "expression",
       Choice([
-        Sequence([
-          Primary(Atomic(Nonterminal("number"))),
-          Primary(Atomic(Nonterminal("expression_tail"))),
-        ]),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("number"))),
+              "LRHead",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("expression_tail"))),
+              "LRTail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("LRHead"),
+            Variable("LRTail"),
+          ))),
+        ),
       ]),
     ),
     Definition(
       "expression_tail",
       Choice([
-        Sequence([
-          Primary(Atomic(Terminal(String("+")))),
-          Primary(Atomic(Nonterminal("number"))),
-          Primary(Atomic(Nonterminal("expression_tail"))),
-        ]),
-        Sequence([
-          Primary(Atomic(Terminal(String("-")))),
-          Primary(Atomic(Nonterminal("number"))),
-          Primary(Atomic(Nonterminal("expression_tail"))),
-        ]),
+        Sequence(
+          [
+            Primary(Atomic(Terminal(String("+")))),
+            Primary(Atomic(Nonterminal("number"))),
+            Primary(Atomic(Nonterminal("expression_tail"))),
+          ],
+          None,
+        ),
+        Sequence(
+          [
+            Primary(Atomic(Terminal(String("-")))),
+            Primary(Atomic(Nonterminal("number"))),
+            Primary(Atomic(Nonterminal("expression_tail"))),
+          ],
+          None,
+        ),
         Primary(Atomic(Epsilon)),
       ]),
     ),
@@ -37,4 +55,5 @@ Grammar(
       ])))),
     ),
   ],
+  None,
 )

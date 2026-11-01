@@ -12,11 +12,14 @@ Grammar(
     Definition(
       "expr",
       Choice([
-        Sequence([
-          Primary(Atomic(Nonterminal("x"))),
-          Primary(Atomic(Terminal(String("-")))),
-          Primary(Atomic(Nonterminal("number"))),
-        ]),
+        Sequence(
+          [
+            Primary(Atomic(Nonterminal("x"))),
+            Primary(Atomic(Terminal(String("-")))),
+            Primary(Atomic(Nonterminal("number"))),
+          ],
+          None,
+        ),
         Primary(Atomic(Nonterminal("number"))),
       ]),
     ),
@@ -27,4 +30,5 @@ Grammar(
       ])))),
     ),
   ],
+  None,
 )

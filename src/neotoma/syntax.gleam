@@ -32,6 +32,9 @@ pub fn remote_application(
 @external(erlang, "erl_syntax", "list")
 pub fn list(items: List(SyntaxTree)) -> SyntaxTree
 
+@external(erlang, "erl_syntax", "list")
+pub fn list_cons(head: List(SyntaxTree), tail: SyntaxTree) -> SyntaxTree
+
 // form_list/1
 @external(erlang, "erl_syntax", "form_list")
 pub fn form_list(forms: List(SyntaxTree)) -> SyntaxTree
@@ -118,3 +121,12 @@ pub fn plus_operator() -> SyntaxTree
 
 @external(erlang, "erl_syntax", "block_expr")
 pub fn block_expr(exprs: List(SyntaxTree)) -> SyntaxTree
+
+@external(erlang, "neotoma_ffi", "parse_exprs")
+pub fn parse_exprs(str: String) -> Result(List(SyntaxTree), Nil)
+
+@external(erlang, "erl_syntax", "nil")
+pub fn empty_list() -> SyntaxTree
+
+@external(erlang, "neotoma_ffi", "parse_forms")
+pub fn parse_forms(str: String) -> Result(List(SyntaxTree), Nil)

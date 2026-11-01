@@ -9,24 +9,31 @@ Grammar(
   [
     Definition(
       "top",
-      Sequence([
-        Primary(Atomic(Nonterminal("ws_star"))),
-        Primary(Atomic(Terminal(String("neotoma")))),
-        Primary(Atomic(Nonterminal("ws_star"))),
-      ]),
+      Sequence(
+        [
+          Primary(Atomic(Nonterminal("ws_star"))),
+          Primary(Atomic(Terminal(String("neotoma")))),
+          Primary(Atomic(Nonterminal("ws_star"))),
+        ],
+        None,
+      ),
     ),
     Definition(
       "ws_star",
       Choice([
-        Sequence([
-          Primary(Atomic(Terminal(CharacterClass([
-            SingleCharacter(" "),
-            SingleCharacter("	"),
-          ])))),
-          Primary(Atomic(Nonterminal("ws_star"))),
-        ]),
+        Sequence(
+          [
+            Primary(Atomic(Terminal(CharacterClass([
+              SingleCharacter(" "),
+              SingleCharacter("	"),
+            ])))),
+            Primary(Atomic(Nonterminal("ws_star"))),
+          ],
+          None,
+        ),
         Primary(Atomic(Epsilon)),
       ]),
     ),
   ],
+  None,
 )

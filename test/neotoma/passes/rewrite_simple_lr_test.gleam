@@ -1,3 +1,4 @@
+import gleam/option
 import birdie
 import neotoma/ir/norep as g
 import neotoma/passes/rewrite_simple_lr
@@ -14,11 +15,11 @@ pub fn rewrite_simple_ir_no_recursion_test() {
           g.Sequence([
             g.Primary(g.Atomic(g.Terminal(g.String("neotoma")))),
             g.Primary(g.Atomic(g.Nonterminal("neotoma_star"))),
-          ]),
+          ], option.None),
           g.Primary(g.Atomic(g.Epsilon)),
         ]),
       ),
-    ])
+    ], option.None)
 
   input
   |> rewrite_simple_lr.rewrite_simple_lr()
@@ -37,12 +38,12 @@ pub fn rewrite_simple_ir_simple_lr_test() {
             g.Primary(g.Atomic(g.Nonterminal("expression"))),
             g.Primary(g.Atomic(g.Terminal(g.String("+")))),
             g.Primary(g.Atomic(g.Nonterminal("number"))),
-          ]),
+          ], option.None),
           g.Sequence([
             g.Primary(g.Atomic(g.Nonterminal("expression"))),
             g.Primary(g.Atomic(g.Terminal(g.String("-")))),
             g.Primary(g.Atomic(g.Nonterminal("number"))),
-          ]),
+          ], option.None),
           g.Primary(g.Atomic(g.Nonterminal("number"))),
         ]),
       ),
@@ -52,7 +53,7 @@ pub fn rewrite_simple_ir_simple_lr_test() {
           g.Atomic(g.Terminal(g.CharacterClass([g.CharacterRange("0", "9")]))),
         ),
       ),
-    ])
+    ], option.None)
 
   input
   |> rewrite_simple_lr.rewrite_simple_lr()
@@ -75,7 +76,7 @@ pub fn rewrite_simple_ir_indirect_lr_test() {
             g.Primary(g.Atomic(g.Nonterminal("x"))),
             g.Primary(g.Atomic(g.Terminal(g.String("-")))),
             g.Primary(g.Atomic(g.Nonterminal("number"))),
-          ]),
+          ], option.None),
           g.Primary(g.Atomic(g.Nonterminal("number"))),
         ]),
       ),
@@ -85,7 +86,7 @@ pub fn rewrite_simple_ir_indirect_lr_test() {
           g.Atomic(g.Terminal(g.CharacterClass([g.CharacterRange("0", "9")]))),
         ),
       ),
-    ])
+    ], option.None)
 
   input
   |> rewrite_simple_lr.rewrite_simple_lr()

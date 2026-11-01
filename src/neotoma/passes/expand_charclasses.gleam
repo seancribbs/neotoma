@@ -34,8 +34,8 @@ fn expand_charclasses_def(
 fn expand_charclasses_expr(expr: grammar.Expression) -> grammar.Expression {
   case expr {
     grammar.Primary(prim) -> expand_charclasses_prim(prim)
-    grammar.Sequence(exprs) ->
-      grammar.Sequence(list.map(exprs, expand_charclasses_expr))
+    grammar.Sequence(exprs, code) ->
+      grammar.Sequence(list.map(exprs, expand_charclasses_expr), code)
     grammar.Choice(exprs) ->
       grammar.Choice(list.map(exprs, expand_charclasses_expr))
   }
@@ -48,6 +48,18 @@ fn expand_charclasses_prim(prim: grammar.Primary) -> grammar.Expression {
       |> list.flat_map(expand_entry)
       |> grammar.Choice
     }
+    grammar.Assert(expr) ->
+      grammar.Primary(grammar.Assert(expand_charclasses_expr(expr)))
+    grammar.Deny(expr) ->
+      grammar.Primary(grammar.Deny(expand_charclasses_expr(expr)))
+    grammar.Optional(expr) ->
+      grammar.Primary(grammar.Optional(expand_charclasses_expr(expr)))
+    grammar.ZeroOrMore(expr) ->
+      grammar.Primary(grammar.ZeroOrMore(expand_charclasses_expr(expr)))
+    grammar.OneOrMore(expr) ->
+      grammar.Primary(grammar.OneOrMore(expand_charclasses_expr(expr)))
+    grammar.Labeled(expr:, binding:) ->
+      grammar.Primary(grammar.Labeled(expand_charclasses_expr(expr), binding))
     _ -> grammar.Primary(prim)
   }
 }

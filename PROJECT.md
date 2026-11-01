@@ -27,11 +27,13 @@
       `#{ {NT, Offset} => {Result, Position} | {error, no_match} }` (manually advance input by byte-slice the head off)
 - [X] Erlang code generation
 - [ ] Code support
-  - [ ] User-defined sub-expression bindings ("labels->variables")
-  - [ ] User-defined result-evaluation ("code blocks")
-  - [ ] Code generation for included transformations
-    - [ ] Kleene expansion (cons operations)
-    - [ ] LR-elimination (preserve left-associativity by lifting)
+  - [ ] Top-level code
+    - Figure out the right stategy for parsing forms
+  - [X] User-defined sub-expression bindings ("labels->variables")
+  - [X] User-defined result-evaluation ("code blocks")
+  - [X] Code generation for included transformations
+    - [X] Kleene expansion (cons operations)
+    - [X] LR-elimination (preserve left-associativity by lifting)
 
 # Bugs from WIP code
 

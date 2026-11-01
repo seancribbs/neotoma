@@ -9,12 +9,16 @@ Grammar(
   [
     Definition(
       "top",
-      Sequence([
-        Primary(Atomic(Terminal(Anything))),
-        Primary(Atomic(Terminal(Anything))),
-        Primary(Atomic(Terminal(String("neotoma")))),
-        Primary(Atomic(Terminal(Anything))),
-      ]),
+      Sequence(
+        [
+          Primary(Atomic(Terminal(Anything))),
+          Primary(Atomic(Terminal(Anything))),
+          Primary(Atomic(Terminal(String("neotoma")))),
+          Primary(Atomic(Terminal(Anything))),
+        ],
+        None,
+      ),
     ),
   ],
+  None,
 )

@@ -1,4 +1,5 @@
 import gleam/list
+import gleam/option
 import neotoma/ir/norep as g
 
 pub fn simplify(g: g.Grammar) -> g.Grammar {
@@ -24,13 +25,13 @@ fn flatten_definition(definition: g.Definition) -> g.Definition {
 fn flatten_expr(expr: g.Expression) -> g.Expression {
   case expr {
     // Eliminate useless sequencing
-    g.Sequence([item]) -> flatten_expr(item)
-    g.Sequence(items) ->
+    g.Sequence([item], option.None) -> flatten_expr(item)
+    g.Sequence(items, code) ->
       items
       |> list.map(flatten_expr)
       |> list.flat_map(flatten_sequence)
       // Flatten sequence-in-sequence
-      |> g.Sequence
+      |> g.Sequence(code)
     // Eliminate redundant choice
     g.Choice([alt]) -> flatten_expr(alt)
     g.Choice(alts) ->
@@ -55,7 +56,7 @@ fn flatten_choice(expression: g.Expression) -> List(g.Expression) {
 // Flattens direct nesting of sequence-in-sequence to single sequence
 fn flatten_sequence(expression: g.Expression) -> List(g.Expression) {
   case expression {
-    g.Sequence(items) -> items
+    g.Sequence(items, option.None) -> items
     _ -> [expression]
   }
 }
@@ -65,6 +66,7 @@ fn flatten_primary(prim: g.Primary) -> g.Primary {
     g.Assert(expr) -> g.Assert(flatten_expr(expr))
     g.Deny(expr) -> g.Deny(flatten_expr(expr))
     g.Optional(expr) -> g.Optional(flatten_expr(expr))
+    g.Labeled(expr, binding) -> g.Labeled(flatten_expr(expr), binding)
     _atomic -> prim
   }
 }
@@ -109,12 +111,12 @@ fn references_in_expr(expr: g.Expression, nonterminal: String) -> Int {
   case expr {
     g.Primary(g.Atomic(g.Nonterminal(name:))) if name == nonterminal -> 1
     g.Primary(g.Atomic(_)) -> 0
-    g.Primary(g.Assert(expression)) ->
+    g.Primary(g.Assert(expression))
+    | g.Primary(g.Deny(expression))
+    | g.Primary(g.Optional(expression))
+    | g.Primary(g.Labeled(expression, _)) ->
       references_in_expr(expression, nonterminal)
-    g.Primary(g.Deny(expression)) -> references_in_expr(expression, nonterminal)
-    g.Primary(g.Optional(expression)) ->
-      references_in_expr(expression, nonterminal)
-    g.Sequence(items) ->
+    g.Sequence(items, _) ->
       list.fold(items, 0, fn(acc, item) {
         acc + references_in_expr(item, nonterminal)
       })
@@ -153,9 +155,15 @@ fn inline_nonterminal_into_expression(
       g.Primary(
         g.Optional(inline_nonterminal_into_expression(expression, to_inline)),
       )
-    g.Sequence(items) ->
+    g.Primary(g.Labeled(expression, binding)) ->
+      g.Primary(g.Labeled(
+        inline_nonterminal_into_expression(expression, to_inline),
+        binding,
+      ))
+    g.Sequence(items, code) ->
       g.Sequence(
         list.map(items, inline_nonterminal_into_expression(_, to_inline)),
+        code,
       )
     g.Choice(items) ->
       g.Choice(

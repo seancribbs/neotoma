@@ -21,7 +21,10 @@ pub fn prohibit_indirect_lr(g: g.Grammar) -> Result(g.Grammar, CyclesDetected) {
             let members = set.from_list(cycle.ordered)
             case set.contains(cliques, members) {
               True -> acc
-              False -> #([cycle.ordered, ..ordered], set.insert(cliques, members))
+              False -> #(
+                [cycle.ordered, ..ordered],
+                set.insert(cliques, members),
+              )
             }
           })
       }
@@ -58,9 +61,9 @@ fn find_cycle_primary(prim: g.Primary, nts: List(String), grammar: g.Grammar) {
         }
       }
     }
-    g.Assert(expr) | g.Deny(expr) | g.Optional(expr) ->
+    g.Assert(expr) | g.Deny(expr) | g.Optional(expr) | g.Labeled(expr, _) ->
       find_cycle_expr(expr, nts, grammar)
-    _ -> []
+    g.Atomic(g.Terminal(kind: _)) | g.Atomic(g.Epsilon) -> []
   }
 }
 
@@ -71,9 +74,10 @@ fn find_cycle_expr(
 ) -> List(Cycle) {
   case expr {
     g.Primary(primary) -> find_cycle_primary(primary, nts, grammar)
-    g.Sequence([expr, ..]) -> find_cycle_expr(expr, nts, grammar)
+    g.Sequence([expr, ..], _) -> find_cycle_expr(expr, nts, grammar)
     g.Choice(choices) ->
       list.flat_map(choices, find_cycle_expr(_, nts, grammar))
+    // g.Sequence(exprs: [], code:) -> todo
     _ -> []
   }
 }

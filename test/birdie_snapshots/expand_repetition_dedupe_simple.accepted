@@ -7,11 +7,14 @@ Grammar(
   [
     Definition(
       "root",
-      Sequence([
-        Primary(Atomic(Nonterminal("whitespace_star"))),
-        Primary(Atomic(Terminal(String("neotoma")))),
-        Primary(Atomic(Nonterminal("whitespace_star"))),
-      ]),
+      Sequence(
+        [
+          Primary(Atomic(Nonterminal("whitespace_star"))),
+          Primary(Atomic(Terminal(String("neotoma")))),
+          Primary(Atomic(Nonterminal("whitespace_star"))),
+        ],
+        None,
+      ),
     ),
     Definition(
       "whitespace",
@@ -26,12 +29,28 @@ Grammar(
     Definition(
       "whitespace_star",
       Choice([
-        Sequence([
-          Primary(Atomic(Nonterminal("whitespace"))),
-          Primary(Atomic(Nonterminal("whitespace_star"))),
-        ]),
-        Primary(Atomic(Epsilon)),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("whitespace"))),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("whitespace_star"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [Primary(Atomic(Epsilon))],
+          Some(Generated(ListExpr([]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

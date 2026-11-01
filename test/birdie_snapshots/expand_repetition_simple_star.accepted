@@ -12,12 +12,28 @@ Grammar(
     Definition(
       "neotoma_star",
       Choice([
-        Sequence([
-          Primary(Atomic(Terminal(String("neotoma")))),
-          Primary(Atomic(Nonterminal("neotoma_star"))),
-        ]),
-        Primary(Atomic(Epsilon)),
+        Sequence(
+          [
+            Primary(Labeled(
+              Primary(Atomic(Terminal(String("neotoma")))),
+              "Head",
+            )),
+            Primary(Labeled(
+              Primary(Atomic(Nonterminal("neotoma_star"))),
+              "Tail",
+            )),
+          ],
+          Some(Generated(Cons(
+            Variable("Head"),
+            Variable("Tail"),
+          ))),
+        ),
+        Sequence(
+          [Primary(Atomic(Epsilon))],
+          Some(Generated(ListExpr([]))),
+        ),
       ]),
     ),
   ],
+  None,
 )

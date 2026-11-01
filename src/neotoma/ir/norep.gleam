@@ -2,6 +2,8 @@
 //// At this step, all repetition has been rewritten using right-recursive rules.
 
 import gleam/list
+import gleam/option
+import neotoma/code
 
 /// The kinds of all concrete syntax elements.
 ///
@@ -25,7 +27,11 @@ pub type CharacterClassEntry {
 
 /// Grammar contains all rules of the language
 pub type Grammar {
-  Grammar(name: String, rules: List(Definition))
+  Grammar(
+    name: String,
+    rules: List(Definition),
+    top_level_code: option.Option(String),
+  )
 }
 
 /// Definitions define the way that nonterminals are produced
@@ -35,8 +41,8 @@ pub type Definition {
 
 /// A single parsing expression
 pub type Expression {
-  Primary(Primary)
-  Sequence(List(Expression))
+  Primary(primary: Primary)
+  Sequence(exprs: List(Expression), code: option.Option(code.Code))
   Choice(List(Expression))
 }
 
@@ -51,6 +57,8 @@ pub type Primary {
   Deny(Expression)
   // optional sub-expression, if it fails, it is skipped
   Optional(Expression)
+  // expression labeled with a binding
+  Labeled(Expression, String)
 }
 
 /// An atomic expression contains a single terminal, non-terminal, or parenthesized expression
@@ -64,7 +72,7 @@ pub type Atomic {
 pub fn size(expr: Expression) -> Int {
   case expr {
     Primary(prim) -> size_of_primary(prim)
-    Sequence(items) -> list.fold(items, 1, fn(acc, item) { acc + size(item) })
+    Sequence(items, _) -> list.fold(items, 1, fn(acc, item) { acc + size(item) })
     Choice(alts) -> list.fold(alts, 1, fn(acc, item) { acc + size(item) })
   }
 }
@@ -78,5 +86,6 @@ fn size_of_primary(prim: Primary) -> Int {
     Assert(expr) -> size(expr)
     Deny(expr) -> size(expr)
     Optional(expr) -> 1 + size(expr)
+    Labeled(expr, _) -> size(expr)
   }
 }

@@ -1,4 +1,7 @@
 import gleam/list
+import gleam/option
+import neotoma/code
+import neotoma/ir/mini_erl
 import neotoma/ir/norep as g
 
 pub fn rewrite_simple_lr(g: g.Grammar) -> g.Grammar {
@@ -27,10 +30,21 @@ fn rewrite_simple_lr_rule(definition: g.Definition) -> List(g.Definition) {
               ..definition,
               expr: g.Choice(
                 list.map(non_lrs, fn(expr) {
-                  g.Sequence([
-                    expr,
-                    g.Primary(g.Atomic(g.Nonterminal(tail_name))),
-                  ])
+                  g.Sequence(
+                    [
+                      g.Primary(g.Labeled(expr, "LRHead")),
+                      g.Primary(g.Labeled(
+                        g.Primary(g.Atomic(g.Nonterminal(tail_name))),
+                        "LRTail",
+                      )),
+                    ],
+                    option.Some(
+                      code.Generated(mini_erl.Cons(
+                        mini_erl.Variable("LRHead"),
+                        mini_erl.Variable("LRTail"),
+                      )),
+                    ),
+                  )
                 }),
               ),
             )
@@ -39,7 +53,7 @@ fn rewrite_simple_lr_rule(definition: g.Definition) -> List(g.Definition) {
         }
       }
     }
-    g.Primary(_) | g.Sequence(_) -> [definition]
+    g.Primary(_) | g.Sequence(_, _) -> [definition]
   }
 }
 
@@ -53,8 +67,8 @@ fn extract_lr(
   use acc, choice <- list.fold_right(choices, #([], []))
   let #(lrs, non_lrs) = acc
   case choice {
-    g.Sequence([lr, ..rest]) if lr == expected -> #(
-      [g.Sequence(list.append(rest, [tail_call])), ..lrs],
+    g.Sequence([lr, ..rest], code) if lr == expected -> #(
+      [g.Sequence(list.append(rest, [tail_call]), code), ..lrs],
       non_lrs,
     )
 
